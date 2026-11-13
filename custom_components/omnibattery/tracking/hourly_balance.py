@@ -323,13 +323,12 @@ class HourlyBalanceManager:
                     except (ValueError, TypeError):
                         grid_w = None
             else:
-                # FORK: grid view (docs/fork/02-architektur.md), B5
-                stats_reader = getattr(self._controller, "read_statistics_grid_w", None)
-                if callable(stats_reader):
-                    grid_w = stats_reader()
-                else:
-                    grid_state = self._hass.states.get(self._controller.consumption_sensor)
-                    grid_w = self._controller._apply_meter_transform(grid_state)
+                # FORK: review 3 - deliberately the control sensor, not the real
+                # meter: the hourly balance shifts the PD setpoint, so it is a
+                # control input. Counting excluded devices from the real meter
+                # would make the battery compensate them through the offset.
+                grid_state = self._hass.states.get(self._controller.consumption_sensor)
+                grid_w = self._controller._apply_meter_transform(grid_state)
 
             if grid_w is None:
                 self._last_sample_monotonic = None

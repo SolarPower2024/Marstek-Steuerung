@@ -767,6 +767,9 @@ class ChargeDischargeController:
         # FORK: grid view (docs/fork/02-architektur.md)
         self._grid_view = GridView()
         self._last_physical_grid_w = None
+        self._peak_physical_prev = False  # FORK: review 1/2 - last cycle shaved on real meter
+        self._peak_exit_since = None  # FORK: review 2/7 - peak exit hold timer (monotonic)
+        self._physical_trigger_pending = False  # FORK: review 6 - cycle requested by real meter
         self._configure_grid_view()
         # Zero-cross hold (direction-flip dwell): stamped on the first cycle that
         # requests the opposite charge/discharge direction; the flip is clamped to
@@ -3203,33 +3206,109 @@ class ChargeDischargeController:
 
     def _configure_relay_guard(self) -> None:
         # FORK: relay guard (docs/fork/02-architektur.md)
-        c, d = _fork_const, self.config_entry.data
-        self._pd_relay_guard_enabled = bool(d.get(c.CONF_PD_RELAY_GUARD_ENABLED, c.DEFAULT_PD_RELAY_GUARD_ENABLED))
+        c = _fork_const
+        # FORK: review 13 - a stored None must not break setup / hot reload.
+        def d(key, default):
+            value = self.config_entry.data.get(key)
+            return default if value is None else value
+        self._pd_relay_guard_enabled = bool(d(c.CONF_PD_RELAY_GUARD_ENABLED, c.DEFAULT_PD_RELAY_GUARD_ENABLED))
         self._relay_guard.configure(
             enabled=self._pd_relay_guard_enabled,
-            min_off_s=d.get(c.CONF_PD_RELAY_MIN_OFF, c.DEFAULT_PD_RELAY_MIN_OFF),
-            direction_lock_s=d.get(c.CONF_PD_DIRECTION_LOCK, c.DEFAULT_PD_DIRECTION_LOCK),
-            engage_margin_w=d.get(c.CONF_PD_ENGAGE_MARGIN, c.DEFAULT_PD_ENGAGE_MARGIN),
-            bypass_error_w=d.get(c.CONF_PD_GUARD_BYPASS_ERROR, c.DEFAULT_PD_GUARD_BYPASS_ERROR),
-            budget_per_hour=d.get(c.CONF_PD_RELAY_SWITCH_BUDGET, c.DEFAULT_PD_RELAY_SWITCH_BUDGET),
+            min_off_s=d(c.CONF_PD_RELAY_MIN_OFF, c.DEFAULT_PD_RELAY_MIN_OFF),
+            direction_lock_s=d(c.CONF_PD_DIRECTION_LOCK, c.DEFAULT_PD_DIRECTION_LOCK),
+            engage_margin_w=d(c.CONF_PD_ENGAGE_MARGIN, c.DEFAULT_PD_ENGAGE_MARGIN),
+            bypass_error_w=d(c.CONF_PD_GUARD_BYPASS_ERROR, c.DEFAULT_PD_GUARD_BYPASS_ERROR),
+            budget_per_hour=d(c.CONF_PD_RELAY_SWITCH_BUDGET, c.DEFAULT_PD_RELAY_SWITCH_BUDGET),
         )
 
     def _configure_grid_view(self) -> None:
         # FORK: grid view (docs/fork/02-architektur.md)
-        c, d = _fork_const, self.config_entry.data
+        c, data = _fork_const, self.config_entry.data
         self._grid_view.configure(
-            physical_entity=d.get(c.CONF_PHYSICAL_GRID_SENSOR),
-            physical_inverted=d.get(c.CONF_PHYSICAL_GRID_INVERTED, c.DEFAULT_PHYSICAL_GRID_INVERTED),
-            limit_entity=d.get(c.CONF_CAPACITY_PROTECTION_LIMIT_ENTITY),
-            limit_margin_pct=d.get(c.CONF_CAPACITY_PROTECTION_LIMIT_MARGIN, c.DEFAULT_CAPACITY_PROTECTION_LIMIT_MARGIN),
+            physical_entity=data.get(c.CONF_PHYSICAL_GRID_SENSOR) or None,
+            physical_inverted=bool(data.get(c.CONF_PHYSICAL_GRID_INVERTED) or False),
+            limit_entity=data.get(c.CONF_CAPACITY_PROTECTION_LIMIT_ENTITY) or None,
+            limit_margin_pct=data.get(c.CONF_CAPACITY_PROTECTION_LIMIT_MARGIN) or c.DEFAULT_CAPACITY_PROTECTION_LIMIT_MARGIN,
         )
+        # FORK: review 11 - start every (re)configuration without a stale
+        # repair issue; the cycle re-creates it if the meter is still unusable.
+        self._physical_grid_issue_created = False
+        hass = getattr(self, "hass", None)
+        if hass is not None:
+            try:
+                ir.async_delete_issue(
+                    hass, DOMAIN, f"physical_grid_sensor_unusable_{self.config_entry.entry_id}"
+                )
+            except Exception:  # noqa: BLE001 - diagnostics must never block setup
+                _LOGGER.debug("Could not clear physical grid sensor issue", exc_info=True)
 
     def _read_physical_grid_w(self) -> float | None:
         # FORK: grid view (docs/fork/02-architektur.md)
         view = getattr(self, "_grid_view", None)
         if view is None or (self.offgrid_mode_enabled and self.offgrid_power_sensor):
             return None
-        return view.read_physical(self.hass.states, dt_util.utcnow())
+        now = dt_util.utcnow()
+        # FORK: review 1 - while shaving runs on the real meter, a value that has
+        # not changed for PHYSICAL_FROZEN_S is a frozen (cached) reading.
+        if getattr(self, "_peak_physical_prev", False) and view.latch_frozen(now):
+            _LOGGER.debug("Real grid meter value frozen during peak shaving - fallback")
+        return view.read_physical(self.hass.states, now)
+
+    def _track_peak_state(self, physical: float | None) -> bool:
+        """Return True if this cycle's peak shaving regulates the real meter.
+
+        FORK: review 2/7. Remembers the result for the next cycle and drops the
+        peak exit hold timer whenever the peak action is no longer "conserving".
+        """
+        status = getattr(self, "_capacity_protection_status", None) or {}
+        action = status.get("action")
+        peak_physical = physical is not None and action == "shaving"
+        self._peak_physical_prev = peak_physical
+        if action != "conserving":
+            self._peak_exit_since = None
+        return peak_physical
+
+    def _peak_exit_hold_active(self) -> bool:
+        """Delay force-idle when leaving physical-meter shaving for "conserving".
+
+        FORK: review 2/7. Armed only when the previous cycle shaved on the real
+        meter (never without a second sensor); keeps the last command until the
+        "conserving" result has held for PEAK_EXIT_HOLD_S without interruption.
+        """
+        now = time.monotonic()
+        since = getattr(self, "_peak_exit_since", None)
+        if since is None:
+            if not getattr(self, "_peak_physical_prev", False):
+                return False
+            self._peak_exit_since = since = now
+        if now - since < _fork_const.PEAK_EXIT_HOLD_S:
+            return True
+        self._peak_exit_since = None
+        return False
+
+    def _grid_at_min_soc_power(self, sensor_actual: float) -> float:
+        """Grid power integrated by the grid-at-min-SOC accumulator.
+
+        FORK: review 8. The real meter only when one is configured (and usable);
+        otherwise exactly the upstream value ``sensor_actual``.
+        """
+        view = getattr(self, "_grid_view", None)
+        if view is None or not view.has_physical:
+            return sensor_actual
+        stats_w = self.read_statistics_grid_w()
+        return sensor_actual if stats_w is None else max(0.0, stats_w)
+
+    def _guard_peak_bypass(self) -> bool:
+        """Relay guard bypass: peak discharge or ICP excluded-device protection.
+
+        FORK: review 2/9. Not for "conserving"/"charging": those need no
+        immediate engage, so the anti-chatter locks may apply.
+        """
+        status = getattr(self, "_capacity_protection_status", None) or {}
+        return (
+            bool(getattr(self, "_capacity_protection_active", False))
+            and status.get("action") in ("shaving", "shaving_excluded")
+        ) or (getattr(self, "_icp_excluded_protection_w", 0.0) or 0.0) > 0
 
     def read_statistics_grid_w(self) -> float | None:
         """Grid power (+import / -export) for statistics and display.
@@ -3258,7 +3337,9 @@ class ChargeDischargeController:
         if view is None or getattr(self, "hass", None) is None:
             return
         issue_id = f"physical_grid_sensor_unusable_{self.config_entry.entry_id}"
-        since = view.status()["unusable_since"] if view.has_physical else None
+        # FORK: review 11 - no issue in off-grid mode (the real meter is unused).
+        offgrid = bool(getattr(self, "offgrid_mode_enabled", False) and getattr(self, "offgrid_power_sensor", None))
+        since = view.status()["unusable_since"] if view.has_physical and not offgrid else None
         unusable = (
             since is not None
             and (dt_util.utcnow() - since).total_seconds() > _fork_const.PHYSICAL_GRID_UNUSABLE_ISSUE_DELAY_S
@@ -5408,7 +5489,9 @@ class ChargeDischargeController:
                     sensor_actual += self._excluded_included_adjustment
                 self.set_setpoint_override("capacity_protection", sensor_actual, priority=10)
                 active_target = self.compute_active_target()
-                if self.previous_power != 0:
+                if self.previous_power != 0 and not (
+                    ChargeDischargeController._peak_exit_hold_active(self)  # FORK: review 2/7
+                ):
                     self._capacity_protection_force_idle = True
                 _LOGGER.info(
                     "Capacity Protection ACTIVE: SOC=%.1f%% < %d%%, house_load=%.0fW <= limit=%dW -> idle (target=%.0fW)",
@@ -8767,13 +8850,17 @@ class ChargeDischargeController:
             )
             self._last_cycle_monotonic = time.monotonic()
             self._cycle_kept_last_command = False
+            # FORK: review 6 - a real-meter trigger that only kept the last
+            # command gives the interval back like a timer tick does.
+            physical_trigger = now is None and getattr(self, "_physical_trigger_pending", False)
+            self._physical_trigger_pending = False
             await self._run_control_cycle(now)
             # A safety-timer tick that found no new meter sample and kept the
             # last command gives PD Min Cycle Interval back, so it doesn't hold
             # off the next meter update. A tick that acted on a new sample
             # still counts: with a fast meter it usually does, and leaving it
             # out would let ticks add cycles on top of the paced meter updates.
-            if now is not None and self._cycle_kept_last_command:
+            if (now is not None or physical_trigger) and self._cycle_kept_last_command:  # FORK: review 6
                 self._last_cycle_monotonic = previous_cycle_monotonic
 
     def _schedule_no_pd_debounced_run(self):
@@ -10328,14 +10415,16 @@ class ChargeDischargeController:
         # meter is the controlled variable, so its samples (not the control
         # sensor's) decide freshness and the P/D time base. The EMA above stays
         # on the control sensor and is not touched.
-        peak_physical = physical is not None and (
-            getattr(self, "_capacity_protection_status", None) or {}).get("action") == "shaving"
+        peak_physical = ChargeDischargeController._track_peak_state(self, physical)  # FORK: review 2/7
         if peak_physical:
             has_new_control_sample = physical_new
             if physical_new:
                 stale_safety_recalc = False
                 sensor_elapsed_s = physical_elapsed_s
-        sensor_actual = self._apply_icp_excluded_protection(sensor_filtered, sensor_actual, active_target)
+            # FORK: review 5 - the real meter already contains the excluded load.
+            self._icp_excluded_protection_w = 0.0
+        else:
+            sensor_actual = self._apply_icp_excluded_protection(sensor_filtered, sensor_actual, active_target)
 
         if self._capacity_protection_force_idle:
             self._capacity_protection_force_idle = False
@@ -10557,6 +10646,7 @@ class ChargeDischargeController:
             self._pd_on_physical = peak_physical
             self.previous_error = error
             self.derivative_filtered = 0.0
+            self._step_candidate = None  # FORK: review 10 - candidate measured the other variable
 
         feedforward_fired = False
         if not has_new_control_sample:
@@ -10651,7 +10741,7 @@ class ChargeDischargeController:
             decision = guard.filter(
                 new_power, error, previous_power=self.previous_power,
                 min_charge_w=self.min_charge_power, min_discharge_w=self.min_discharge_power,
-                peak_bypass=bool(self._capacity_protection_active),
+                peak_bypass=ChargeDischargeController._guard_peak_bypass(self),  # FORK: review 2/9
                 stale_recalc=stale_safety_recalc, now=time.monotonic(),
             )
             if decision.power != new_power:
@@ -10797,9 +10887,7 @@ class ChargeDischargeController:
                     dt_s = (now_ts - last_ts).total_seconds()
                     # FORK: grid view (docs/fork/02-architektur.md), B5 - integrate the
                     # real meter when configured (the gate above stays on the control value).
-                    stats_reader = getattr(self, "read_statistics_grid_w", None)
-                    stats_w = stats_reader() if callable(stats_reader) else None
-                    grid_w_energy = sensor_actual if stats_w is None else max(0.0, stats_w)
+                    grid_w_energy = ChargeDischargeController._grid_at_min_soc_power(self, sensor_actual)
                     interval_kwh = grid_w_energy * dt_s / 3_600_000
                     self._daily_grid_at_min_soc_kwh += interval_kwh
                     if self._grid_at_min_soc_sensor:
@@ -12329,9 +12417,9 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, opened: li
         entry.async_on_unload(unsub_consumption_reported)
 
     # FORK: grid view (docs/fork/02-architektur.md), P4 - the real meter also
-    # schedules a cycle, but only when peak shaving or the ICP clamp can use it.
-    # Deliberately no cadence/stale/dead-meter observation: that stays on the
-    # control sensor.
+    # schedules a cycle, but only when peak shaving can act on it (SOC-limited
+    # or active). Deliberately no cadence/stale/dead-meter observation: that
+    # stays on the control sensor (frozen values: GridView.latch_frozen).
     unsub_physical_grid = None
     physical_grid_sensor = entry.data.get(_fork_const.CONF_PHYSICAL_GRID_SENSOR)
     if physical_grid_sensor and physical_grid_sensor not in controller.consumption_sensor_ids:
@@ -12339,7 +12427,13 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, opened: li
         def _on_physical_grid_changed(_event):
             if controller.offgrid_mode_enabled and controller.offgrid_power_sensor:
                 return
-            if controller.capacity_protection_enabled or controller.max_contracted_power > 0:
+            # FORK: review 6 - only while peak shaving can act on the real meter
+            # (the ICP clamp reads it in the next regular cycle anyway).
+            if controller.capacity_protection_enabled and (
+                controller._is_capacity_protection_soc_limited()
+                or controller._capacity_protection_active
+            ):
+                controller._physical_trigger_pending = True
                 controller.schedule_control_cycle()
 
         unsub_physical_grid = _call_once(async_track_state_change_event(
