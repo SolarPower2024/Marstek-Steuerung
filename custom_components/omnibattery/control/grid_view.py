@@ -10,12 +10,38 @@ Sign convention: positive = grid import, negative = export.
 Design decision: ``read_physical`` returns the raw (unsmoothed) value. EMA
 smoothing was left out because it would make exact-value expectations and
 ``physical_is_new`` (value changed vs. previous read) ambiguous.
+
+Age limit (``PHYSICAL_MAX_AGE_S``): the age is taken from ``last_reported``
+(falls back to ``last_updated`` on HA versions without it). A meter
+integration that re-writes an identical value advances ``last_reported`` and
+stays usable. Sensors that only write on a CHANGE do not: a template sensor
+whose inputs did not change, or an ESPHome sensor with a ``delta`` /
+``throttle`` filter, becomes unusable after 60 s of identical readings. The
+caller then falls back to the control sensor; while peak shaving runs, the
+controller's peak exit hold (PEAK_EXIT_HOLD_S) keeps the last command for a
+few seconds before stopping, so a quiet meter does not cut a peak discharge
+instantly. Choose a meter that publishes regularly.
+
+Frozen value (``PHYSICAL_FROZEN_S``): a meter whose integration keeps
+re-reporting a cached value looks fresh by timestamp. The controller calls
+``latch_frozen`` only while peak shaving runs on the real meter; once the
+value has not changed for longer than PHYSICAL_FROZEN_S the reading is
+treated as unusable ("fallback") until the value changes again. Outside peak
+shaving there is no frozen check (a quiet meter at low load is normal).
+
+Limit entity: a value outside PEAK_LIMIT_MIN_W..PEAK_LIMIT_MAX_W (e.g. a kW
+number without unit, or a transient 0) is treated as unusable (held value,
+else static limit) and logged once, instead of being clamped.
 """
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta
 
+_LOGGER = logging.getLogger(__name__)
+
 PHYSICAL_MAX_AGE_S = 60
+PHYSICAL_FROZEN_S = 60
 PEAK_LIMIT_MIN_W = 500.0
 PEAK_LIMIT_MAX_W = 20000.0
 PEAK_LIMIT_HOLD = timedelta(minutes=15)
@@ -31,7 +57,8 @@ def _read_watts(state) -> float | None:
         return None
     if value != value or value in (float("inf"), float("-inf")):
         return None
-    if state.attributes.get("unit_of_measurement", "W") == "kW":
+    attributes = getattr(state, "attributes", None) or {}
+    if attributes.get("unit_of_measurement", "W") == "kW":
         value *= 1000.0
     return value
 
@@ -45,11 +72,14 @@ class GridView:
         self._last_w: float | None = None
         self._prev_w: float | None = None
         self._unusable_since: datetime | None = None
+        self._changed_at: datetime | None = None
+        self._frozen = False
         self._source = "none"
         self._held_w: float | None = None
         self._held_at: datetime | None = None
         self._limit_w: float | None = None
         self._limit_source = "static"
+        self._limit_warned = False
 
     def configure(self, *, physical_entity, physical_inverted,
                   limit_entity, limit_margin_pct) -> None:
@@ -59,6 +89,8 @@ class GridView:
         self._margin_pct = float(limit_margin_pct or 0.0)
         if not self._physical_entity:
             self._last_w = self._prev_w = self._unusable_since = None
+            self._changed_at = None
+            self._frozen = False
             self._source = "none"
 
     @property
@@ -83,10 +115,30 @@ class GridView:
 
         For statistics/display: leaves the new-sample detection
         (``physical_is_new``), the source and ``unusable_since`` untouched.
+        A latched frozen value stays unusable here as well.
         """
         if not self._physical_entity:
             return None
-        return self._sample(states, now)
+        value = self._sample(states, now)
+        if value is not None and self._frozen and value == self._last_w:
+            return None
+        return value
+
+    def latch_frozen(self, now) -> bool:
+        """Mark the value unusable if unchanged for > PHYSICAL_FROZEN_S.
+
+        Called by the controller only while peak shaving runs on the real
+        meter. The latch clears on the next value change (``read_physical``).
+        """
+        if (self._physical_entity and self._changed_at is not None
+                and (now - self._changed_at).total_seconds() > PHYSICAL_FROZEN_S):
+            self._frozen = True
+        return self._frozen
+
+    def _mark_unusable(self, now) -> None:
+        if self._unusable_since is None:
+            self._unusable_since = now
+        self._source = "fallback"
 
     def read_physical(self, states, now) -> float | None:
         """Real grid power in W (+import / -export), or None if unusable."""
@@ -95,9 +147,15 @@ class GridView:
             return None
         value = self._sample(states, now)
         if value is None:
-            if self._unusable_since is None:
-                self._unusable_since = now
-            self._source = "fallback"
+            self._mark_unusable(now)
+            return None
+        if value != self._last_w or self._changed_at is None:
+            self._changed_at = now
+            self._frozen = False
+        if self._frozen:
+            # Same cached value as before: no new sample, still unusable.
+            self._prev_w = self._last_w
+            self._mark_unusable(now)
             return None
         self._unusable_since = None
         self._prev_w = self._last_w
@@ -113,12 +171,23 @@ class GridView:
         """Effective peak limit in W.
 
         The margin applies only to the entity value, not to the static limit.
+        An entity value outside PEAK_LIMIT_MIN_W..PEAK_LIMIT_MAX_W counts as
+        unusable (held value, else static), with a single log warning.
         """
         if self._limit_entity:
             value = _read_watts(states.get(self._limit_entity))
+            if value is not None and not PEAK_LIMIT_MIN_W <= value <= PEAK_LIMIT_MAX_W:
+                if not self._limit_warned:
+                    self._limit_warned = True
+                    _LOGGER.warning(
+                        "Peak limit entity %s reports %.0f W, outside %.0f-%.0f W; "
+                        "ignoring it (held or static limit applies)",
+                        self._limit_entity, value, PEAK_LIMIT_MIN_W, PEAK_LIMIT_MAX_W,
+                    )
+                value = None
             if value is not None:
+                self._limit_warned = False
                 value *= 1.0 - self._margin_pct / 100.0
-                value = max(PEAK_LIMIT_MIN_W, min(PEAK_LIMIT_MAX_W, value))
                 self._held_w, self._held_at = value, now
                 return self._set_limit(value, "entity")
             if (self._held_w is not None and self._held_at is not None

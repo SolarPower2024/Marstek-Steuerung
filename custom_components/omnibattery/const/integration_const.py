@@ -683,6 +683,9 @@ CONF_PHYSICAL_GRID_INVERTED = "physical_grid_inverted"
 DEFAULT_PHYSICAL_GRID_INVERTED = False
 # FORK: repair issue once the real grid sensor has been unusable this long (s)
 PHYSICAL_GRID_UNUSABLE_ISSUE_DELAY_S = 300.0
+# FORK: leaving physical-meter peak shaving for "conserving" stops the battery
+# only after this result has held continuously this long (s).
+PEAK_EXIT_HOLD_S = 6.0
 
 # PD Controller Advanced Configuration Keys
 CONF_PD_KP = "pd_controller_kp"

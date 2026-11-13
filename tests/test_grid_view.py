@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 from custom_components.omnibattery.control.grid_view import (
+    PHYSICAL_FROZEN_S,
     PHYSICAL_MAX_AGE_S,
     GridView,
 )
@@ -143,13 +144,65 @@ def test_v7_margin():
     assert s["peak_limit_source"] == "entity"
 
 
-def test_v8_clamp():
+def test_v8_out_of_range_is_unusable(caplog):
+    # Review 4: out-of-range values are ignored (no clamping), warned once.
     gv = _view(limit=LIMIT)
     st = _States()
-    st.set(LIMIT, 100)
-    assert gv.peak_limit(st, 13000, NOW) == 500
+    st.set(LIMIT, 100)  # e.g. kW number without unit
+    assert gv.peak_limit(st, 13000, NOW) == 13000
+    assert gv.status()["peak_limit_source"] == "static"
     st.set(LIMIT, 50000)
+    assert gv.peak_limit(st, 13000, NOW) == 13000
+    warnings = [r for r in caplog.records if "outside" in r.getMessage()]
+    assert len(warnings) == 1  # logged once, not every cycle
+    # with a valid history the held value applies
+    st.set(LIMIT, 9000)
+    assert gv.peak_limit(st, 13000, NOW) == 9000
+    st.set(LIMIT, 0)  # transient 0 at a tariff change
+    assert gv.peak_limit(st, 13000, NOW + timedelta(minutes=1)) == 9000
+    assert gv.status()["peak_limit_source"] == "held"
+    assert len([r for r in caplog.records if "outside" in r.getMessage()]) == 2
+    # range bounds themselves are valid
+    st.set(LIMIT, 500)
+    assert gv.peak_limit(st, 13000, NOW) == 500
+    st.set(LIMIT, 20000)
     assert gv.peak_limit(st, 13000, NOW) == 20000
+
+
+def test_frozen_latch_only_after_frozen_time():
+    gv = _view()
+    st = _States()
+    st.set(PHYS, 5000)
+    assert gv.read_physical(st, NOW) == 5000
+    t1 = NOW + timedelta(seconds=PHYSICAL_FROZEN_S - 1)
+    st.set(PHYS, 5000, now=t1)  # same value, fresh timestamp
+    assert gv.latch_frozen(t1) is False
+    assert gv.read_physical(st, t1) == 5000
+    t2 = NOW + timedelta(seconds=PHYSICAL_FROZEN_S + 1)
+    st.set(PHYS, 5000, now=t2)
+    assert gv.latch_frozen(t2) is True
+    assert gv.read_physical(st, t2) is None
+    assert gv.status()["physical_source"] == "fallback"
+    assert gv.status()["unusable_since"] == t2
+    assert gv.peek_physical(st, t2) is None
+    # latch is sticky while the value stays the same, even without new latch call
+    assert gv.read_physical(st, t2 + timedelta(seconds=5)) is None
+    # a changed value clears it
+    st.set(PHYS, 5100, now=t2)
+    assert gv.read_physical(st, t2 + timedelta(seconds=6)) == 5100
+    assert gv.physical_is_new() is True
+    assert gv.status()["physical_source"] == "physical"
+    assert gv.status()["unusable_since"] is None
+
+
+def test_frozen_latch_changing_value_never_latches():
+    gv = _view()
+    st = _States()
+    for i in range(5):
+        t = NOW + timedelta(seconds=30 * i)
+        st.set(PHYS, 5000 + i, now=t)
+        assert gv.latch_frozen(t) is False
+        assert gv.read_physical(st, t) == 5000 + i
 
 
 def test_v9_held_value():
