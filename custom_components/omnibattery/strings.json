@@ -26,6 +26,10 @@
       "title": "Battery {battery} is not delivering power",
       "description": "{battery} has been accepting charge/discharge commands without delivering power for {minutes} minutes ({reason}). Omnibattery keeps it out of the pool and retries it every {cooldown} minutes, so the rest of the fleet covers the house meanwhile. The battery itself or its connection needs attention: check that it is not sitting in standby under its own app's control, and that the connection is not saturated. Switching Manual Battery Control on and off again for that battery often restores it."
     },
+    "physical_grid_sensor_unusable": {
+      "title": "Real grid sensor is unusable",
+      "description": "The configured real grid sensor {sensor} has been unavailable, unknown or outdated for more than 5 minutes. Omnibattery falls back to the regulation grid sensor, so peak shaving and the dashboard no longer see loads that the regulation sensor excludes. Check that {sensor} exists and updates. The notice disappears by itself once it delivers a valid value again."
+    },
     "configured_sensor_missing": {
       "title": "Configured sensor no longer exists",
       "description": "Omnibattery is configured with {sensors}, which does not exist in Home Assistant. Every feature that reads it is inactive. The stored reference is kept on purpose, because the entity picker cannot show an entity that is gone and would otherwise clear your setting silently: open Options → Sensors and pick a replacement, or clear the field once the entity is back."

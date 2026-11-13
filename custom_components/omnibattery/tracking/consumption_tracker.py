@@ -997,10 +997,15 @@ class ConsumptionTracker:
 
         export_zero = False
         try:
-            meter_state = self._hass.states.get(
-                getattr(ctrl, "consumption_sensor", None)
-            )
-            grid_w = ctrl._apply_meter_transform(meter_state)
+            # FORK: grid view (docs/fork/02-architektur.md), B5
+            stats_reader = getattr(ctrl, "read_statistics_grid_w", None)
+            if callable(stats_reader):
+                grid_w = stats_reader()
+            else:
+                meter_state = self._hass.states.get(
+                    getattr(ctrl, "consumption_sensor", None)
+                )
+                grid_w = ctrl._apply_meter_transform(meter_state)
             export_zero = grid_w is not None and abs(float(grid_w)) <= 50.0
         except (AttributeError, TypeError, ValueError):
             pass
@@ -1084,7 +1089,12 @@ class ConsumptionTracker:
         ctrl = self._controller
         if not ctrl.consumption_sensor:
             return None
-        grid_w = ctrl._apply_meter_transform(self._hass.states.get(ctrl.consumption_sensor))
+        # FORK: grid view (docs/fork/02-architektur.md), B5
+        stats_reader = getattr(ctrl, "read_statistics_grid_w", None)
+        if callable(stats_reader):
+            grid_w = stats_reader()
+        else:
+            grid_w = ctrl._apply_meter_transform(self._hass.states.get(ctrl.consumption_sensor))
         if grid_w is None:
             return None
         total_kw = grid_w / 1000.0
@@ -1230,7 +1240,12 @@ class ConsumptionTracker:
         # Use the same meter transform as the PD loop so a user-inverted meter
         # (meter_inverted) keeps the +import / -export convention; otherwise the
         # import and export totals would be swapped.
-        grid_w = ctrl._apply_meter_transform(self._hass.states.get(ctrl.consumption_sensor))
+        # FORK: grid view (docs/fork/02-architektur.md), B5
+        stats_reader = getattr(ctrl, "read_statistics_grid_w", None)
+        if callable(stats_reader):
+            grid_w = stats_reader()
+        else:
+            grid_w = ctrl._apply_meter_transform(self._hass.states.get(ctrl.consumption_sensor))
         if grid_w is None:
             self._daily_grid_last_time = None
             self._daily_grid_last_power_kw = None
@@ -1873,8 +1888,13 @@ class ConsumptionTracker:
         now_h = now.hour + now.minute / 60.0
 
         # --- Primary: grid ≤ 0 and batteries not discharging ---
-        grid_state = self._hass.states.get(ctrl.consumption_sensor)
-        grid_power = ctrl._apply_meter_transform(grid_state)
+        # FORK: grid view (docs/fork/02-architektur.md), B5
+        stats_reader = getattr(ctrl, "read_statistics_grid_w", None)
+        if callable(stats_reader):
+            grid_power = stats_reader()
+        else:
+            grid_state = self._hass.states.get(ctrl.consumption_sensor)
+            grid_power = ctrl._apply_meter_transform(grid_state)
         if grid_power is not None and grid_power <= 0:
             total_battery_power = sum(
                 (c.data.get("battery_power", 0) or 0)

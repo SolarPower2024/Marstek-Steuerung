@@ -681,6 +681,8 @@ DEFAULT_CAPACITY_PROTECTION_LIMIT_MARGIN = 0
 CONF_PHYSICAL_GRID_SENSOR = "physical_grid_sensor"
 CONF_PHYSICAL_GRID_INVERTED = "physical_grid_inverted"
 DEFAULT_PHYSICAL_GRID_INVERTED = False
+# FORK: repair issue once the real grid sensor has been unusable this long (s)
+PHYSICAL_GRID_UNUSABLE_ISSUE_DELAY_S = 300.0
 
 # PD Controller Advanced Configuration Keys
 CONF_PD_KP = "pd_controller_kp"

@@ -65,11 +65,8 @@ class GridView:
     def has_physical(self) -> bool:
         return self._physical_entity is not None
 
-    def read_physical(self, states, now) -> float | None:
-        """Real grid power in W (+import / -export), or None if unusable."""
-        if not self._physical_entity:
-            self._source = "none"
-            return None
+    def _sample(self, states, now) -> float | None:
+        """Usable, sign-corrected value in W, or None. No state is modified."""
         state = states.get(self._physical_entity)
         value = _read_watts(state)
         if value is not None:
@@ -77,13 +74,31 @@ class GridView:
                 state, "last_updated", None)
             if ts is not None and (now - ts).total_seconds() > PHYSICAL_MAX_AGE_S:
                 value = None
+        if value is not None and self._inverted:
+            value = -value
+        return value
+
+    def peek_physical(self, states, now) -> float | None:
+        """Like ``read_physical`` but without side effects.
+
+        For statistics/display: leaves the new-sample detection
+        (``physical_is_new``), the source and ``unusable_since`` untouched.
+        """
+        if not self._physical_entity:
+            return None
+        return self._sample(states, now)
+
+    def read_physical(self, states, now) -> float | None:
+        """Real grid power in W (+import / -export), or None if unusable."""
+        if not self._physical_entity:
+            self._source = "none"
+            return None
+        value = self._sample(states, now)
         if value is None:
             if self._unusable_since is None:
                 self._unusable_since = now
             self._source = "fallback"
             return None
-        if self._inverted:
-            value = -value
         self._unusable_since = None
         self._prev_w = self._last_w
         self._last_w = value

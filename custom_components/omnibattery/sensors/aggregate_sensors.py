@@ -26,6 +26,12 @@ from ..const import (
     CONF_BATTERY_MANUAL_MODE_ENABLED,
     pd_profile_from_params,
 )
+# FORK: grid view (docs/fork/02-architektur.md)
+from ..const.integration_const import (
+    CONF_PHYSICAL_GRID_SENSOR,
+    CONF_PHYSICAL_GRID_INVERTED,
+    DEFAULT_PHYSICAL_GRID_INVERTED,
+)
 from ..drivers.base import DELIVERED_AC_POWER_KEY
 from ..infra.coordinator import MarstekVenusDataUpdateCoordinator
 from ..infra.entity_naming import system_entity_id
@@ -793,14 +799,25 @@ class MarstekVenusAggregateSensor(RestoreEntity, SensorEntity):
             if offgrid_active
             else data.get("consumption_sensor")
         )
-        grid_w = self._read_power_w(grid_eid) if grid_eid else None
-        if grid_w is None:
-            return None
         meter_inverted = (
             data.get(CONF_OFFGRID_METER_INVERTED, False)
             if offgrid_active
             else data.get(CONF_METER_INVERTED, False)
         )
+        # FORK: grid view (docs/fork/02-architektur.md), B5 - prefer the real meter
+        # (with its own invert flag); fall back to the regulation meter if unreadable.
+        grid_w = None
+        physical_eid = None if offgrid_active else data.get(CONF_PHYSICAL_GRID_SENSOR)
+        if physical_eid:
+            grid_w = self._read_power_w(physical_eid)
+            if grid_w is not None:
+                meter_inverted = data.get(
+                    CONF_PHYSICAL_GRID_INVERTED, DEFAULT_PHYSICAL_GRID_INVERTED
+                )
+        if grid_w is None:
+            grid_w = self._read_power_w(grid_eid) if grid_eid else None
+        if grid_w is None:
+            return None
         if meter_inverted:
             grid_w = -grid_w
         total = grid_w

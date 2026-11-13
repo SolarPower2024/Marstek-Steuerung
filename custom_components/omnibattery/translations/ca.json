@@ -26,6 +26,10 @@
       "title": "La bateria {battery} no lliura potència",
       "description": "{battery} fa {minutes} minuts que accepta ordres de càrrega/descàrrega sense lliurar potència ({reason}). Omnibattery la manté fora del repartiment i la reintenta cada {cooldown} minuts, de manera que la resta de la flota cobreix la casa mentrestant. Cal revisar la bateria o la seva connexió: comprova que no estigui en espera sota el control de la seva pròpia aplicació i que la connexió no estigui saturada. Activar i desactivar el Control Manual d'aquesta bateria sovint la recupera."
     },
+    "physical_grid_sensor_unusable": {
+      "title": "Real grid sensor is unusable",
+      "description": "The configured real grid sensor {sensor} has been unavailable, unknown or outdated for more than 5 minutes. Omnibattery falls back to the regulation grid sensor, so peak shaving and the dashboard no longer see loads that the regulation sensor excludes. Check that {sensor} exists and updates. The notice disappears by itself once it delivers a valid value again."
+    },
     "configured_sensor_missing": {
       "title": "Un sensor configurat ja no existeix",
       "description": "Omnibattery està configurat amb {sensors}, que no existeix a Home Assistant. Totes les funcions que el llegeixen estan inactives. La referència desada es manté expressament, perquè el selector d'entitats no pot mostrar una entitat que ja no hi és i esborraria el teu ajust en silenci: obre Opcions → Sensors i tria un substitut, o buida el camp quan l'entitat torni."
