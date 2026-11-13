@@ -1,4 +1,5 @@
 # Omnibattery for Home Assistant
+https://github.com/ffunes/omnibattery
 
 ![Logo](assets/logo-github.png)
 
