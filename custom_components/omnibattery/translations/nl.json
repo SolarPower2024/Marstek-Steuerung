@@ -1703,6 +1703,27 @@
       "daily_operation_timeline": {
         "name": "Dagelijkse bedrijfstijdlijn"
       },
+      "system_relay_guard": {
+        "name": "Relay Guard",
+        "state": {
+          "pass": "Pass",
+          "min_off": "Minimum off time",
+          "direction_lock": "Direction lock",
+          "engage_threshold": "Engage threshold",
+          "budget": "Switch budget",
+          "bypass_error": "Bypass (error)",
+          "bypass_peak": "Bypass (peak)",
+          "disabled": "Disabled"
+        }
+      },
+      "system_peak_grid_source": {
+        "name": "Peak Grid Source",
+        "state": {
+          "physical": "Physical meter",
+          "fallback": "Fallback",
+          "none": "None"
+        }
+      },
       "system_pd_control_quality": {
         "name": "PD-Regelkwaliteit",
         "state": {

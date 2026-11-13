@@ -3311,6 +3311,38 @@ class ChargeDischargeController:
             return self.capacity_protection_limit
         return view.peak_limit(hass.states, self.capacity_protection_limit, dt_util.utcnow())
 
+    def _peak_review_pending(self, physical: float | None) -> bool:
+        """True if a new real-meter sample needs peak shaving to re-run P/D.
+
+        FORK: grid view (docs/fork/02-architektur.md), P5. Read-only: relies on
+        the single ``read_physical`` of this cycle having been done already.
+        """
+        view = getattr(self, "_grid_view", None)
+        if physical is None or view is None or not getattr(self, "capacity_protection_enabled", False):
+            return False
+        if not view.physical_is_new():
+            return False
+        if getattr(self, "_capacity_protection_active", False):
+            return True
+        reader = getattr(self, "_measured_battery_power", None)
+        measured = reader() if callable(reader) else None
+        battery_power = measured if measured is not None else self.previous_power
+        return physical - battery_power > ChargeDischargeController._effective_peak_limit(self)
+
+    def _track_physical_sample(self, physical: float | None) -> float | None:
+        """Seconds since the previous new real-meter sample, or None.
+
+        FORK: grid view (docs/fork/02-architektur.md). Only a changed value
+        counts as a sample (same rule as ``_track_control_sample``).
+        """
+        view = getattr(self, "_grid_view", None)
+        if physical is None or view is None or not view.physical_is_new():
+            return None
+        now_mono = time.monotonic()
+        last = getattr(self, "_last_physical_sample_mono", None)
+        self._last_physical_sample_mono = now_mono
+        return None if last is None else now_mono - last
+
     def _icp_charge_import_cap(self, sensor_filtered: float, physical: float | None) -> float:
         # FORK: grid view (docs/fork/02-architektur.md)
         grid = sensor_filtered if physical is None else physical
@@ -10258,6 +10290,14 @@ class ChargeDischargeController:
         # A report timestamp drives health/cadence. Only a new transformed value
         # drives the cadence-dependent filter, derivative, P scaling and limiter.
 
+        # FORK: grid view (docs/fork/02-architektur.md) - read the real meter exactly
+        # once per cycle, before the freshness check (physical_is_new compares reads).
+        physical = ChargeDischargeController._read_physical_grid_w(self)
+        self._last_physical_grid_w = physical
+        physical_new = physical is not None and self._grid_view.physical_is_new()
+        physical_elapsed_s = ChargeDischargeController._track_physical_sample(self, physical)
+        peak_review_pending = ChargeDischargeController._peak_review_pending(self, physical)
+
         # Same cadence, different failure: a configured solar-forecast sensor that
         # stops reading. Cheap state lookup, so no extra throttle.
         self._check_solar_forecast_health()
@@ -10302,6 +10342,7 @@ class ChargeDischargeController:
                 # it can read on target precisely because another regulator is
                 # carrying the load. See control/residual_load.guards_pending.
                 and not guards_pending(self, sensor_raw)
+                and not peak_review_pending  # FORK: grid view (docs/fork/02-architektur.md)
             ):
                 if DEBUG_CONTROL_LOOP_DETAIL:
                     _LOGGER.debug(
@@ -10385,11 +10426,20 @@ class ChargeDischargeController:
         # only discharge to cover consumption above the peak limit. This must run
         # before deadband and first-execution handling, otherwise a previous
         # hourly-balance discharge can be kept alive by an early return.
-        physical = ChargeDischargeController._read_physical_grid_w(self)  # FORK: grid view (docs/fork/02-architektur.md)
-        self._last_physical_grid_w = physical
         active_target, sensor_actual = self._apply_capacity_protection(
             sensor_actual, active_target,
             **({} if physical is None else {"physical_actual": physical}))
+        # FORK: grid view (docs/fork/02-architektur.md) - while shaving, the real
+        # meter is the controlled variable, so its samples (not the control
+        # sensor's) decide freshness and the P/D time base. The EMA above stays
+        # on the control sensor and is not touched.
+        peak_physical = physical is not None and (
+            getattr(self, "_capacity_protection_status", None) or {}).get("action") == "shaving"
+        if peak_physical:
+            has_new_control_sample = physical_new
+            if physical_new:
+                stale_safety_recalc = False
+                sensor_elapsed_s = physical_elapsed_s
         sensor_actual = self._apply_icp_excluded_protection(sensor_filtered, sensor_actual, active_target)
 
         if self._capacity_protection_force_idle:
@@ -10606,6 +10656,12 @@ class ChargeDischargeController:
         # error < 0: grid power below target → need to charge more / discharge less
         # active_target was calculated before deadband check (reuse it here)
         error = sensor_actual - active_target
+        # FORK: grid view (docs/fork/02-architektur.md) - no derivative kick when
+        # the controlled variable switches between control sensor and real meter.
+        if peak_physical != getattr(self, "_pd_on_physical", False):
+            self._pd_on_physical = peak_physical
+            self.previous_error = error
+            self.derivative_filtered = 0.0
 
         feedforward_fired = False
         if not has_new_control_sample:
@@ -12372,6 +12428,25 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, opened: li
         ))
         entry.async_on_unload(unsub_consumption_reported)
 
+    # FORK: grid view (docs/fork/02-architektur.md), P4 - the real meter also
+    # schedules a cycle, but only when peak shaving or the ICP clamp can use it.
+    # Deliberately no cadence/stale/dead-meter observation: that stays on the
+    # control sensor.
+    unsub_physical_grid = None
+    physical_grid_sensor = entry.data.get(_fork_const.CONF_PHYSICAL_GRID_SENSOR)
+    if physical_grid_sensor and physical_grid_sensor not in controller.consumption_sensor_ids:
+        @callback
+        def _on_physical_grid_changed(_event):
+            if controller.offgrid_mode_enabled and controller.offgrid_power_sensor:
+                return
+            if controller.capacity_protection_enabled or controller.max_contracted_power > 0:
+                controller.schedule_control_cycle()
+
+        unsub_physical_grid = _call_once(async_track_state_change_event(
+            hass, [physical_grid_sensor], _on_physical_grid_changed
+        ))
+        entry.async_on_unload(unsub_physical_grid)
+
     # Phase meters are safety inputs only. Their events trigger an immediate
     # review but deliberately do not enter the main-sensor cadence detector or
     # alter sensor_actual / active_target / Grid 0. Subscribe even when the
@@ -12464,6 +12539,7 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, opened: li
         "unsub_consumption_reported": unsub_consumption_reported,
         "unsub_phase": unsub_phase,
         "unsub_phase_reported": unsub_phase_reported,
+        "unsub_physical_grid": unsub_physical_grid,  # FORK: grid view (docs/fork/02-architektur.md)
         "unsub_blueprint_measurement": unsub_blueprint_measurement,
         "balance_monitor": balance_monitor,
     }
@@ -12646,6 +12722,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "unsub_consumption_reported",
             "unsub_phase",
             "unsub_phase_reported",
+            "unsub_physical_grid",  # FORK: grid view (docs/fork/02-architektur.md)
             "unsub_blueprint_measurement",
         ):
             if unsub := data.get(key):
