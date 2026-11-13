@@ -31,6 +31,10 @@ from .const import (
     CONF_MANUAL_MODE_ENABLED,
     CONF_BATTERY_MANUAL_MODE_ENABLED,
     CONF_NO_PD_MODE_ENABLED,
+    CONF_PD_RELAY_GUARD_ENABLED,
+    DEFAULT_PD_RELAY_GUARD_ENABLED,
+    CONF_PANEL_MINIMAL_OVERVIEW,
+    DEFAULT_PANEL_MINIMAL_OVERVIEW,
     CONF_OFFGRID_POWER_SENSOR,
     CONF_OFFGRID_MODE_ENABLED,
     CONF_PRIMARY_FEEDFORWARD_ENABLED,
@@ -95,6 +99,9 @@ async def async_setup_entry(
     if controller:
         entities.append(ManualModeSwitch(hass, entry, controller))
         entities.append(NoPdModeSwitch(hass, entry, controller))
+        # FORK: relay guard master switch and reduced panel overview (always present).
+        entities.append(PdRelayGuardSwitch(hass, entry, controller))
+        entities.append(PanelMinimalOverviewSwitch(hass, entry, controller))
         if entry.data.get(CONF_OFFGRID_POWER_SENSOR):
             entities.append(OffgridModeSwitch(hass, entry, controller))
         # Only meaningful with more than one battery; the count is structural, so
@@ -1872,6 +1879,85 @@ class NoPdModeSwitch(SwitchEntity):
             "manufacturer": "Omnibattery",
             "model": "Multi-Battery System",
         }
+
+
+class _ForkConfigFlagSwitch(SwitchEntity):
+    """FORK: plain boolean config flag stored in config_entry.data.
+
+    The value lives in ``entry.data`` (source of truth, default off). On toggle the
+    same-named attribute is also set on the controller so a running control loop
+    sees the change immediately; ``update_pd_parameters`` can re-read it on the
+    entry-update listener as well.
+    """
+
+    _conf_key: str = ""
+    _default: bool = False
+    _icon: str = "mdi:toggle-switch-outline"
+    _label: str = ""
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, controller) -> None:
+        """Initialize the flag switch."""
+        self.hass = hass
+        self.entry = entry
+        self.controller = controller
+
+        self._attr_has_entity_name = True
+        self._attr_translation_key = self._conf_key
+        self._attr_unique_id = f"{SYSTEM_UNIQUE_ID_PREFIX}{self._conf_key}"
+        self.entity_id = system_entity_id("switch", self._conf_key)
+        self._attr_icon = self._icon
+        self._attr_should_poll = False
+
+    @property
+    def is_on(self) -> bool:
+        """Return the stored flag value."""
+        return bool(self.entry.data.get(self._conf_key, self._default))
+
+    async def _set_enabled(self, enabled: bool) -> None:
+        """Persist the flag and mirror it onto the controller."""
+        new_data = dict(self.entry.data)
+        new_data[self._conf_key] = enabled
+        self.hass.config_entries.async_update_entry(self.entry, data=new_data)
+        if self.controller is not None:
+            setattr(self.controller, self._conf_key, enabled)
+        _LOGGER.info("%s %s", self._label, "ENABLED" if enabled else "DISABLED")
+        self.async_write_ha_state()
+
+    async def async_turn_on(self, **kwargs) -> None:
+        """Turn the flag on."""
+        await self._set_enabled(True)
+
+    async def async_turn_off(self, **kwargs) -> None:
+        """Turn the flag off."""
+        await self._set_enabled(False)
+
+    @property
+    def device_info(self):
+        """Return device information for the system."""
+        return {
+            "identifiers": {(DOMAIN, "marstek_venus_system")},
+            "name": "Omnibattery System",
+            "manufacturer": "Omnibattery",
+            "model": "Multi-Battery System",
+        }
+
+
+class PdRelayGuardSwitch(_ForkConfigFlagSwitch):
+    """FORK: enable the relay guard (switching hysteresis and locks)."""
+
+    _conf_key = CONF_PD_RELAY_GUARD_ENABLED
+    _default = DEFAULT_PD_RELAY_GUARD_ENABLED
+    _icon = "mdi:shield-sync-outline"
+    _label = "Relay guard"
+
+
+class PanelMinimalOverviewSwitch(_ForkConfigFlagSwitch):
+    """FORK: show the reduced overview in the dashboard panel."""
+
+    _conf_key = CONF_PANEL_MINIMAL_OVERVIEW
+    _default = DEFAULT_PANEL_MINIMAL_OVERVIEW
+    _icon = "mdi:view-dashboard-variant-outline"
+    _label = "Panel minimal overview"
 
 
 class OffgridModeSwitch(SwitchEntity):
