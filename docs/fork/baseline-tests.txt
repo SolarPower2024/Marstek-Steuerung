@@ -1,0 +1,15 @@
+tests/test_weekly_zendure_restore_value.py: 5 warnings
+tests/test_zendure_driver.py: 128 warnings
+tests/test_zonneplan_pricing.py: 53 warnings
+  C:\Users\cfuch\OneDrive\Desktop\Test_Claude\Marstek Steuerung\omnibattery-fork\tests\conftest.py:83: DeprecationWarning: 'asyncio.get_event_loop_policy' is deprecated and slated for removal in Python 3.16
+    policy = asyncio.get_event_loop_policy()
+
+tests/test_sessy_driver.py::test_sessy_uses_dongle_credentials_for_http_basic_auth
+tests/test_sessy_driver.py::test_connect_validates_authenticated_strategy_endpoint
+tests/test_sessy_driver.py::test_connect_checks_telemetry_after_authentication
+tests/test_sessy_driver.py::test_repeated_auth_failures_emit_one_actionable_warning
+  C:\Users\cfuch\OneDrive\Desktop\Test_Claude\Marstek Steuerung\omnibattery-fork\custom_components\omnibattery\drivers\sessy.py:68: DeprecationWarning: BasicAuth is deprecated and will be removed in aiohttp 4.0; use aiohttp.encode_basic_auth() with headers={'Authorization': ...} instead
+    {"Authorization": aiohttp.BasicAuth(username, password).encode()}
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+4033 passed, 19 skipped, 4042 warnings in 67.09s (0:01:07)
