@@ -270,6 +270,122 @@ class PdControlQualitySensor(SensorEntity):
         }
 
 
+# FORK: diagnostic sensors for relay guard and peak grid source
+# (modelled on PdControlQualitySensor: polled enum diagnostic on the system device)
+_SYSTEM_DEVICE_INFO = {
+    "identifiers": {(DOMAIN, "marstek_venus_system")},
+    "name": "Omnibattery System",
+    "manufacturer": "Omnibattery",
+    "model": "Multi-Battery System",
+}
+
+
+class RelayGuardSensor(SensorEntity):
+    """FORK: diagnostic sensor exposing the relay guard decision state."""
+
+    _STATES = [
+        "pass",
+        "min_off",
+        "direction_lock",
+        "engage_threshold",
+        "budget",
+        "bypass_error",
+        "bypass_peak",
+        "disabled",
+    ]
+    _ATTRS = (
+        "remaining_s",
+        "switches_last_hour",
+        "switches_today",
+        "blocked_today",
+        "throttled",
+        "last_switch",
+    )
+
+    def __init__(self, controller) -> None:
+        self._controller = controller
+        self._attr_has_entity_name = True
+        self._attr_unique_id = "marstek_venus_system_relay_guard"
+        self.entity_id = system_entity_id("sensor", "relay_guard")
+        self._attr_translation_key = "system_relay_guard"
+        self._attr_device_class = SensorDeviceClass.ENUM
+        self._attr_options = list(self._STATES)
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_icon = "mdi:shield-half-full"
+        self._attr_should_poll = True
+
+    def _status(self) -> dict:
+        getter = getattr(self._controller, "get_relay_guard_status", None)
+        if getter is None:
+            return {}
+        try:
+            return getter() or {}
+        except Exception:  # noqa: BLE001 - diagnostics must never raise
+            return {}
+
+    @property
+    def native_value(self):
+        state = self._status().get("state")
+        return state if state in self._STATES else None
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        status = self._status()
+        return {key: status.get(key) for key in self._ATTRS}
+
+    @property
+    def device_info(self):
+        return dict(_SYSTEM_DEVICE_INFO)
+
+
+class PeakGridSourceSensor(SensorEntity):
+    """FORK: diagnostic sensor exposing which grid source peak shaving uses."""
+
+    _STATES = ["physical", "fallback", "none"]
+    _ATTRS = (
+        "physical_entity",
+        "physical_w",
+        "unusable_since",
+        "peak_limit_w",
+        "peak_limit_source",
+    )
+
+    def __init__(self, controller) -> None:
+        self._controller = controller
+        self._attr_has_entity_name = True
+        self._attr_unique_id = "marstek_venus_system_peak_grid_source"
+        self.entity_id = system_entity_id("sensor", "peak_grid_source")
+        self._attr_translation_key = "system_peak_grid_source"
+        self._attr_device_class = SensorDeviceClass.ENUM
+        self._attr_options = list(self._STATES)
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_icon = "mdi:transmission-tower"
+        self._attr_should_poll = True
+
+    def _status(self) -> dict:
+        view = getattr(self._controller, "_grid_view", None)
+        if view is None:
+            return {}
+        try:
+            return view.status() or {}
+        except Exception:  # noqa: BLE001 - diagnostics must never raise
+            return {}
+
+    @property
+    def native_value(self):
+        source = self._status().get("physical_source")
+        return source if source in self._STATES else None
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        status = self._status()
+        return {key: status.get(key) for key in self._ATTRS}
+
+    @property
+    def device_info(self):
+        return dict(_SYSTEM_DEVICE_INFO)
+
+
 _DAILY_AGGREGATE_SOURCE_KEYS = {
     "system_daily_charging_energy": "total_daily_charging_energy",
     "system_daily_discharging_energy": "total_daily_discharging_energy",

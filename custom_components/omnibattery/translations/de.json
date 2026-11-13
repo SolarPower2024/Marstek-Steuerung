@@ -1699,6 +1699,27 @@
       "daily_operation_timeline": {
         "name": "Tägliche Betriebslinie"
       },
+      "system_relay_guard": {
+        "name": "Relais-Schutz",
+        "state": {
+          "pass": "Durchgelassen",
+          "min_off": "Mindest-Aus-Zeit",
+          "direction_lock": "Richtungssperre",
+          "engage_threshold": "Einschaltschwelle",
+          "budget": "Schaltbudget",
+          "bypass_error": "Umgehung (Fehler)",
+          "bypass_peak": "Umgehung (Spitze)",
+          "disabled": "Deaktiviert"
+        }
+      },
+      "system_peak_grid_source": {
+        "name": "Peak-Netzquelle",
+        "state": {
+          "physical": "Physischer Zähler",
+          "fallback": "Ersatzquelle",
+          "none": "Keine"
+        }
+      },
       "system_pd_control_quality": {
         "name": "PD-Regelqualität",
         "state": {

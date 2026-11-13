@@ -47,6 +47,7 @@ from .energy import (
 )
 from .tracking.consumption_profile import INTERVAL_COUNT, INTERVAL_MINUTES
 from .sensors.aggregate_sensors import AGGREGATE_SENSOR_DEFINITIONS, SYSTEM_BATTERY_CELL_POWER_DEFINITION, MarstekVenusAggregateSensor, DailyGridAtMinSocSensor, SystemAlarmSensor, PdControlQualitySensor
+from .sensors.aggregate_sensors import RelayGuardSensor, PeakGridSourceSensor  # FORK: diagnostic sensors
 from .sensors.calculated_sensors import (
     MarstekVenusEfficiencySensor,
     MarstekVenusStoredEnergySensor,
@@ -260,6 +261,9 @@ async def async_setup_entry(
     # Add PD control-quality diagnostic sensor (feeds the tuning-profile feedback)
     if controller:
         entities.append(PdControlQualitySensor(controller))
+        # FORK: relay guard + peak grid source diagnostics
+        entities.append(RelayGuardSensor(controller))
+        entities.append(PeakGridSourceSensor(controller))
 
     # Exact daily energy totals from the real power sensors (panel "Energía hoy").
     # Each is added only when its source sensor is configured.
