@@ -36,7 +36,7 @@ Deine Analyse stimmt in allen vier Punkten. Präzisierungen:
 - Nach dem Einschalten mit 50 W ist `error = 50 − S`. Bei `S = 10` liegt der Fehler bei +40 W, also genau auf der Totbandkante.
 - Ausschalten: Sobald `error > 40` (also `S < 10`), verlässt der Regler das Totband. Der PD rechnet `50 − 0,35·error < 50`, `_apply_min_power` liefert 0.
 
-Schwelle ein = Schwelle aus = 10 W Überschuss. Es gibt keine Hysterese. Jedes Rauschen um diese Kante erzeugt einen Zyklus.
+**Korrektur nach der Regelkreis-Simulation (AP A4):** Die Totband-Prüfung (Stufe 10) läuft vor `_apply_min_power`. Eine ruhende Batterie schaltet deshalb erst ein, wenn der Fehler das Totband verlässt (Überschuss-Fehler ≥ 40 W), und nicht schon bei 10 W. Die tatsächliche Hysterese von Upstream beträgt damit rund 30 W (ein bei 40 W, aus bei 10 W), nicht 0 W. Das ist schmaler als das Rauschen deines Sensors, deshalb klappert es trotzdem. Der Haupthebel sind die fehlenden Sperrzeiten, die Einschalthysterese ist nur eine Ergänzung.
 
 **Ablauf eines Zyklus:** Aus-Wunsch → `_apply_relay_dwell` hält 15 s auf 50 W → 0 W (Bypass) → nächster Sample mit `S ≥ 10` → sofort wieder 50 W. Das ergibt genau das beobachtete Muster (15–40 s an, 2–3 s aus). Die 2–3 s sind Sensortakt plus Aktor-Latenz, keine Sperrzeit.
 

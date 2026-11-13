@@ -8,7 +8,7 @@ The guard only ever passes a requested power through unchanged or replaces it
 with 0; it never raises or creates power, so it cannot defeat a protection.
 
 Specification gaps and decisions:
-* ``budget_per_hour <= 0`` disables the throttle; ``bypass_error_w <= 0``
+* ``budget_per_hour <= 0`` disables the switch budget; ``bypass_error_w <= 0``
   disables the error bypass (otherwise every error would bypass).
 * Before the first ``observe`` (or without a recorded shut-off) no lock applies.
   The very first observation only initialises the state, it is no switch.
@@ -16,6 +16,15 @@ Specification gaps and decisions:
   no shut-off: it starts no ``min_off_s`` and, because the new direction is then
   the last active one, no direction lock either. After the direct-flip
   ``direction_lock_s`` check, the engage threshold of the new direction applies.
+* Switch budget (hard limit): with ``budget_per_hour > 0`` and at least that
+  many switches in the last 3600 s, every engage from idle and every direct
+  direction flip is set to 0 (reason ``budget``, ``remaining_s`` = time until
+  enough old switches leave the window, i.e. the oldest one when the count
+  equals the budget). Shut-offs (request 0) and continuing in the same
+  direction stay allowed, and the bypasses (stale, peak, error) take
+  precedence. Check order on engage: bypasses, budget, min_off,
+  direction_lock, engage_threshold. min_off_s / direction_lock_s are never
+  scaled. ``status()["throttled"]`` means "budget exhausted".
 * ``reason`` / ``remaining_s`` of a stale pass are not stored: ``stale_recalc``
   leaves all state, including ``status()["state"]``, untouched.
 * ``engage_threshold`` has ``remaining_s`` 0 (no time-based lock).
@@ -31,8 +40,7 @@ from collections import deque
 from dataclasses import dataclass
 
 _WINDOW_S = 3600.0
-_THROTTLE_FACTOR = 3.0
-_BLOCK_REASONS = ("min_off", "direction_lock", "engage_threshold")
+_BLOCK_REASONS = ("budget", "min_off", "direction_lock", "engage_threshold")
 
 
 @dataclass
@@ -106,10 +114,6 @@ class RelayGuard:
             self._switches.popleft()
         return len(self._switches)
 
-    def _factor(self, now: float) -> float:
-        throttled = self._budget > 0 and self._count(now) >= self._budget
-        return _THROTTLE_FACTOR if throttled else 1.0
-
     def _result(self, power: float, reason: str, remaining: float = 0.0,
                 until: float | None = None) -> GuardDecision:
         blocked = reason in _BLOCK_REASONS
@@ -135,18 +139,21 @@ class RelayGuard:
         if req == 0 or req == prev:
             return self._result(requested, "pass")
 
-        factor = self._factor(now)
+        count = self._count(now)
+        if self._budget > 0 and count >= self._budget:
+            end = self._switches[count - self._budget] + _WINDOW_S
+            return self._result(0.0, "budget", end - now, end)
         if prev == 0:  # engage from idle
             if self._last_off is not None:
-                end = self._last_off + self._min_off_s * factor
+                end = self._last_off + self._min_off_s
                 if now < end:
                     return self._result(0.0, "min_off", end - now, end)
             if (self._last_dir not in (0, req) and self._dir_end is not None):
-                end = self._dir_end + self._direction_lock_s * factor
+                end = self._dir_end + self._direction_lock_s
                 if now < end:
                     return self._result(0.0, "direction_lock", end - now, end)
         elif self._dir_start is not None:  # direct direction flip
-            end = self._dir_start + self._direction_lock_s * factor
+            end = self._dir_start + self._direction_lock_s
             if now < end:
                 return self._result(0.0, "direction_lock", end - now, end)
 

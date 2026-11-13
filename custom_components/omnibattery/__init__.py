@@ -284,6 +284,11 @@ from .control.weekly_full_charge import WeeklyFullChargeManager
 from .control.max_soc_charge import MaxSocChargeManager
 from .control.temperature_limit import TemperatureChargeLimitManager
 from .control.phase_power_limit import PhasePowerLimiter
+# FORK: relay guard (docs/fork/02-architektur.md)
+from .const import integration_const as _fork_const
+from .control.relay_guard import RelayGuard
+# FORK: grid view (docs/fork/02-architektur.md)
+from .control.grid_view import GridView
 from .pricing import (
     DynamicPricingSchedule,
     PriceSlot,
@@ -739,6 +744,15 @@ class ChargeDischargeController:
         # instant, so the relay doesn't click off as soon as demand falls.
         self._relay_cooldown_s = config_entry.data.get(CONF_PD_RELAY_COOLDOWN, DEFAULT_PD_RELAY_COOLDOWN)
         self._relay_shutoff_since = None
+        # FORK: relay guard (docs/fork/02-architektur.md)
+        self._relay_guard = RelayGuard()
+        self._relay_guard_day = None
+        self._pd_relay_guard_enabled = False
+        self._configure_relay_guard()
+        # FORK: grid view (docs/fork/02-architektur.md)
+        self._grid_view = GridView()
+        self._last_physical_grid_w = None
+        self._configure_grid_view()
         # Zero-cross hold (direction-flip dwell): stamped on the first cycle that
         # requests the opposite charge/discharge direction; the flip is clamped to
         # 0 until the request persists past the actuator settle window.
@@ -3161,6 +3175,67 @@ class ChargeDischargeController:
         self._dp_config_dirty = True
         _LOGGER.info("Predictive plan invalidated: %s", reason)
 
+    # FORK: relay guard (docs/fork/02-architektur.md)
+    @property
+    def pd_relay_guard_enabled(self) -> bool:
+        return self._pd_relay_guard_enabled
+
+    @pd_relay_guard_enabled.setter
+    def pd_relay_guard_enabled(self, value: bool) -> None:
+        # The switch entity setattr()s this; reconfigure so it takes effect now.
+        self._pd_relay_guard_enabled = bool(value)
+        self._configure_relay_guard()
+
+    def _configure_relay_guard(self) -> None:
+        # FORK: relay guard (docs/fork/02-architektur.md)
+        c, d = _fork_const, self.config_entry.data
+        self._pd_relay_guard_enabled = bool(d.get(c.CONF_PD_RELAY_GUARD_ENABLED, c.DEFAULT_PD_RELAY_GUARD_ENABLED))
+        self._relay_guard.configure(
+            enabled=self._pd_relay_guard_enabled,
+            min_off_s=d.get(c.CONF_PD_RELAY_MIN_OFF, c.DEFAULT_PD_RELAY_MIN_OFF),
+            direction_lock_s=d.get(c.CONF_PD_DIRECTION_LOCK, c.DEFAULT_PD_DIRECTION_LOCK),
+            engage_margin_w=d.get(c.CONF_PD_ENGAGE_MARGIN, c.DEFAULT_PD_ENGAGE_MARGIN),
+            bypass_error_w=d.get(c.CONF_PD_GUARD_BYPASS_ERROR, c.DEFAULT_PD_GUARD_BYPASS_ERROR),
+            budget_per_hour=d.get(c.CONF_PD_RELAY_SWITCH_BUDGET, c.DEFAULT_PD_RELAY_SWITCH_BUDGET),
+        )
+
+    def _configure_grid_view(self) -> None:
+        # FORK: grid view (docs/fork/02-architektur.md)
+        c, d = _fork_const, self.config_entry.data
+        self._grid_view.configure(
+            physical_entity=d.get(c.CONF_PHYSICAL_GRID_SENSOR),
+            physical_inverted=d.get(c.CONF_PHYSICAL_GRID_INVERTED, c.DEFAULT_PHYSICAL_GRID_INVERTED),
+            limit_entity=d.get(c.CONF_CAPACITY_PROTECTION_LIMIT_ENTITY),
+            limit_margin_pct=d.get(c.CONF_CAPACITY_PROTECTION_LIMIT_MARGIN, c.DEFAULT_CAPACITY_PROTECTION_LIMIT_MARGIN),
+        )
+
+    def _read_physical_grid_w(self) -> float | None:
+        # FORK: grid view (docs/fork/02-architektur.md)
+        view = getattr(self, "_grid_view", None)
+        if view is None or (self.offgrid_mode_enabled and self.offgrid_power_sensor):
+            return None
+        return view.read_physical(self.hass.states, dt_util.utcnow())
+
+    def _effective_peak_limit(self) -> float:
+        # FORK: grid view (docs/fork/02-architektur.md)
+        view, hass = getattr(self, "_grid_view", None), getattr(self, "hass", None)
+        if view is None or hass is None:
+            return self.capacity_protection_limit
+        return view.peak_limit(hass.states, self.capacity_protection_limit, dt_util.utcnow())
+
+    def _icp_charge_import_cap(self, sensor_filtered: float, physical: float | None) -> float:
+        # FORK: grid view (docs/fork/02-architektur.md)
+        grid = sensor_filtered if physical is None else physical
+        return self.max_contracted_power - grid + self.previous_power
+
+    def get_relay_guard_status(self) -> dict:
+        # FORK: relay guard (docs/fork/02-architektur.md)
+        status = self._relay_guard.status(time.monotonic())
+        if status["last_switch"] is not None:
+            age = time.monotonic() - status["last_switch"]
+            status["last_switch"] = dt_util.utcnow() - timedelta(seconds=age)
+        return status
+
     def update_pd_parameters(self):
         """Re-read PD controller parameters from config_entry.data (hot-reload)."""
         old_consumption_sensor = self.consumption_sensor
@@ -3221,6 +3296,8 @@ class ChargeDischargeController:
         self.min_charge_power = self.config_entry.data.get(CONF_PD_MIN_CHARGE_POWER, DEFAULT_PD_MIN_CHARGE_POWER)
         self.min_discharge_power = self.config_entry.data.get(CONF_PD_MIN_DISCHARGE_POWER, DEFAULT_PD_MIN_DISCHARGE_POWER)
         self._relay_cooldown_s = self.config_entry.data.get(CONF_PD_RELAY_COOLDOWN, DEFAULT_PD_RELAY_COOLDOWN)
+        self._configure_relay_guard()  # FORK: relay guard (docs/fork/02-architektur.md)
+        self._configure_grid_view()  # FORK: grid view (docs/fork/02-architektur.md)
         self._min_cycle_interval_s = self.config_entry.data.get(CONF_PD_MIN_CYCLE_INTERVAL, DEFAULT_PD_MIN_CYCLE_INTERVAL)
         self.target_grid_power = self.config_entry.data.get(CONF_TARGET_GRID_POWER, DEFAULT_TARGET_GRID_POWER)
         self.enable_system_power_limits = self.config_entry.data.get(
@@ -5131,7 +5208,8 @@ class ChargeDischargeController:
         return eligible
 
     def _apply_capacity_protection(
-        self, sensor_actual: float, active_target: float
+        self, sensor_actual: float, active_target: float,
+        physical_actual: float | None = None,
     ) -> tuple[float, float]:
         """Apply peak-shaving override and return the effective target and sensor value."""
         if not self.capacity_protection_enabled:
@@ -5176,9 +5254,15 @@ class ChargeDischargeController:
         battery_power = (
             measured_power if measured_power is not None else self.previous_power
         )
-        estimated_house_load = (
-            sensor_actual + self._excluded_included_adjustment
-        ) - battery_power
+        # FORK: grid view (docs/fork/02-architektur.md)
+        limit = self._effective_peak_limit()
+        if physical_actual is not None:
+            # Real meter already contains the excluded load: no add-back.
+            estimated_house_load = physical_actual - battery_power
+        else:
+            estimated_house_load = (
+                sensor_actual + self._excluded_included_adjustment
+            ) - battery_power
         self._capacity_protection_status["excluded_peak_excess"] = 0
 
         if avg_soc < self.capacity_protection_soc_threshold:
@@ -5187,23 +5271,25 @@ class ChargeDischargeController:
             # Add back excluded-device adjustment so capacity protection sees the REAL grid load
             # including devices marked as "included in consumption". This ensures capacity
             # protection can shave peaks even when those devices are normally excluded.
-            if estimated_house_load > self.capacity_protection_limit:
+            if estimated_house_load > limit:
                 # House load exceeds peak limit: discharge only the excess
                 # Undo excluded-device adjustment so PD controller can discharge against real grid
-                if self._excluded_included_adjustment > 0:
+                if physical_actual is not None:
+                    sensor_actual = physical_actual  # FORK: grid view (docs/fork/02-architektur.md)
+                elif self._excluded_included_adjustment > 0:
                     _LOGGER.info(
                         "Capacity Protection overriding excluded device adjustment (%.0fW) for peak shaving",
                         self._excluded_included_adjustment,
                     )
                     sensor_actual += self._excluded_included_adjustment
-                self.set_setpoint_override("capacity_protection", self.capacity_protection_limit, priority=10)
+                self.set_setpoint_override("capacity_protection", limit, priority=10)
                 active_target = self.compute_active_target()
                 _LOGGER.info(
                     "Capacity Protection ACTIVE: SOC=%.1f%% < %d%%, house_load=%.0fW > limit=%dW -> target=%dW",
                     avg_soc,
                     self.capacity_protection_soc_threshold,
                     estimated_house_load,
-                    self.capacity_protection_limit,
+                    limit,
                     active_target,
                 )
                 self._capacity_protection_active = True
@@ -5232,7 +5318,7 @@ class ChargeDischargeController:
                     avg_soc,
                     self.capacity_protection_soc_threshold,
                     estimated_house_load,
-                    self.capacity_protection_limit,
+                    limit,
                     active_target,
                 )
                 self._capacity_protection_active = True
@@ -5273,7 +5359,7 @@ class ChargeDischargeController:
                     0.0,
                     active_target
                     + self._excluded_included_adjustment
-                    - self.capacity_protection_limit,
+                    - limit,
                 )
 
             if excluded_peak_excess > 0:
@@ -5292,7 +5378,7 @@ class ChargeDischargeController:
                     "excess=%.0fW, limit=%dW",
                     self._excluded_included_adjustment,
                     excluded_peak_excess,
-                    self.capacity_protection_limit,
+                    limit,
                 )
             else:
                 self._capacity_protection_active = False
@@ -5307,7 +5393,10 @@ class ChargeDischargeController:
 
         # Always keep thresholds up to date
         self._capacity_protection_status["soc_threshold"] = self.capacity_protection_soc_threshold
-        self._capacity_protection_status["peak_limit"] = self.capacity_protection_limit
+        self._capacity_protection_status["peak_limit"] = limit
+        self._capacity_protection_status["grid_source"] = (  # FORK: grid view (docs/fork/02-architektur.md)
+            "physical" if physical_actual is not None else "control"
+        )
         self._capacity_protection_status["excluded_devices_enabled"] = (
             self.capacity_protection_excluded_devices
         )
@@ -8526,6 +8615,13 @@ class ChargeDischargeController:
         trigger is skipped: the in-flight cycle already reads the current state,
         so re-entering would only risk concurrent Modbus writes.
         """
+        # FORK: relay guard (docs/fork/02-architektur.md)
+        guard = getattr(self, "_relay_guard", None)
+        if guard is not None:
+            guard.observe(self.previous_power, time.monotonic())
+            if (day := dt_util.now().date()) != self._relay_guard_day:
+                self._relay_guard_day = day
+                guard.reset_daily()
         if getattr(self, "_unloading", False):
             return
         # No-PD command delay (debounce): on a sensor event, defer the cycle by
@@ -9332,6 +9428,8 @@ class ChargeDischargeController:
                     CONF_SOLAR_PRODUCTION_SENSOR,
                     CONF_SOLAR_FORECAST_SENSOR,
                     CONF_SOLAR_FORECAST_REMAINING_SENSOR,
+                    _fork_const.CONF_PHYSICAL_GRID_SENSOR,  # FORK: grid view (docs/fork/02-architektur.md)
+                    _fork_const.CONF_CAPACITY_PROTECTION_LIMIT_ENTITY,
                 )
             )
             if entity and self.hass.states.get(entity) is None
@@ -10116,7 +10214,11 @@ class ChargeDischargeController:
         # only discharge to cover consumption above the peak limit. This must run
         # before deadband and first-execution handling, otherwise a previous
         # hourly-balance discharge can be kept alive by an early return.
-        active_target, sensor_actual = self._apply_capacity_protection(sensor_actual, active_target)
+        physical = ChargeDischargeController._read_physical_grid_w(self)  # FORK: grid view (docs/fork/02-architektur.md)
+        self._last_physical_grid_w = physical
+        active_target, sensor_actual = self._apply_capacity_protection(
+            sensor_actual, active_target,
+            **({} if physical is None else {"physical_actual": physical}))
         sensor_actual = self._apply_icp_excluded_protection(sensor_filtered, sensor_actual, active_target)
 
         if self._capacity_protection_force_idle:
@@ -10421,7 +10523,19 @@ class ChargeDischargeController:
         new_power = self._apply_relay_dwell(
             new_power, error, stale_recalc=stale_safety_recalc
         )
-
+        # FORK: relay guard (docs/fork/02-architektur.md)
+        guard = getattr(self, "_relay_guard", None)
+        if guard is not None:
+            decision = guard.filter(
+                new_power, error, previous_power=self.previous_power,
+                min_charge_w=self.min_charge_power, min_discharge_w=self.min_discharge_power,
+                peak_bypass=bool(self._capacity_protection_active),
+                stale_recalc=stale_safety_recalc, now=time.monotonic(),
+            )
+            if decision.power != new_power:
+                _LOGGER.debug("Relay guard: %s, %.0fW -> %.0fW (remaining %.0fs)",
+                              decision.reason, new_power, decision.power, decision.remaining_s)
+            new_power = decision.power
 
         # Determine if charging or discharging (before applying restrictions)
         is_charging = new_power > 0
@@ -10522,12 +10636,13 @@ class ChargeDischargeController:
         # (new_power - previous_power) shifts grid by the same amount (more charge =
         # more import). Only limits charging; never forces a discharge.
         if self.max_contracted_power > 0 and new_power > 0:
-            charge_import_cap = self.max_contracted_power - sensor_filtered + self.previous_power
+            icp_grid = sensor_filtered if physical is None else physical  # FORK: grid view (docs/fork/02-architektur.md)
+            charge_import_cap = ChargeDischargeController._icp_charge_import_cap(self, sensor_filtered, physical)
             if new_power > charge_import_cap:
                 clamped = max(0.0, charge_import_cap)
                 _LOGGER.info(
                     "ICP clamp: limiting charge %.0fW -> %.0fW (grid %.0fW, contracted %.0fW)",
-                    new_power, clamped, sensor_filtered, self.max_contracted_power,
+                    new_power, clamped, icp_grid, self.max_contracted_power,
                 )
                 new_power = clamped
 
