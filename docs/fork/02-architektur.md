@@ -72,6 +72,10 @@ Mit `engage_margin_w = 0`, Min-Ladeleistung 50 W, Totband 40 W:
 
 Preis: Überschuss zwischen 10 W und 50 W wird nicht mehr eingesammelt, solange die Batterie idle ist.
 
+**Korrektur nach der Simulation (AP A4):** Die Spalte „Upstream“ stimmt so nicht. Wegen der vorgelagerten Totband-Prüfung schaltet Upstream erst bei etwa 40 W Überschuss-Fehler ein, die Hysterese beträgt dort rund 30 W. Mit `engage_margin_w = 0` gewinnt der Fork nur etwa 10 W dazu. Die Reduktion in der Simulation (33 → 4 Schaltvorgänge in 30 min) kommt fast vollständig aus Mindest-Aus-Zeit, Richtungssperre und längerer Mindestlaufzeit. Wer mehr Abstand will, setzt `pd_engage_margin` auf 20–30 W.
+
+**Schaltbudget als harte Grenze (Entscheidung nach S7):** Die Faktor-3-Drossel hielt das Budget nicht ein (22 statt 12 Schaltvorgänge pro Stunde). Neu: Ist das Budget der letzten 3600 s ausgeschöpft, wird jedes Einschalten und jeder direkte Richtungswechsel gesperrt (`reason="budget"`), bis der älteste Schaltvorgang aus dem Fenster fällt. Abschalten bleibt immer erlaubt, die Bypässe (Peak, großer Fehler) gehen vor. Die Sorge „Batterie stundenlang blockiert“ trifft damit nicht zu: Die Sperre endet spätestens nach einer Stunde und gilt nie für große Abweichungen.
+
 ### Zustandsmaschine
 
 ```mermaid

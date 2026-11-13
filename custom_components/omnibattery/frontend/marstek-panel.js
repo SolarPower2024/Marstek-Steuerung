@@ -2554,6 +2554,9 @@ class MarstekVenusPanel extends HTMLElement {
       children.forEach((ch) => d.appendChild(ch));
       return d;
     };
+    // FORK: minimal overview - only the "System status" (SOC) card is attached;
+    // the other cards stay detached so _patch() keeps working without errors.
+    if (this._panelConfig.minimal_overview === true) return wrap("res-stack", [c.soc]);
     // hero (SOC + power + diagnostics) on top; below, Flujo on the left and a
     // 2×2 chart grid on the right (top row auto-fits Energía hoy, bottom fills)
     return wrap("res-stack", [
@@ -5413,6 +5416,8 @@ class MarstekVenusPanel extends HTMLElement {
    *  to draw into no plot and left Potencias empty until a later UI repaint. */
   _ensureHistoryStarted() {
     if (this._historyStarted || !this._hass || !this._built || !this.isConnected) return;
+    // FORK: minimal overview - history only feeds the hidden power/weekly/SOC-today charts
+    if (this._panelConfig.minimal_overview === true) return;
     this._historyStarted = true;
     this._startHistory();
   }

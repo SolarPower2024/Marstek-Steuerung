@@ -5,7 +5,7 @@ Sign convention: power + = charge, - = discharge; error + = grid draw above
 target (discharge demand), error - = surplus (charge demand).
 
 Defaults unless stated otherwise: min_off_s=60, direction_lock_s=90,
-engage_margin_w=0, bypass_error_w=200, budget_per_hour=0 (no throttle),
+engage_margin_w=0, bypass_error_w=200, budget_per_hour=0 (no budget),
 min charge 50 W, min discharge 30 W.
 """
 from __future__ import annotations
@@ -182,29 +182,39 @@ def test_g17_stale_recalc_leaves_state_untouched():
     assert _filt(g, 50, -100, 30).reason == "min_off"
 
 
-def test_g18_budget_throttles_lockouts():
-    g = _guard(budget_per_hour=4)
+def _four_switches(g):
     g.observe(0.0, 0.0)
     for p, t in ((50, 60), (0, 120), (50, 180), (0, 240)):
         g.observe(float(p), float(t))
-    d = _filt(g, 50, -100, 340)  # 100 s after shut-off, 180 s needed
-    assert (d.power, d.reason) == (0, "min_off")
-    assert abs(d.remaining_s - 80) < 0.01
-    assert g.status(340)["throttled"] is True
+
+
+def test_g18_budget_blocks_engage():
+    g = _guard(budget_per_hour=4)
+    _four_switches(g)
+    # min_off (60 s) is long over; only the budget blocks. Oldest switch t=60.
+    d = _filt(g, 50, -100, 400)
+    assert (d.power, d.reason) == (0, "budget")
+    assert abs(d.remaining_s - (60 + 3600 - 400)) < 0.01
+    assert g.status(400)["throttled"] is True
+    # Direct flip is blocked too; shut-off and same direction are allowed.
+    assert _filt(g, -50, 100, 400, previous=50.0).reason == "budget"
+    assert _filt(g, 0, 0, 400, previous=50.0).power == 0
+    assert _filt(g, 80, -100, 400, previous=50.0).power == 80
+    # Bypasses go first.
+    assert _filt(g, 50, -300, 400).reason == "bypass_error"
+    assert _filt(g, 50, -100, 400, peak=True).reason == "bypass_peak"
+    assert _filt(g, 50, -100, 400, stale=True).power == 50
     # Without budget the same situation passes.
     g2 = _guard(budget_per_hour=0)
-    g2.observe(0.0, 0.0)
-    for p, t in ((50, 60), (0, 120), (50, 180), (0, 240)):
-        g2.observe(float(p), float(t))
-    assert _filt(g2, 50, -100, 340).power == 50
-    assert g2.status(340)["throttled"] is False
+    _four_switches(g2)
+    assert _filt(g2, 50, -100, 400).power == 50
+    assert g2.status(400)["throttled"] is False
 
 
 def test_g19_budget_window_rolls_off():
     g = _guard(budget_per_hour=4)
-    g.observe(0.0, 0.0)
-    for p, t in ((50, 60), (0, 120), (50, 180), (0, 240)):
-        g.observe(float(p), float(t))
+    _four_switches(g)
+    assert _filt(g, 50, -100, 3659).reason == "budget"  # t=60 still inside
     now = 240 + 3661
     assert g.status(now)["switches_last_hour"] == 0
     assert g.status(now)["throttled"] is False
