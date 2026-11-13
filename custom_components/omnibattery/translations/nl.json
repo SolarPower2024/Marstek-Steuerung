@@ -26,6 +26,10 @@
       "title": "Batterij {battery} levert geen vermogen",
       "description": "{battery} neemt al {minutes} minuten laad-/ontlaadopdrachten aan zonder vermogen te leveren ({reason}). Omnibattery houdt hem buiten de verdeling en probeert het elke {cooldown} minuten opnieuw, zodat de rest van de vloot het huis ondertussen dekt. De batterij zelf of de verbinding ermee heeft aandacht nodig: controleer of hij niet in stand-by staat onder besturing van zijn eigen app en of de verbinding niet overbelast is. Handmatige batterijbesturing voor die batterij aan- en weer uitzetten herstelt hem vaak."
     },
+    "physical_grid_sensor_unusable": {
+      "title": "Real grid sensor is unusable",
+      "description": "The configured real grid sensor {sensor} has been unavailable, unknown or outdated for more than 5 minutes. Omnibattery falls back to the regulation grid sensor, so peak shaving and the dashboard no longer see loads that the regulation sensor excludes. Check that {sensor} exists and updates. The notice disappears by itself once it delivers a valid value again."
+    },
     "configured_sensor_missing": {
       "title": "Geconfigureerde sensor bestaat niet meer",
       "description": "Omnibattery is geconfigureerd met {sensors}, die niet in Home Assistant bestaat. Alle functies die hem uitlezen zijn inactief. De opgeslagen verwijzing blijft bewust bewaard, omdat de entiteitskiezer een verdwenen entiteit niet kan tonen en je instelling stilzwijgend zou wissen: open Opties → Sensoren en kies een vervanger, of maak het veld leeg zodra de entiteit terug is."

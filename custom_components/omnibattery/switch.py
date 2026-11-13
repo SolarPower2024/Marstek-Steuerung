@@ -1958,6 +1958,13 @@ class PanelMinimalOverviewSwitch(_ForkConfigFlagSwitch):
     _icon = "mdi:view-dashboard-variant-outline"
     _label = "Panel minimal overview"
 
+    async def _set_enabled(self, enabled: bool) -> None:
+        """Persist the flag, then re-register the panel so it gets the new config."""
+        await super()._set_enabled(enabled)
+        from . import _async_register_frontend_panel  # lazy: avoids a circular import
+
+        await _async_register_frontend_panel(self.hass, self.entry)
+
 
 class OffgridModeSwitch(SwitchEntity):
     """Select the alternate off-grid meter as the integration data source."""

@@ -26,6 +26,10 @@
       "title": "Batterie {battery} liefert keine Leistung",
       "description": "{battery} nimmt seit {minutes} Minuten Lade-/Entladebefehle an, ohne Leistung zu liefern ({reason}). Omnibattery hält sie aus der Verteilung heraus und versucht es alle {cooldown} Minuten erneut, sodass der Rest der Flotte das Haus in der Zwischenzeit versorgt. Die Batterie selbst oder ihre Verbindung braucht Aufmerksamkeit: Prüfe, ob sie nicht unter der Kontrolle ihrer eigenen App im Standby steht und ob die Verbindung nicht überlastet ist. Die manuelle Batteriesteuerung für diese Batterie ein- und wieder auszuschalten stellt sie oft wieder her."
     },
+    "physical_grid_sensor_unusable": {
+      "title": "Realer Netzsensor ist unbrauchbar",
+      "description": "Der konfigurierte reale Netzsensor {sensor} ist seit mehr als 5 Minuten nicht verfügbar, unbekannt oder veraltet. Omnibattery weicht auf den Regel-Netzsensor aus, sodass Spitzenkappung und Dashboard Lasten nicht mehr sehen, die der Regelsensor ausschließt. Prüfen Sie, ob {sensor} existiert und aktualisiert wird. Der Hinweis verschwindet von selbst, sobald wieder ein gültiger Wert geliefert wird."
+    },
     "configured_sensor_missing": {
       "title": "Konfigurierter Sensor existiert nicht mehr",
       "description": "Omnibattery ist mit {sensors} konfiguriert, das in Home Assistant nicht existiert. Alle Funktionen, die ihn lesen, sind inaktiv. Der gespeicherte Verweis wird absichtlich beibehalten, denn die Entitätsauswahl kann eine verschwundene Entität nicht anzeigen und würde Ihre Einstellung stillschweigend löschen: Öffnen Sie Optionen → Sensoren und wählen Sie einen Ersatz, oder leeren Sie das Feld, sobald die Entität zurück ist."

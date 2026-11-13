@@ -497,9 +497,24 @@ async def _async_register_frontend_panel(hass: HomeAssistant, entry: ConfigEntry
             )
 
             data = entry.data
+            # FORK: Panel minimal overview flag (read by the frontend as
+            # panel_config.minimal_overview); applied on the next panel registration.
+            panel_config["minimal_overview"] = bool(
+                data.get(_fork_const.CONF_PANEL_MINIMAL_OVERVIEW, False)
+            )
             # consumption_sensor is the net grid meter (+import / -export) the PD
             # loop regulates — it is the Grid node of the flow diagram.
-            if data.get("consumption_sensor"):
+            # FORK: grid view (docs/fork/02-architektur.md), B5 - the real meter, when
+            # configured, is the Grid node (with its own invert flag).
+            if data.get(_fork_const.CONF_PHYSICAL_GRID_SENSOR):
+                panel_config["grid_entity"] = data[_fork_const.CONF_PHYSICAL_GRID_SENSOR]
+                panel_config["grid_inverted"] = bool(
+                    data.get(
+                        _fork_const.CONF_PHYSICAL_GRID_INVERTED,
+                        _fork_const.DEFAULT_PHYSICAL_GRID_INVERTED,
+                    )
+                )
+            elif data.get("consumption_sensor"):
                 panel_config["grid_entity"] = data["consumption_sensor"]
                 # PD convention is +import / -export; if the user's meter is wired
                 # the other way the integration negates it (meter_inverted). Forward
@@ -3215,6 +3230,56 @@ class ChargeDischargeController:
         if view is None or (self.offgrid_mode_enabled and self.offgrid_power_sensor):
             return None
         return view.read_physical(self.hass.states, dt_util.utcnow())
+
+    def read_statistics_grid_w(self) -> float | None:
+        """Grid power (+import / -export) for statistics and display.
+
+        FORK: grid view (docs/fork/02-architektur.md), B5. The real meter when
+        configured and usable, otherwise the regulation meter. Uses
+        ``peek_physical`` (no side effects): ``read_physical`` would consume the
+        control loop's new-sample detection, and ``_last_physical_grid_w`` has no
+        timestamp, so timer-driven callers could see a stale value.
+        """
+        view = getattr(self, "_grid_view", None)
+        if view is not None and view.has_physical and not (
+            self.offgrid_mode_enabled and self.offgrid_power_sensor
+        ):
+            value = view.peek_physical(self.hass.states, dt_util.utcnow())
+            if value is not None:
+                return value
+        return self._apply_meter_transform(self.hass.states.get(self.consumption_sensor))
+
+    def _check_physical_grid_sensor(self) -> None:
+        """Repair issue while the configured real grid sensor is unusable > 5 min.
+
+        FORK: grid view (docs/fork/02-architektur.md), C. Cleared on recovery.
+        """
+        view = getattr(self, "_grid_view", None)
+        if view is None or getattr(self, "hass", None) is None:
+            return
+        issue_id = f"physical_grid_sensor_unusable_{self.config_entry.entry_id}"
+        since = view.status()["unusable_since"] if view.has_physical else None
+        unusable = (
+            since is not None
+            and (dt_util.utcnow() - since).total_seconds() > _fork_const.PHYSICAL_GRID_UNUSABLE_ISSUE_DELAY_S
+        )
+        reported = getattr(self, "_physical_grid_issue_created", False)
+        if unusable and not reported:
+            self._physical_grid_issue_created = True
+            ir.async_create_issue(
+                self.hass,
+                DOMAIN,
+                issue_id,
+                is_fixable=False,
+                is_persistent=False,
+                issue_domain=DOMAIN,
+                severity=ir.IssueSeverity.WARNING,
+                translation_key="physical_grid_sensor_unusable",
+                translation_placeholders={"sensor": view.status()["physical_entity"] or ""},
+            )
+        elif not unusable and reported:
+            self._physical_grid_issue_created = False
+            ir.async_delete_issue(self.hass, DOMAIN, issue_id)
 
     def _effective_peak_limit(self) -> float:
         # FORK: grid view (docs/fork/02-architektur.md)
@@ -10101,6 +10166,7 @@ class ChargeDischargeController:
         # Before the grid-sensor read: a missing grid sensor returns below, and
         # that is precisely a case this issue has to name.
         self._check_missing_configured_sensors()
+        ChargeDischargeController._check_physical_grid_sensor(self)  # FORK: grid view (docs/fork/02-architektur.md)
         consumption_state = self.hass.states.get(self.consumption_sensor)
         sensor_raw = self._apply_meter_transform(consumption_state)
         if sensor_raw is None:
@@ -10729,13 +10795,18 @@ class ChargeDischargeController:
                 self._grid_at_min_soc_last_ts = now_ts
                 if last_ts is not None and (now_ts - last_ts).total_seconds() <= 10.0:
                     dt_s = (now_ts - last_ts).total_seconds()
-                    interval_kwh = sensor_actual * dt_s / 3_600_000
+                    # FORK: grid view (docs/fork/02-architektur.md), B5 - integrate the
+                    # real meter when configured (the gate above stays on the control value).
+                    stats_reader = getattr(self, "read_statistics_grid_w", None)
+                    stats_w = stats_reader() if callable(stats_reader) else None
+                    grid_w_energy = sensor_actual if stats_w is None else max(0.0, stats_w)
+                    interval_kwh = grid_w_energy * dt_s / 3_600_000
                     self._daily_grid_at_min_soc_kwh += interval_kwh
                     if self._grid_at_min_soc_sensor:
                         self._grid_at_min_soc_sensor.async_write_ha_state()
                     _LOGGER.debug(
                         "Grid-at-min-soc: +%.4f kWh (grid=%.0fW, dt=%.1fs), daily total=%.3f kWh",
-                        interval_kwh, sensor_actual, dt_s, self._daily_grid_at_min_soc_kwh,
+                        interval_kwh, grid_w_energy, dt_s, self._daily_grid_at_min_soc_kwh,
                     )
                     # Persist to Store periodically so reloads don't lose the day's accumulation
                     if self._consumption_tracker is not None:
