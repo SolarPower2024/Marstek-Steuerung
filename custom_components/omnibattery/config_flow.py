@@ -73,6 +73,9 @@ from .const import (
     CONF_MAX_CONTRACTED_POWER,
     CONF_OFFGRID_POWER_SENSOR,
     CONF_OFFGRID_METER_INVERTED,
+    CONF_PHYSICAL_GRID_SENSOR,
+    CONF_PHYSICAL_GRID_INVERTED,
+    CONF_CAPACITY_PROTECTION_LIMIT_ENTITY,
     CONF_OFFGRID_MODE_ENABLED,
     CONF_THREE_PHASE_ENABLED,
     CONF_PHASE_1_CURRENT_SENSOR,
@@ -398,6 +401,8 @@ def _restore_unrenderable_sensors(
         CONF_SOLAR_FORECAST_REMAINING_SENSOR,
         CONF_SOLAR_PRODUCTION_SENSOR,
         CONF_OFFGRID_POWER_SENSOR,
+        CONF_PHYSICAL_GRID_SENSOR,
+        CONF_CAPACITY_PROTECTION_LIMIT_ENTITY,
     ):
         current = stored.get(key)
         if restored.get(key) or not current:
@@ -4026,6 +4031,12 @@ class OptionsFlowHandler(OptionsFlow):
             new_data.pop(CONF_OFFGRID_POWER_SENSOR, None)
             new_data.pop(CONF_OFFGRID_METER_INVERTED, None)
             new_data.pop(CONF_OFFGRID_MODE_ENABLED, None)
+        # FORK: optional entities - a cleared field removes the key.
+        if not new_data.get(CONF_PHYSICAL_GRID_SENSOR):
+            new_data.pop(CONF_PHYSICAL_GRID_SENSOR, None)
+            new_data.pop(CONF_PHYSICAL_GRID_INVERTED, None)
+        if not new_data.get(CONF_CAPACITY_PROTECTION_LIMIT_ENTITY):
+            new_data.pop(CONF_CAPACITY_PROTECTION_LIMIT_ENTITY, None)
         new_data = normalize_solar_forecast_config(new_data)
         new_data[CONF_ENABLE_BALANCE_MONITOR] = True
         entry_id = self.config_entry.entry_id
@@ -4150,6 +4161,16 @@ class OptionsFlowHandler(OptionsFlow):
                         self.config_data[CONF_SOLAR_FORECAST_REMAINING_SENSOR] = None
                     self.config_data[CONF_SOLAR_PRODUCTION_SENSOR] = solar_sensor
                     self.config_data[CONF_METER_INVERTED] = user_input.get(CONF_METER_INVERTED, False)
+                    # FORK: optional physical grid meter and dynamic peak-limit entity.
+                    self.config_data[CONF_PHYSICAL_GRID_SENSOR] = (
+                        user_input.get(CONF_PHYSICAL_GRID_SENSOR) or None
+                    )
+                    self.config_data[CONF_PHYSICAL_GRID_INVERTED] = user_input.get(
+                        CONF_PHYSICAL_GRID_INVERTED, False
+                    )
+                    self.config_data[CONF_CAPACITY_PROTECTION_LIMIT_ENTITY] = (
+                        user_input.get(CONF_CAPACITY_PROTECTION_LIMIT_ENTITY) or None
+                    )
                     self.config_data["max_contracted_power"] = user_input["max_contracted_power"]
                     enabled = bool(
                         user_input.get(
@@ -4172,6 +4193,9 @@ class OptionsFlowHandler(OptionsFlow):
                 CONF_OFFGRID_METER_INVERTED, False
             )
             current_inverted = self.config_entry.data.get(CONF_METER_INVERTED, False)
+            current_physical = self.config_entry.data.get(CONF_PHYSICAL_GRID_SENSOR, "")
+            current_physical_inverted = self.config_entry.data.get(CONF_PHYSICAL_GRID_INVERTED, False)
+            current_limit_entity = self.config_entry.data.get(CONF_CAPACITY_PROTECTION_LIMIT_ENTITY, "")
             current_max_power = self.config_entry.data.get("max_contracted_power", 7000)
         except Exception as e:
             _LOGGER.error("Error in options flow sensors: %s", e, exc_info=True)
@@ -4203,6 +4227,14 @@ class OptionsFlowHandler(OptionsFlow):
                         CONF_OFFGRID_METER_INVERTED,
                         default=current_offgrid_inverted,
                     ): BooleanSelector(),
+                    vol.Optional(CONF_PHYSICAL_GRID_SENSOR, description={"suggested_value": current_physical} if current_physical else {}):
+                        EntitySelector(EntitySelectorConfig(domain="sensor")),
+                    vol.Optional(
+                        CONF_PHYSICAL_GRID_INVERTED,
+                        default=current_physical_inverted,
+                    ): BooleanSelector(),
+                    vol.Optional(CONF_CAPACITY_PROTECTION_LIMIT_ENTITY, description={"suggested_value": current_limit_entity} if current_limit_entity else {}):
+                        EntitySelector(EntitySelectorConfig(domain=["sensor", "number", "input_number"])),
                     vol.Required(
                         CONF_THREE_PHASE_ENABLED,
                         default=current_three_phase_enabled,

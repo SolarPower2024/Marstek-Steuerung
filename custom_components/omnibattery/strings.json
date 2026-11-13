@@ -848,6 +848,9 @@
           "consumption_sensor": "Grid consumption sensor",
           "offgrid_power_sensor": "Off-grid power sensor (optional)",
           "offgrid_meter_inverted": "Off-grid meter sign inverted",
+          "physical_grid_sensor": "Physical grid meter (optional)",
+          "physical_grid_inverted": "Physical grid meter sign inverted",
+          "capacity_protection_limit_entity": "Dynamic peak limit entity (optional)",
           "solar_forecast_sensor": "Whole-day solar forecast sensor (legacy)",
           "solar_forecast_remaining_sensor": "Solar forecast remaining today sensor (recommended)",
           "solar_production_sensor": "Solar production sensor (optional)",
@@ -859,6 +862,9 @@
           "consumption_sensor": "Real-time sensor for imported (+) or exported (-) grid power. Updates every 1-2 seconds are recommended. Slower sensors are accepted, but delayed readings reduce regulation quality; the latest reading is followed for up to 65 seconds.",
           "offgrid_power_sensor": "Separate W/kW meter for the backed-up circuit. It must differ from the normal grid sensor. Configuring it exposes a software switch that selects this source for control and statistics; it does not enable the battery's physical off-grid/EPS port.",
           "offgrid_meter_inverted": "Enable when the off-grid sensor uses the opposite convention: positive = export and negative = consumption. This setting applies only while off-grid meter mode is active.",
+          "physical_grid_sensor": "Real grid meter at the billing point. Used for peak shaving and contracted power. If empty, the control sensor above is used.",
+          "physical_grid_inverted": "Enable if this meter uses the opposite sign convention: positive = export, negative = import.",
+          "capacity_protection_limit_entity": "Sensor, number or input_number providing the peak limit in W. If empty or unreadable, the fixed peak limit is used.",
           "solar_forecast_sensor": "Legacy sensor providing the whole-day solar forecast. Existing installations can keep using it during the transition; prefer Remaining Today for new configurations.",
           "solar_forecast_remaining_sensor": "Sensor providing solar production still expected today in kWh. Saving it replaces the legacy whole-day forecast and it is never reduced by production already measured.",
           "solar_production_sensor": "Real-time PV production power sensor (W/kW) from an external inverter not wired through the battery MPPT inputs. Used to show the Solar node in the dashboard energy-flow diagram. Leave empty if your panels feed the battery MPPT directly.",
@@ -1534,6 +1540,12 @@
       },
       "no_pd_mode": {
         "name": "No-PD Direct Tracking"
+      },
+      "pd_relay_guard_enabled": {
+        "name": "Relay Guard"
+      },
+      "panel_minimal_overview": {
+        "name": "Minimal Overview"
       },
       "offgrid_mode": {
         "name": "Off-grid Meter Mode"
@@ -2692,6 +2704,21 @@
       "pd_relay_cooldown": {
         "name": "PD Relay Cooldown"
       },
+      "pd_relay_min_off": {
+        "name": "PD Relay Minimum Off Time"
+      },
+      "pd_direction_lock": {
+        "name": "PD Direction Change Lock"
+      },
+      "pd_engage_margin": {
+        "name": "PD Engage Margin"
+      },
+      "pd_guard_bypass_error": {
+        "name": "PD Guard Bypass Error"
+      },
+      "pd_relay_switch_budget": {
+        "name": "PD Relay Switch Budget"
+      },
       "pd_min_cycle_interval": {
         "name": "PD Min Cycle Interval"
       },
@@ -2733,6 +2760,9 @@
       },
       "capacity_protection_limit": {
         "name": "Peak Shaving Limit"
+      },
+      "capacity_protection_limit_margin": {
+        "name": "Peak Limit Safety Margin"
       },
       "backup_offgrid_threshold": {
         "name": "Backup Offgrid Threshold"

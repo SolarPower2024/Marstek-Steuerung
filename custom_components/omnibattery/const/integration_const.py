@@ -671,6 +671,15 @@ CONF_CAPACITY_PROTECTION_LIMIT = "capacity_protection_limit"
 DEFAULT_CAPACITY_PROTECTION_SOC = 30
 DEFAULT_CAPACITY_PROTECTION_LIMIT = 2500
 
+# FORK: dynamic peak limit from an entity (falls back to the fixed limit above),
+# a safety margin below that limit, and an optional separate physical grid meter.
+CONF_CAPACITY_PROTECTION_LIMIT_ENTITY = "capacity_protection_limit_entity"
+CONF_CAPACITY_PROTECTION_LIMIT_MARGIN = "capacity_protection_limit_margin"
+DEFAULT_CAPACITY_PROTECTION_LIMIT_MARGIN = 0
+CONF_PHYSICAL_GRID_SENSOR = "physical_grid_sensor"
+CONF_PHYSICAL_GRID_INVERTED = "physical_grid_inverted"
+DEFAULT_PHYSICAL_GRID_INVERTED = False
+
 # PD Controller Advanced Configuration Keys
 CONF_PD_KP = "pd_controller_kp"
 CONF_PD_KD = "pd_controller_kd"
@@ -680,6 +689,15 @@ CONF_PD_DIRECTION_HYSTERESIS = "pd_controller_direction_hysteresis"
 CONF_PD_MIN_CHARGE_POWER = "pd_min_charge_power"
 CONF_PD_MIN_DISCHARGE_POWER = "pd_min_discharge_power"
 CONF_PD_RELAY_COOLDOWN = "pd_relay_cooldown"
+# FORK: relay guard (anti-chatter) - master switch plus individual locks.
+CONF_PD_RELAY_GUARD_ENABLED = "pd_relay_guard_enabled"
+CONF_PD_RELAY_MIN_OFF = "pd_relay_min_off"
+CONF_PD_DIRECTION_LOCK = "pd_direction_lock"
+CONF_PD_ENGAGE_MARGIN = "pd_engage_margin"
+CONF_PD_GUARD_BYPASS_ERROR = "pd_guard_bypass_error"
+CONF_PD_RELAY_SWITCH_BUDGET = "pd_relay_switch_budget"
+# FORK: reduced panel overview (UI preference).
+CONF_PANEL_MINIMAL_OVERVIEW = "panel_minimal_overview"
 CONF_PD_MIN_CYCLE_INTERVAL = "pd_min_cycle_interval"
 CONF_TARGET_GRID_POWER = "pd_target_grid_power"
 # No-PD direct-tracking mode (opt-in): track the consumption sensor 1:1 with no
@@ -735,6 +753,15 @@ DEFAULT_PD_MIN_DISCHARGE_POWER = 0    # Minimum discharge power (0 = disabled)
 # signal hovers at the deadband edge during solar ramp-up/down. 0 = disabled
 # (default: preserves the pre-feature behaviour; opt-in via the slider).
 DEFAULT_PD_RELAY_COOLDOWN = 0
+# FORK: relay guard defaults. Guard is off by default (v1.6.0 behaviour); every
+# lock is individually disabled by 0.
+DEFAULT_PD_RELAY_GUARD_ENABLED = False
+DEFAULT_PD_RELAY_MIN_OFF = 0
+DEFAULT_PD_DIRECTION_LOCK = 0
+DEFAULT_PD_ENGAGE_MARGIN = 0
+DEFAULT_PD_GUARD_BYPASS_ERROR = 200
+DEFAULT_PD_RELAY_SWITCH_BUDGET = 0
+DEFAULT_PANEL_MINIMAL_OVERVIEW = False
 # Power held in the already-engaged direction while the cooldown is running, when
 # the user's min charge/discharge power is 0 (otherwise that min is used).
 RELAY_COOLDOWN_HOLD_POWER = 100
@@ -1203,11 +1230,61 @@ CONFIG_NUMBER_DEFINITIONS = [
         "key": CONF_PD_RELAY_COOLDOWN,
         "name": "PD Relay Cooldown",
         "min": 0,
-        "max": 60,
+        "max": 600,
         "step": 1,
         "unit": "s",
         "default": DEFAULT_PD_RELAY_COOLDOWN,
         "icon": "mdi:timer-cog-outline",
+    },
+    {
+        "key": CONF_PD_RELAY_MIN_OFF,
+        "name": "PD Relay Minimum Off Time",
+        "min": 0,
+        "max": 600,
+        "step": 5,
+        "unit": "s",
+        "default": DEFAULT_PD_RELAY_MIN_OFF,
+        "icon": "mdi:timer-off-outline",
+    },
+    {
+        "key": CONF_PD_DIRECTION_LOCK,
+        "name": "PD Direction Change Lock",
+        "min": 0,
+        "max": 900,
+        "step": 5,
+        "unit": "s",
+        "default": DEFAULT_PD_DIRECTION_LOCK,
+        "icon": "mdi:swap-horizontal-bold",
+    },
+    {
+        "key": CONF_PD_ENGAGE_MARGIN,
+        "name": "PD Engage Margin",
+        "min": 0,
+        "max": 500,
+        "step": 5,
+        "unit": "W",
+        "default": DEFAULT_PD_ENGAGE_MARGIN,
+        "icon": "mdi:arrow-expand-horizontal",
+    },
+    {
+        "key": CONF_PD_GUARD_BYPASS_ERROR,
+        "name": "PD Guard Bypass Error",
+        "min": 50,
+        "max": 3000,
+        "step": 10,
+        "unit": "W",
+        "default": DEFAULT_PD_GUARD_BYPASS_ERROR,
+        "icon": "mdi:shield-off-outline",
+    },
+    {
+        "key": CONF_PD_RELAY_SWITCH_BUDGET,
+        "name": "PD Relay Switch Budget",
+        "min": 0,
+        "max": 120,
+        "step": 1,
+        "unit": "/h",
+        "default": DEFAULT_PD_RELAY_SWITCH_BUDGET,
+        "icon": "mdi:counter",
     },
     {
         "key": CONF_PD_MIN_CYCLE_INTERVAL,
@@ -1338,6 +1415,17 @@ CONFIG_NUMBER_DEFINITIONS = [
         "unit": "W",
         "default": DEFAULT_CAPACITY_PROTECTION_LIMIT,
         "icon": "mdi:flash-alert",
+        "condition": CONF_CAPACITY_PROTECTION_ENABLED,
+    },
+    {
+        "key": CONF_CAPACITY_PROTECTION_LIMIT_MARGIN,
+        "name": "Capacity Protection Limit Margin",
+        "min": 0,
+        "max": 30,
+        "step": 1,
+        "unit": "%",
+        "default": DEFAULT_CAPACITY_PROTECTION_LIMIT_MARGIN,
+        "icon": "mdi:percent-outline",
         "condition": CONF_CAPACITY_PROTECTION_ENABLED,
     },
     {
