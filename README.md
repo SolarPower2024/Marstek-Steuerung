@@ -1,5 +1,21 @@
-# Omnibattery for Home Assistant
-https://github.com/ffunes/omnibattery
+# Omnibattery for Home Assistant (Fork)
+
+> [!IMPORTANT]
+> **This is an unofficial, modified fork — not the original project.**
+>
+> - **Original project:** [ffunes/Omnibattery](https://github.com/ffunes/Omnibattery) (documentation: https://ffunes.github.io/Omnibattery/). All credit for the integration goes to its author and contributors.
+> - **Fork basis:** upstream release v1.6.0 (2026-11-09). This fork carries the version `1.6.0.1`.
+> - **Modified on:** 2026-11-13 (see the Git history for every change).
+> - **Changes in this fork** (details in [`docs/fork/`](docs/fork/)):
+>   - `RelayGuard` (`control/relay_guard.py`): anti-chatter protection for the PD controller (minimum off time, charge/discharge direction lock, on/off hysteresis, hourly switching budget).
+>   - `GridView` (`control/grid_view.py`): optional second, real grid sensor with freshness checks, used for peak shaving and a dynamic peak limit.
+>   - Additional diagnostic sensors, a simulation of the control logic and a reduced overview in the configuration UI.
+> - **License:** this fork is distributed under the same license as the original, the [GNU General Public License v3.0](LICENSE). The full license text is unchanged. The source code of this fork is the complete corresponding source.
+> - **Support:** please do **not** report problems of this fork to the original author. The original project's links below (documentation, donations) point to the original project and not to this fork.
+>
+> This software comes with **ABSOLUTELY NO WARRANTY**; see the disclaimer below and sections 15 and 16 of the license.
+
+Original project: https://github.com/ffunes/omnibattery
 
 ![Logo](assets/logo-github.png)
 
@@ -43,9 +59,11 @@ https://github.com/ffunes/omnibattery
 
 ## Support
 
-If you find this integration useful, you can support my work:
+If you find this integration useful, you can support the original author:
 
-<a href="https://buymeacoffee.com/ffunes" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="40" width="145" ></a>
+**Buy ffunes a coffee (original author):**
+
+<a href="https://buymeacoffee.com/ffunes" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy ffunes a coffee (original author)" height="40" width="145" ></a>
 ## Documentation
 
 Full documentation (configuration, features, entities, troubleshooting) is available at:
