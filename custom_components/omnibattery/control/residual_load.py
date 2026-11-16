@@ -48,6 +48,7 @@ from ..const import (
 )
 from ..drivers.base import DELIVERED_AC_POWER_KEY, has_connected_mppt_pv
 from ..energy import effective_total_discharging_energy
+from ..infra import cycle_trace  # FORK: trace (docs/fork/08-trace.md)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -75,18 +76,23 @@ def _battery_ac_power_w(coordinator):
     silent one -- see the module docstring on why a partial reconstruction is not
     a weaker version of this quantity.
     """
+    return _battery_ac_power_with_source(coordinator)[0]
+
+
+def _battery_ac_power_with_source(coordinator):
+    """``_battery_ac_power_w`` plus which signal it came from (for the trace)."""
     if not getattr(coordinator, "is_available", False) or not coordinator.data:
-        return None
+        return None, "unavailable"
     delivered = coordinator.data.get(DELIVERED_AC_POWER_KEY)
     if delivered is not None:
-        return -float(delivered)
+        return -float(delivered), "delivered"
     ac = coordinator.data.get("ac_power")
     if ac is not None:
-        return float(ac)
+        return float(ac), "ac_power"
     battery_power = coordinator.data.get("battery_power")
     if battery_power is None or has_connected_mppt_pv(coordinator):
-        return None
-    return -float(battery_power)
+        return None, "none"
+    return -float(battery_power), "battery_power"
 
 
 def uncovered_load_w(controller, grid_w):
@@ -101,11 +107,21 @@ def uncovered_load_w(controller, grid_w):
     if not coordinators:
         return None
     total = float(grid_w)
+    parts = [] if cycle_trace.enabled() else None
     for coordinator in coordinators:
-        contribution = _battery_ac_power_w(coordinator)
+        contribution, source = _battery_ac_power_with_source(coordinator)
+        if parts is not None:
+            parts.append(f"{getattr(coordinator, 'name', '?')}:{source}:{cycle_trace._fmt(contribution)}")
         if contribution is None:
+            if parts is not None:
+                cycle_trace.append(controller, "unc", f"grid{cycle_trace._fmt(float(grid_w))}+{'+'.join(parts)}=None")
             return None
         total += contribution
+    if parts is not None:
+        cycle_trace.append(
+            controller, "unc",
+            f"grid{cycle_trace._fmt(float(grid_w))}+{'+'.join(parts)}={cycle_trace._fmt(total)}",
+        )
     return total
 
 
@@ -339,9 +355,36 @@ def surplus_blocks_discharge(controller, grid_w) -> bool:
         if (now - since).total_seconds() >= max(SURPLUS_GUARD_MIN_HOLD_S, 2.0 * latency_s):
             latched = True
             since = None
+    if cycle_trace.enabled():
+        _trace_surplus(controller, grid_w, demand, band, latched, since)
     controller._surplus_guard_latched = latched
     controller._surplus_guard_since = since
     return latched
+
+
+def _trace_surplus(controller, grid_w, demand, band, latched, since):
+    """FORK: trace - surplus guard inputs and latch changes; never raises."""
+    try:
+        was = bool(getattr(controller, "_surplus_guard_latched", False))
+        target = None
+        try:
+            target = float(controller.compute_active_target())
+        except Exception:  # noqa: BLE001
+            pass
+        cycle_trace.append(
+            controller, "sg",
+            f"grid{cycle_trace._fmt(None if grid_w is None else float(grid_w))}"
+            f"/tgt{cycle_trace._fmt(target)}/dem{cycle_trace._fmt(demand)}"
+            f"/band{cycle_trace._fmt(band)}/{int(was)}>{int(latched)}"
+            f"/pend{cycle_trace._fmt(None if since is None else (dt_util.utcnow() - since).total_seconds())}",
+        )
+        if was != latched:
+            cycle_trace.event(
+                "SG_LATCH" if latched else "SG_RELEASE", controller,
+                grid=grid_w, target=target, demand=demand, band=band,
+            )
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def _apply_surplus_guard(controller, new_power, grid_w):
@@ -403,9 +446,22 @@ def apply_guards(controller, new_power, grid_w):
     Order matters: the guard runs after the feedforward so it can veto that too,
     and the ceiling runs after the guard so a veto stands.
     """
+    requested = new_power
     new_power = _apply_feedforward(controller, new_power, grid_w)
+    after_ff = new_power
     new_power = _apply_surplus_guard(controller, new_power, grid_w)
-    return _apply_discharge_ceiling(controller, new_power, grid_w)
+    after_sg = new_power
+    new_power = _apply_discharge_ceiling(controller, new_power, grid_w)
+    if cycle_trace.enabled():  # FORK: trace - request>feedforward>surplus>ceiling
+        try:
+            cycle_trace.append(
+                controller, "ag",
+                f"{cycle_trace._fmt(float(requested))}>{cycle_trace._fmt(float(after_ff))}"
+                f">{cycle_trace._fmt(float(after_sg))}>{cycle_trace._fmt(float(new_power))}",
+            )
+        except Exception:  # noqa: BLE001
+            pass
+    return new_power
 
 
 def guards_pending(controller, grid_w) -> bool:

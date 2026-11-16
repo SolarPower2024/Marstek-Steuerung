@@ -251,6 +251,7 @@ from .const import (
 from .infra.lifecycle import is_reload_pending
 from .control.charge_delay import ChargeDelayManager
 from .control.residual_load import apply_guards, guards_pending
+from .infra import cycle_trace  # FORK: trace (docs/fork/08-trace.md)
 from .drivers.base import DELIVERED_AC_POWER_KEY, has_connected_mppt_pv
 from .control.discharge_reserve import (
     RESERVE_SOC_TOLERANCE_PCT,
@@ -7957,6 +7958,10 @@ class ChargeDischargeController:
         # last_fail_reason carries the most specific failure category seen across
         # both attempts so the non-responsive tracker can surface *why*.
         last_fail_reason: str | None = None
+        cycle_trace.event(  # FORK: trace - every real write, inside a cycle or not
+            "WRITE", self, bat=coordinator.name, net=net_power, prev_net=current_net,
+            force=expected_force_mode, readback=read_back,
+        )
         for attempt in range(2):
             result = await coordinator.apply_power(net_power, read_back=read_back)
 
@@ -10059,6 +10064,19 @@ class ChargeDischargeController:
         )
 
     async def _run_control_cycle(self, now=None):
+        """Update the charge/discharge power of the batteries.
+
+        FORK: trace (docs/fork/08-trace.md) - wraps the cycle in one trace record.
+        """
+        cycle_trace.begin(self)
+        try:
+            await ChargeDischargeController._run_control_cycle_inner(self, now)
+        except BaseException as err:
+            cycle_trace.end(self, err)
+            raise
+        cycle_trace.end(self)
+
+    async def _run_control_cycle_inner(self, now=None):
         """Update the charge/discharge power of the batteries."""
         if DEBUG_CONTROL_LOOP_DETAIL:
             _LOGGER.debug("ChargeDischargeController: async_update_charge_discharge started.")
@@ -10155,6 +10173,7 @@ class ChargeDischargeController:
             # Do not set batteries to 0 - preserve user's manual settings
             # Do not update PD state - freeze controller state
             self._phase_safety_pending = False
+            cycle_trace.put(self, exit="manual_mode")
             return
 
         # Individual manual batteries remain under their own software setpoints
@@ -10201,11 +10220,13 @@ class ChargeDischargeController:
             self.sign_changes = 0
             self._active_discharge_batteries = []
             self._active_charge_batteries = []
+            cycle_trace.put(self, exit="max_soc")
             return
 
         # A dead meter stops automatic control before predictive dispatch, so a
         # grid charge cannot keep importing against a ceiling nobody is reading.
         if await self._apply_dead_meter_fallback():
+            cycle_trace.put(self, exit="dead_meter")
             return
 
         # === Predictive Grid Charging Logic (mode dispatch) ===
@@ -10215,10 +10236,12 @@ class ChargeDischargeController:
                 # Dynamic pricing falls through to normal PD control when not in a slot;
                 # it only returns early when actively charging.
                 if self.grid_charging_active:
+                    cycle_trace.put(self, exit="predictive")
                     return
             elif self.predictive_charging_mode == PREDICTIVE_MODE_REALTIME_PRICE:
                 await self._handle_realtime_price_predictive_charging()
                 if self.grid_charging_active:
+                    cycle_trace.put(self, exit="predictive")
                     return
             else:
                 # Default: time slot mode
@@ -10226,6 +10249,7 @@ class ChargeDischargeController:
                 # Time slot handler always returns early from its own logic,
                 # so we only reach here when outside the slot (normal PD control).
                 if self.grid_charging_active:
+                    cycle_trace.put(self, exit="predictive")
                     return
 
         # === Operation blockers: enforce BEFORE deadband / stale early-returns ===
@@ -10237,6 +10261,7 @@ class ChargeDischargeController:
                 abs(self.previous_power),
             )
             await self._stop_all_batteries_for_block("charge")
+            cycle_trace.put(self, exit="charge_block")
             return
 
         if self.previous_power < 0 and self.is_discharge_blocked():
@@ -10245,6 +10270,7 @@ class ChargeDischargeController:
                 abs(self.previous_power),
             )
             await self._stop_all_batteries_for_block("discharge")
+            cycle_trace.put(self, exit="discharge_block")
             return
 
         blocked_active_changed = await self._stop_blocked_active_batteries()
@@ -10257,6 +10283,7 @@ class ChargeDischargeController:
         consumption_state = self.hass.states.get(self.consumption_sensor)
         sensor_raw = self._apply_meter_transform(consumption_state)
         if sensor_raw is None:
+            cycle_trace.put(self, exit="no_sensor")
             self._log_consumption_sensor_issue(consumption_state)
             if self._phase_safety_pending:
                 await self._apply_phase_safety_review()
@@ -10279,6 +10306,11 @@ class ChargeDischargeController:
         physical_new = physical is not None and self._grid_view.physical_is_new()
         physical_elapsed_s = ChargeDischargeController._track_physical_sample(self, physical)
         peak_review_pending = ChargeDischargeController._peak_review_pending(self, physical)
+        cycle_trace.put(
+            self, raw=sensor_raw, new=has_new_control_sample, el=sensor_elapsed_s,
+            stale=is_stale, phys=physical, phys_new=physical_new,
+            paced=getattr(self, "_timer_tick_paced", False),
+        )
 
         # Same cadence, different failure: a configured solar-forecast sensor that
         # stops reading. Cheap state lookup, so no extra throttle.
@@ -10341,10 +10373,16 @@ class ChargeDischargeController:
                     self._last_control_sample_value = None
                     self._last_sensor_report_time = previous_report_time
                 self._cycle_kept_last_command = True
+                cycle_trace.put(self, exit="keep_last")
                 return
             # A paced tick that a safety condition needs reviewed runs a normal
             # cycle on its fresh sample: protections never wait for pacing.
             stale_safety_recalc = not paced_tick
+            cycle_trace.put(self, recalc=stale_safety_recalc,
+                            cp_recheck=capacity_protection_must_recheck,
+                            blk_changed=blocked_active_changed,
+                            phase_pend=self._phase_safety_pending,
+                            peak_pend=peak_review_pending)
             if paced_tick:
                 pass
             elif capacity_protection_must_recheck:
@@ -10426,7 +10464,16 @@ class ChargeDischargeController:
         else:
             sensor_actual = self._apply_icp_excluded_protection(sensor_filtered, sensor_actual, active_target)
 
+        cycle_trace.put(
+            self, filt=sensor_filtered,
+            man=manual_grid_power if self.previous_power <= 0 else 0.0,
+            excl=excluded_adjustment, peak_phys=peak_physical,
+            icp=getattr(self, "_icp_excluded_protection_w", None),
+            act=sensor_actual, tgt=active_target, db=self.deadband,
+        )
+        cycle_trace.put_lazy(self, lambda: {"sp": self._format_setpoint_summary_for_log()})
         if self._capacity_protection_force_idle:
+            cycle_trace.put(self, exit="cp_force_idle")
             self._capacity_protection_force_idle = False
             _LOGGER.info(
                 "Capacity Protection conserving capacity: stopping existing battery command"
@@ -10496,6 +10543,7 @@ class ChargeDischargeController:
                 _LOGGER.debug(
                     "Load sharing: expired wall-clock hold released while within deadband"
                 )
+            cycle_trace.put(self, exit="deadband")
             return
         
         if len(self.coordinators) == 0:
@@ -10625,7 +10673,7 @@ class ChargeDischargeController:
             self._phase_safety_pending = False
             _LOGGER.info("PD state initialized: previous_error=%.1fW, last_output_sign=%d, integral=0 (cleared)",
                         self.previous_error, self.last_output_sign)
-
+            cycle_trace.put(self, exit="first_exec")
             return
 
         # SUBSEQUENT EXECUTIONS: Continue with PD control
@@ -10703,7 +10751,11 @@ class ChargeDischargeController:
         # demand they serve rather than one they cancel. Applied here, before
         # every downstream blocker, so time slots, price and capacity limits keep
         # the last word over them.
+        cycle_trace.put(self, err=error, law=(
+            "hold" if not has_new_control_sample else "nopd" if self.no_pd_mode_enabled
+            else "ff" if feedforward_fired else "pd"), p_pd=new_power)
         guarded = apply_guards(self, new_power, sensor_actual)
+        cycle_trace.put(self, p_guard=guarded)
         if guarded != new_power:
             # One line per acting cycle. The guards themselves log their reasoning
             # at debug: they are also run over the standing command by
@@ -10721,6 +10773,7 @@ class ChargeDischargeController:
         new_power = self._apply_zero_cross_hold(
             new_power, error, stale_recalc=stale_safety_recalc
         )
+        cycle_trace.put(self, p_zc=new_power)
 
         # Final commanded direction (feeds last_output_sign at end of cycle). In the
         # PD path the hysteresis inside _compute_pd_new_power already zeroed new_power
@@ -10731,10 +10784,12 @@ class ChargeDischargeController:
         # This is done conditionally based on whether the operation is restricted by time slots
 
         new_power = self._apply_min_power(new_power, error)
+        cycle_trace.put(self, p_min=new_power)
 
         new_power = self._apply_relay_dwell(
             new_power, error, stale_recalc=stale_safety_recalc
         )
+        cycle_trace.put(self, p_dwell=new_power)
         # FORK: relay guard (docs/fork/02-architektur.md)
         guard = getattr(self, "_relay_guard", None)
         if guard is not None:
@@ -10747,6 +10802,10 @@ class ChargeDischargeController:
             if decision.power != new_power:
                 _LOGGER.debug("Relay guard: %s, %.0fW -> %.0fW (remaining %.0fs)",
                               decision.reason, new_power, decision.power, decision.remaining_s)
+            cycle_trace.put_lazy(self, lambda: {
+                "rg": f"{decision.reason}:{decision.remaining_s:.0f}s",
+                "p_rg": decision.power,
+            })
             new_power = decision.power
 
         # Determine if charging or discharging (before applying restrictions)
@@ -10908,6 +10967,8 @@ class ChargeDischargeController:
             # prove itself against the zero-cross settle window. Issue #117 was the
             # settle timer being cleared underneath that latch, not the latch itself.
             _LOGGER.debug("ChargeDischargeController: No available batteries, setting all to 0.")
+            cycle_trace.put(self, exit="no_available", restricted=operation_restricted,
+                            p_final=new_power)
             for coordinator in self.coordinators:
                 await self._set_battery_power(coordinator, 0, 0)
             self.previous_power = 0
@@ -10957,6 +11018,13 @@ class ChargeDischargeController:
             operation_restricted=operation_restricted,
         )
 
+        cycle_trace.put(self, exit="written", restricted=operation_restricted,
+                        p_final=new_power)
+        cycle_trace.put_lazy(self, lambda: dict(
+            alloc={c.name: int(p) for c, p in power_allocation.items()},
+            cblk=self._format_blockers_for_log(self.get_charge_blockers()),
+            dblk=self._format_blockers_for_log(self.get_discharge_blockers()),
+        ))
         # Write to selected batteries
         allocated_batteries = {
             coordinator
@@ -11962,6 +12030,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator is released here before the failure is passed on.
     """
     opened: list = []
+    # FORK: trace (docs/fork/08-trace.md) - own file under <config>/omnibattery_trace/
+    with contextlib.suppress(Exception):
+        await hass.async_add_executor_job(
+            cycle_trace.setup_file, hass.config.path(cycle_trace.TRACE_DIR_NAME)
+        )
     try:
         return await _async_setup_entry(hass, entry, opened)
     except BaseException:
