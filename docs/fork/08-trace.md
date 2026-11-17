@@ -19,7 +19,7 @@ Ausschalten mit `warning` statt `debug`. Nach einem Neustart von Home Assistant 
 
 ## 8.2 Wohin geschrieben wird
 
-1. **Eigene Datei** `/config/omnibattery_trace/trace.log`, rotierend 10 × 10 MB (`trace.log.1` … `.10`). Bei einem Zyklus alle 1–2 s reicht das für etwa 1–2 Tage.
+1. **Eigene Datei** `/config/omnibattery_trace/trace.log`, rotierend 120 × 800 kB (`trace.log.1` … `.120`, zusammen rund 94 MB, etwa 1–2 Tage). Ab 1.6.0.3; vorher 10 × 10 MB. Jede Datei passt in einen einzigen Lesezugriff über ha-mcp (Antwortgrenze 1 MB). Eine Datei reicht für etwa 15–20 Minuten; die Änderungszeiten aus `ha_list_files` zeigen, welche Datei welchen Zeitraum enthält.
 2. **Home-Assistant-Log**, Suche nach `omnibattery.trace`.
 
 Damit Claude die Datei direkt lesen kann: in den ha-mcp-Einstellungen den Ordner `omnibattery_trace` als zusätzliches Verzeichnis freigeben. `www/` ist dafür ungeeignet, weil es ohne Anmeldung unter `/local/` erreichbar ist.
@@ -31,6 +31,27 @@ Damit Claude die Datei direkt lesen kann: in den ha-mcp-Einstellungen den Ordner
 | `CYC` | eine pro Regelzyklus, am Ende geschrieben |
 | `WRITE` | jeder echte Registerschreibvorgang (Befehl hat sich geändert), auch außerhalb des Regelzyklus |
 | `SG_LATCH` / `SG_RELEASE` | Surplus guard rastet ein bzw. gibt frei |
+| `PHASE` | Phasen-Sicherheitsprüfung (`_apply_phase_safety_review`) lief; ab 1.6.0.3 |
+
+### `WRITE`-Felder (ab 1.6.0.3 ergänzt)
+
+| Feld | Bedeutung |
+|---|---|
+| `bat`, `net`, `prev_net`, `force`, `readback` | Batterie, neuer und alter Befehl (+ Laden), Force-Mode, Rücklesen ja/nein |
+| `src` | Herkunft: `Funktion:Zeile` des Aufrufers von `_set_battery_power`, z. B. `_run_control_cycle:11069` (Regelzyklus) oder `_apply_phase_safety_review:8995` (Phasenprüfung). Ein `WRITE` ohne vorangehenden Zyklus mit `exit=written` lässt sich damit zuordnen. |
+| `owner` | `automatic` oder ein manueller Besitzer |
+
+### `PHASE`-Felder
+
+| Feld | Bedeutung |
+|---|---|
+| `skip=disabled` | Schutz aus: nichts geprüft, nichts geschrieben |
+| `req` | je Batterie und Richtung `Name:c|d:cmd<Laden>/<Entladen>:meas<Messleistung>:<Quelle>=<Wert>`; Quelle `cmd` = Befehl, **`meas` = Messleistung ersetzt einen 0-W-Befehl** (Verdacht vom 16.11.), `none` = nichts angefordert |
+| `act` | `write` (Befehle neu geschrieben) oder `none` (nichts angefordert) |
+| `alloc_c`, `alloc_d` | verteilte Lade- bzw. Entladeleistung |
+| `prev_p`, `new_p` | `previous_power` vor und nach der Prüfung |
+
+Lief die Prüfung innerhalb eines Zyklus, trägt die `CYC`-Zeile zusätzlich `phase=<vorher>><nachher>`.
 
 ## 8.4 Felder der `CYC`-Zeile
 
@@ -52,6 +73,7 @@ Vorzeichen: Leistung + = Laden, − = Entladen. Netz + = Bezug.
 | `tgt`, `sp`, `db` | aktiver Sollwert, seine Bestandteile, Totband |
 | `err`, `law` | Regelabweichung `act − tgt`; Regelgesetz `pd`/`ff`/`nopd`/`hold` |
 | `p_pd` | Ausgabe des Regelgesetzes |
+| `pd` | ab 1.6.0.3, nur wenn der PD gerechnet hat: `base` (Ausgangswert nach Anti-Windup) `/P/I/D` (Terme, Abzug vom Ausgangswert) `/raw` (base − P − I − D) `/rl` (nach Ratenbegrenzer) `/hy` (nach Richtungshysterese = Rückgabe) |
 | `unc` | je Aufruf: `grid + Batterie:Quelle:Beitrag = uncovered` |
 | `sg` | je Aufruf: `grid/tgt/dem(residual demand)/band/vorher>nachher/pend(Sekunden in Wartezeit)` |
 | `ag` | je Aufruf: `Anfrage>nach Feedforward>nach Surplus guard>nach Deckel` |
@@ -72,3 +94,8 @@ Für jeden Flip `WRITE … net=-30` → `WRITE … net=0`:
 2. Stimmen `err` (PD) und `dem` (Guard) im Vorzeichen überein? Wenn nicht: Unterschied = Summe der `ac`-Beiträge in `unc`. Passt der `ac`-Wert zu `bp` und zum tatsächlichen Befehl `sd`?
 3. Was hat den PD vorher zur Entladung gebracht (`law`, `err`, `p_pd`, `p_min`, `p_dwell`)?
 4. Wie lange war `sg` eingerastet, und was hat `SG_RELEASE` ausgelöst (`demand` > 0)?
+5. Ab 1.6.0.3: Kommt das Wiedereinschalten aus einem `WRITE` mit `src=_apply_phase_safety_review:…`, und steht davor eine `PHASE`-Zeile mit `:meas=`? Dann ist Glied 2 der Ursachenkette (`log-analyse-2026-11-16-ursache.md`) belegt. Mit ausgeschaltetem Dreiphasen-Schutz darf nur `PHASE skip=disabled` erscheinen.
+
+## 8.6 Robustheit
+
+Alle Messpunkte, deren Argumente erst berechnet werden müssen, laufen über `put_lazy` oder eigene Helfer mit `try/except` (ab 1.6.0.3 auch die Felder `filt…db`, `err/law/p_pd` und der `unc`-Eintrag im Surplus guard). Ein Fehler beim Aufzeichnen erscheint als `trace_err=` in der Zeile und erreicht die Regelung nie.

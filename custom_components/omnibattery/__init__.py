@@ -7545,6 +7545,7 @@ class ChargeDischargeController:
 
         Returns True if command was acknowledged, False otherwise.
         """
+        trace_src = cycle_trace.caller()  # FORK: trace - who asked for this write
         if owner == "automatic" and ChargeDischargeController._is_battery_manual_owned(
             coordinator
         ):
@@ -7960,7 +7961,7 @@ class ChargeDischargeController:
         last_fail_reason: str | None = None
         cycle_trace.event(  # FORK: trace - every real write, inside a cycle or not
             "WRITE", self, bat=coordinator.name, net=net_power, prev_net=current_net,
-            force=expected_force_mode, readback=read_back,
+            force=expected_force_mode, readback=read_back, src=trace_src, owner=owner,
         )
         for attempt in range(2):
             result = await coordinator.apply_power(net_power, read_back=read_back)
@@ -8937,12 +8938,15 @@ class ChargeDischargeController:
         """
         limiter = self._phase_power_limiter
         if limiter is None or not limiter.enabled or not hasattr(self, "_power_distribution"):
+            cycle_trace.event("PHASE", self, skip="disabled")  # FORK: trace
             return
 
         requested_by_direction: dict[bool, dict[Any, float]] = {
             True: {},
             False: {},
         }
+        # FORK: trace - per battery and direction: command, measured fallback, used
+        trace_req: list[str] | None = [] if cycle_trace.enabled() else None
         # Capture both directions before issuing any writes. Writing the first
         # direction must not erase the second direction's live intent.
         for is_charging in (True, False):
@@ -8952,17 +8956,27 @@ class ChargeDischargeController:
                 charge = getattr(coordinator, "commanded_charge_power", 0) or 0
                 discharge = getattr(coordinator, "commanded_discharge_power", 0) or 0
                 value = charge if is_charging else discharge
+                source = "cmd"
+                delivered = None
                 if value <= 0:
                     delivered = self._coordinator_delivered_power(coordinator)
                     if delivered is not None and (
                         delivered > 0 if is_charging else delivered < 0
                     ):
                         value = abs(delivered)
+                        source = "meas"
                 if value > 0:
                     requested_by_direction[is_charging][coordinator] = float(value)
+                if trace_req is not None:
+                    cycle_trace.trace_phase_request(
+                        trace_req, coordinator, is_charging, charge, discharge,
+                        delivered, source if value > 0 else "none", value,
+                    )
 
         if not any(requested_by_direction.values()):
             self._phase_safety_pending = False
+            cycle_trace.event("PHASE", self, req=trace_req, act="none",
+                              prev_p=getattr(self, "previous_power", None))  # FORK: trace
             return
 
         allocations: dict[bool, dict[Any, float]] = {True: {}, False: {}}
@@ -8984,11 +8998,19 @@ class ChargeDischargeController:
                 allocations[False].get(coordinator, 0),
             )
 
+        trace_prev = getattr(self, "previous_power", None)  # FORK: trace
         self.previous_power = self._signed_power_from_allocations(
             sum(allocations[True].values()),
             sum(allocations[False].values()),
         )
         self._phase_safety_pending = False
+        cycle_trace.event(  # FORK: trace
+            "PHASE", self, req=trace_req, act="write",
+            alloc_c=sum(allocations[True].values()),
+            alloc_d=sum(allocations[False].values()),
+            prev_p=trace_prev, new_p=self.previous_power,
+        )
+        cycle_trace.put(self, phase=f"{trace_prev}>{self.previous_power}")
 
     def _signed_power_from_allocations(
         self, charging_power: float, discharging_power: float
@@ -9283,6 +9305,7 @@ class ChargeDischargeController:
             _LOGGER.debug("PD: Adjustment=%.1fW, Previous power=%.1fW, New target=%.1fW",
                          pd_adjustment, self.previous_power, new_power)
         
+        trace_after_rl = new_power  # FORK: trace - PD output before the hysteresis
         # DIRECTIONAL HYSTERESIS: Prevent rapid switching between charge/discharge
         # If we're changing direction, the new power must overcome the hysteresis threshold
         current_output_sign = 1 if new_power > 0 else (-1 if new_power < 0 else 0)
@@ -9325,6 +9348,14 @@ class ChargeDischargeController:
             if DEBUG_CONTROL_LOOP_DETAIL:
                 _LOGGER.debug("ChargeDischargeController: PD Control - Grid=%.1fW, P=%.1fW, D=%.1fW, Adjustment=%.1fW, New=%.1fW",
                               error, P, D, pd_adjustment, new_power)
+        # FORK: trace - base/P/I/D/raw/after rate limit/after hysteresis
+        cycle_trace.put_lazy(self, lambda: {"pd": (
+            f"base{cycle_trace._fmt(float(self.previous_power))}"
+            f"/P{cycle_trace._fmt(float(P))}/I{cycle_trace._fmt(float(I))}"
+            f"/D{cycle_trace._fmt(float(D))}/raw{cycle_trace._fmt(float(new_power_raw))}"
+            f"/rl{cycle_trace._fmt(float(trace_after_rl))}"
+            f"/hy{cycle_trace._fmt(float(new_power))}"
+        )})
         return new_power
 
     def _apply_min_power(self, new_power, error):
@@ -10464,13 +10495,13 @@ class ChargeDischargeController:
         else:
             sensor_actual = self._apply_icp_excluded_protection(sensor_filtered, sensor_actual, active_target)
 
-        cycle_trace.put(
-            self, filt=sensor_filtered,
+        cycle_trace.put_lazy(self, lambda: dict(
+            filt=sensor_filtered,
             man=manual_grid_power if self.previous_power <= 0 else 0.0,
             excl=excluded_adjustment, peak_phys=peak_physical,
             icp=getattr(self, "_icp_excluded_protection_w", None),
             act=sensor_actual, tgt=active_target, db=self.deadband,
-        )
+        ))
         cycle_trace.put_lazy(self, lambda: {"sp": self._format_setpoint_summary_for_log()})
         if self._capacity_protection_force_idle:
             cycle_trace.put(self, exit="cp_force_idle")
@@ -10751,9 +10782,9 @@ class ChargeDischargeController:
         # demand they serve rather than one they cancel. Applied here, before
         # every downstream blocker, so time slots, price and capacity limits keep
         # the last word over them.
-        cycle_trace.put(self, err=error, law=(
+        cycle_trace.put_lazy(self, lambda: dict(err=error, law=(
             "hold" if not has_new_control_sample else "nopd" if self.no_pd_mode_enabled
-            else "ff" if feedforward_fired else "pd"), p_pd=new_power)
+            else "ff" if feedforward_fired else "pd"), p_pd=new_power))
         guarded = apply_guards(self, new_power, sensor_actual)
         cycle_trace.put(self, p_guard=guarded)
         if guarded != new_power:

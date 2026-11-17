@@ -13,7 +13,9 @@ Switched by the level of its own logger, independent of the integration's:
       custom_components.omnibattery.trace: warning   # off
 
 While on, lines go to the Home Assistant log (search ``omnibattery.trace``)
-and to ``<config>/omnibattery_trace/trace.log`` (rotating, 10 x 10 MB).
+and to ``<config>/omnibattery_trace/trace.log`` (rotating, 120 x 800 kB: each
+file stays small enough to be read whole through ha-mcp, which caps a response
+at 1 MB).
 
 Nothing in here may influence control: every entry point is a no-op while the
 logger is off, and every failure is swallowed.
@@ -24,13 +26,14 @@ import logging
 import logging.handlers
 import os
 import queue
+import sys
 import time
 
 TRACE_LOGGER_NAME = "custom_components.omnibattery.trace"
 TRACE_DIR_NAME = "omnibattery_trace"
 TRACE_FILE_NAME = "trace.log"
-TRACE_FILE_MAX_BYTES = 10 * 1024 * 1024
-TRACE_FILE_BACKUPS = 10
+TRACE_FILE_MAX_BYTES = 800 * 1024
+TRACE_FILE_BACKUPS = 120
 
 _LOG = logging.getLogger(TRACE_LOGGER_NAME)
 _CTX_ATTR = "_trace_ctx"
@@ -170,6 +173,39 @@ def event(kind: str, controller=None, **fields) -> None:
         if ctx is not None:
             fields = {"cyc": ctx.get("cyc"), **fields}
         _LOG.debug(_line(kind, fields))
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def caller(depth: int = 2) -> str | None:
+    """``function:line`` of the code that called the caller, for ``src=`` on
+    WRITE lines. Only computed while tracing; never raises.
+
+    Works across ``await``: a running coroutine's frame links back to the
+    coroutine that awaited it.
+    """
+    if not enabled():
+        return None
+    try:
+        frame = sys._getframe(depth)  # noqa: SLF001
+        return f"{frame.f_code.co_name}:{frame.f_lineno}"
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def trace_phase_request(out, coordinator, is_charging, charge, discharge,
+                        delivered, source, value) -> None:
+    """One ``req`` entry of a PHASE line:
+    ``name:c|d:cmd<charge>/<discharge>:meas<delivered>:<source>=<value>``.
+    ``source`` is ``cmd`` (the command), ``meas`` (measured power standing in
+    for a 0 W command) or ``none``. Never raises."""
+    try:
+        out.append(
+            f"{getattr(coordinator, 'name', '?')}:{'c' if is_charging else 'd'}"
+            f":cmd{_fmt(float(charge))}/{_fmt(float(discharge))}"
+            f":meas{_fmt(None if delivered is None else float(delivered))}"
+            f":{source}={_fmt(float(value))}"
+        )
     except Exception:  # noqa: BLE001
         pass
 

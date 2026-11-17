@@ -111,18 +111,34 @@ def uncovered_load_w(controller, grid_w):
     for coordinator in coordinators:
         contribution, source = _battery_ac_power_with_source(coordinator)
         if parts is not None:
-            parts.append(f"{getattr(coordinator, 'name', '?')}:{source}:{cycle_trace._fmt(contribution)}")
+            _trace_uncovered_part(parts, coordinator, source, contribution)
         if contribution is None:
             if parts is not None:
-                cycle_trace.append(controller, "unc", f"grid{cycle_trace._fmt(float(grid_w))}+{'+'.join(parts)}=None")
+                _trace_uncovered(controller, grid_w, parts, None)
             return None
         total += contribution
     if parts is not None:
+        _trace_uncovered(controller, grid_w, parts, total)
+    return total
+
+
+def _trace_uncovered_part(parts, coordinator, source, contribution):
+    """FORK: trace - one battery's term of the ``unc`` entry; never raises."""
+    try:
+        parts.append(f"{getattr(coordinator, 'name', '?')}:{source}:{cycle_trace._fmt(contribution)}")
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def _trace_uncovered(controller, grid_w, parts, total):
+    """FORK: trace - ``grid + battery terms = uncovered``; never raises."""
+    try:
         cycle_trace.append(
             controller, "unc",
             f"grid{cycle_trace._fmt(float(grid_w))}+{'+'.join(parts)}={cycle_trace._fmt(total)}",
         )
-    return total
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def residual_demand_w(controller, grid_w):
