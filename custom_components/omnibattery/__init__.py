@@ -1311,6 +1311,9 @@ class ChargeDischargeController:
             "adjusted_target": None,
         }
         self._capacity_protection_force_idle = False
+        # FORK: below the SOC threshold and outside shaving, capacity protection
+        # allows no discharge (set per cycle in _apply_capacity_protection).
+        self._capacity_protection_block_discharge = False
 
         # Weekly Full Charge state
         self.weekly_full_charge_enabled = config_entry.data.get(CONF_ENABLE_WEEKLY_FULL_CHARGE, False)
@@ -5391,6 +5394,8 @@ class ChargeDischargeController:
         physical_actual: float | None = None,
     ) -> tuple[float, float]:
         """Apply peak-shaving override and return the effective target and sensor value."""
+        # FORK: re-decided every cycle; only "conserving" and "charging" set it.
+        self._capacity_protection_block_discharge = False
         if not self.capacity_protection_enabled:
             self.remove_setpoint_override("capacity_protection")
             self._capacity_protection_active = False
@@ -5433,6 +5438,19 @@ class ChargeDischargeController:
         battery_power = (
             measured_power if measured_power is not None else self.previous_power
         )
+        # FORK: the AC telemetry trails a fresh charge command by 1-6 s. Read as
+        # 0 W it makes the charge's own effect on the meter look like house
+        # import, and "conserving" force-idles a solar-surplus charge - which
+        # re-engages on the next surplus sample (chatter, 18.11.2026). While a
+        # charge is commanded, never assume less than the command. Charge side
+        # only: predictive charging stores previous_power with inverted sign, and
+        # a too-high charge estimate at worst lets the PD trim the charge itself.
+        try:
+            commanded_charge = max(0.0, float(self.previous_power or 0))
+        except (TypeError, ValueError):
+            commanded_charge = 0.0
+        if commanded_charge > 0 and commanded_charge > battery_power:
+            battery_power = commanded_charge
         # FORK: grid view (docs/fork/02-architektur.md)
         limit = self._effective_peak_limit()
         if physical_actual is not None:
@@ -5490,10 +5508,15 @@ class ChargeDischargeController:
                     sensor_actual += self._excluded_included_adjustment
                 self.set_setpoint_override("capacity_protection", sensor_actual, priority=10)
                 active_target = self.compute_active_target()
-                if self.previous_power != 0 and not (
-                    ChargeDischargeController._peak_exit_hold_active(self)  # FORK: review 2/7
-                ):
-                    self._capacity_protection_force_idle = True
+                peak_exit_hold = False
+                if self.previous_power != 0:
+                    peak_exit_hold = ChargeDischargeController._peak_exit_hold_active(self)  # FORK: review 2/7
+                    if not peak_exit_hold:
+                        self._capacity_protection_force_idle = True
+                # FORK: target = actual gives err 0, but the D-term and the minimum
+                # power can still turn a few watts into a 30 W discharge. The peak
+                # exit hold keeps its discharge on purpose.
+                self._capacity_protection_block_discharge = not peak_exit_hold
                 _LOGGER.info(
                     "Capacity Protection ACTIVE: SOC=%.1f%% < %d%%, house_load=%.0fW <= limit=%dW -> idle (target=%.0fW)",
                     avg_soc,
@@ -5513,6 +5536,12 @@ class ChargeDischargeController:
                 # Solar surplus: normal charging, but SOC is still below threshold
                 self.remove_setpoint_override("capacity_protection")
                 active_target = self.compute_active_target()
+                # FORK: this branch decides on the raw (physical) meter while the PD
+                # regulates the EMA-filtered control value. After a drop in import
+                # the filter still shows import (raw 10 W, filtered 54 W at
+                # 13:41:39 on 18.11.2026) and the PD discharged at SOC < threshold.
+                # Charging only.
+                self._capacity_protection_block_discharge = True
                 self._capacity_protection_active = True
                 self._capacity_protection_status.update({
                     "active": True, "avg_soc": round(avg_soc, 1),
@@ -10796,6 +10825,22 @@ class ChargeDischargeController:
                 new_power, guarded, self.compute_active_target(),
             )
         new_power = guarded
+
+        # FORK: capacity protection below its SOC threshold allows a discharge only
+        # for shaving (incl. the peak exit hold and ICP excluded-device protection).
+        # Applied before the zero-cross hold, minimum power and relay guard, so no
+        # stage downstream lifts it to a minimum discharge or counts a switch.
+        if (
+            new_power < 0
+            and getattr(self, "_capacity_protection_block_discharge", False)
+            and not ChargeDischargeController._guard_peak_bypass(self)
+        ):
+            _LOGGER.debug(
+                "Capacity Protection: below SOC threshold without shaving - "
+                "discharge %.0fW blocked", new_power,
+            )
+            new_power = 0
+            cycle_trace.put(self, p_cp=0.0)
 
         # ZERO-CROSS HOLD: a charge<->discharge flip must survive the actuator
         # settle window before it becomes a real opposite-direction command (see

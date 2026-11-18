@@ -78,6 +78,7 @@ Vorzeichen: Leistung + = Laden, − = Entladen. Netz + = Bezug.
 | `sg` | je Aufruf: `grid/tgt/dem(residual demand)/band/vorher>nachher/pend(Sekunden in Wartezeit)` |
 | `ag` | je Aufruf: `Anfrage>nach Feedforward>nach Surplus guard>nach Deckel` |
 | `p_guard`, `p_zc`, `p_min`, `p_dwell`, `p_rg` | Befehl nach Guards, Zero-Cross-Hold, Mindestleistung, Relais-Dwell, Relais-Schutz |
+| `p_cp` | ab 1.6.0.4, nur wenn gesetzt: Kapazitätsschutz unter der SOC-Schwelle ohne Shaving hat eine Entladung auf 0 gesetzt |
 | `rg` | Entscheidung des Relais-Schutzes `Grund:Restzeit` |
 | `restricted`, `cblk`, `dblk` | Sperren aktiv, Lade-/Entladesperren |
 | `p_final`, `alloc` | geschriebener Befehl, Aufteilung je Batterie |
