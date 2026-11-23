@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.6.1.1] - Fork
+
+### Removed
+
+- Alle Batterien ausser Marstek (nur noch Modbus: Venus A/D/E v2/v3).
+- Predictive Charging und alle Preisfunktionen (dynamische Preise, Echtzeitpreis, Entlade-Reserve, Smart Pre-Discharge, Negativpreis-Laden u. a.).
+- Solar-Ladeverzoegerung (Charge Delay).
+- Stuendliche Netto-Bilanz.
+- Daily-Operation-Zeitleiste.
+- Verbrauchsschaetzung, Solarprognose, Tagesenergiezaehler und Urlaubsmodus.
+
+### Fixed (aus 2.0.0b1 uebernommen)
+
+- **PD: Richtungshysterese setzt die Nulldurchgangs-Haltezeit nicht mehr zurueck** (upstream #849): ein von der Hysterese unterdrueckter Flip loescht den gestarteten Zero-Cross-Timer nicht mehr, ein echtes Idle schon.
+- **Relais-Nachlauf haelt nie mehr Leistung als bereits fliesst** (upstream #909): die Haltemindestleistung wird auf die aktuell fliessende Leistung gedeckelt; das Fork-Verhalten des Relais-Guards bleibt.
+- **Manuelle Batteriesteuerung bei abgeschalteter RS485-Steuerung verlassen** (upstream #895): ohne RS485-Steuerung wird nichts geschrieben, Idle gilt als erreicht.
+- **Coordinator: ein Snapshot nur aus None ist keine Antwort** (upstream #934): eine ausgeschaltete Batterie loest keine Reload-Schleife mehr aus.
+- **Persistente Repairs werden nach einem Neustart beim ersten gesunden Check geloescht** (upstream #851): nicht reagierende Batterie, fehlende konfigurierte Sensoren, degradierte Phasensensoren.
+- **'Jetzt' und 'heute' in der Home-Assistant-Zeitzone** (upstream #898): neues `infra/clock.py` (`local_now`) fuer Zeitfenster, Entlade-Fenster-Sensor und Weekly Full Charge.
+- **Peak Shaving: Schwelle auf Max-SOC (nur Spitzen) haelt auch eine volle Batterie** (upstream #913): in die Fork-Hysterese des Kapazitaetsschutzes integriert.
+- **Top-of-Charge-Taper-Karenz oeffnet auch bei Top-Zellspannung in der Taper-Zone**: eine ueber die Zellspannung drosselnde Batterie wird vor 99 % SOC nicht mehr als nicht reagierend markiert.
+- **Optionsformular der Batterielimits behaelt die Live-Werte** (upstream 72a1c742): oeffnet mit der aktuellen Lade-/Entladeleistung und schreibt Aenderungen nach `user_max_*`, statt veraltete Limits zurueckzuschreiben.
+
 ## [1.6.1] - 2026-11-17
 
 ### Changed
