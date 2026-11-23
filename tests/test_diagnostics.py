@@ -111,7 +111,7 @@ async def test_diagnostics_dump_structure_and_redaction():
             "username": "USER1234",
             "password": "secret",
             "consumption_sensor": "sensor.grid",
-            "solar_forecast_sensor": "sensor.solcast",
+            "solar_production_sensor": "sensor.pv_power",
             "average_price_sensor": "sensor.average_price",
             "phase_1_current_sensor": "sensor.phase_1",
             "phase_2_current_sensor": "sensor.phase_2",
@@ -130,7 +130,7 @@ async def test_diagnostics_dump_structure_and_redaction():
     assert result["entry"]["data"]["username"] == "**REDACTED**"
     assert result["entry"]["data"]["password"] == "**REDACTED**"
     assert result["entry"]["data"]["consumption_sensor"] == "sensor.grid"
-    assert result["entry"]["data"]["solar_forecast_sensor"] == "sensor.solcast"
+    assert result["entry"]["data"]["solar_production_sensor"] == "sensor.pv_power"
     assert result["entry"]["data"]["average_price_sensor"] == "sensor.average_price"
     assert result["entry"]["data"]["phase_1_current_sensor"] == "sensor.phase_1"
     assert result["entry"]["data"]["phase_2_current_sensor"] == "sensor.phase_2"

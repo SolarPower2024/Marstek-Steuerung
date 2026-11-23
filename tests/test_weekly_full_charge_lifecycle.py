@@ -24,7 +24,6 @@ def _controller(**overrides):
         _weekly_charge_saved_max_soc={"Venus B": 95},
         _weekly_charge_status={"state": "Charging to 100%"},
         _charge_delay_unlocked=False,
-        _solar_t_start=None,
     )
     values.update(overrides)
     return SimpleNamespace(**values)
@@ -206,13 +205,22 @@ def _clock(monkeypatch, moment):
     monkeypatch.setattr(weekly_module, "datetime", FixedDateTime)
 
 
-def _night_manager(**overrides):
-    overrides.setdefault(
-        "_consumption_tracker",
-        SimpleNamespace(calculate_sunrise=lambda _day: SUNRISE_H),
-    )
+def _night_manager(monkeypatch, sunrise_h=SUNRISE_H, **overrides):
+    """Manager whose sunrise comes from (a stand-in for) Home Assistant's sun data."""
+    from homeassistant.const import SUN_EVENT_SUNRISE
+    from homeassistant.util import dt as dt_util
+
+    def _sunrise(hass, event, day):
+        assert event == SUN_EVENT_SUNRISE
+        if sunrise_h is None:
+            return None
+        local = datetime.combine(day, datetime.min.time()) + timedelta(hours=sunrise_h)
+        return dt_util.as_utc(local.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE))
+
+    monkeypatch.setattr(weekly_module, "get_astral_event_date", _sunrise)
     controller = _controller(**overrides)
     manager = _manager(controller)
+    manager._hass = SimpleNamespace()
     manager.save_state = MagicMock()
     manager._create_background_task = MagicMock()
     return controller, manager
@@ -220,7 +228,7 @@ def _night_manager(**overrides):
 
 def test_an_unfinished_run_carries_on_in_the_night_after_the_target_day(monkeypatch):
     """The gap is bought after the sun, so the cheap night belongs to the run."""
-    controller, manager = _night_manager()
+    controller, manager = _night_manager(monkeypatch)
     _clock(monkeypatch, MONDAY + timedelta(days=1, hours=2))
 
     assert manager.is_active() is True
@@ -229,7 +237,7 @@ def test_an_unfinished_run_carries_on_in_the_night_after_the_target_day(monkeypa
 
 
 def test_the_run_ends_at_the_next_sunrise(monkeypatch):
-    controller, manager = _night_manager()
+    controller, manager = _night_manager(monkeypatch)
     _clock(monkeypatch, MONDAY + timedelta(days=1, hours=2))
     assert manager.is_active() is True
 
@@ -240,7 +248,7 @@ def test_the_run_ends_at_the_next_sunrise(monkeypatch):
 
 
 def test_a_finished_run_is_not_reopened_in_the_night(monkeypatch):
-    controller, manager = _night_manager(weekly_full_charge_complete=True)
+    controller, manager = _night_manager(monkeypatch, weekly_full_charge_complete=True)
     _clock(monkeypatch, MONDAY + timedelta(days=1, hours=2))
 
     assert manager.is_active() is False
@@ -256,20 +264,28 @@ def test_a_finished_run_is_not_reopened_in_the_night(monkeypatch):
         (MONDAY + timedelta(days=2, hours=2), None),
     ],
 )
-def test_the_window_ends_at_the_sunrise_after_the_target_day(moment, expected):
-    _controller_, manager = _night_manager()
+def test_the_window_ends_at_the_sunrise_after_the_target_day(monkeypatch, moment, expected):
+    _controller_, manager = _night_manager(monkeypatch)
 
     assert manager.window_end(moment) == expected
 
 
 def test_without_a_known_sunrise_the_run_still_ends_at_midnight(monkeypatch):
-    controller, manager = _night_manager(
-        _consumption_tracker=SimpleNamespace(calculate_sunrise=lambda _day: None)
-    )
+    controller, manager = _night_manager(monkeypatch, sunrise_h=None)
     _clock(monkeypatch, MONDAY + timedelta(days=1, hours=2))
 
     assert manager.is_active() is False
     assert controller._weekly_charge_needs_restore is True
+
+
+def test_a_failing_sun_lookup_falls_back_to_midnight(monkeypatch):
+    _controller_, manager = _night_manager(monkeypatch)
+
+    def _boom(_hass, _event, _day):
+        raise ValueError("no location")
+
+    monkeypatch.setattr(weekly_module, "get_astral_event_date", _boom)
+    assert manager.window_end(MONDAY + timedelta(hours=15)) == MONDAY + timedelta(days=1)
 
 
 @pytest.mark.asyncio
@@ -278,6 +294,7 @@ async def test_a_restart_in_the_night_keeps_the_run(monkeypatch):
     yesterday = today - timedelta(days=1)
     day_names = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
     controller, manager = _night_manager(
+        monkeypatch,
         weekly_full_charge_day=day_names[yesterday.weekday()],
         weekly_full_charge_registers_written=False,
         _weekly_charge_saved_max_soc={},

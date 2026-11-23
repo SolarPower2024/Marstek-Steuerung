@@ -1,7 +1,7 @@
 """One driver failing to close must not abort the rest of the unload.
 
 ``asyncio.gather`` without ``return_exceptions`` re-raised the first
-disconnect error, so the consumption tracker was never saved and the entry's ``hass.data`` was left behind.
+disconnect error, so the entry's ``hass.data`` was left behind.
 """
 from __future__ import annotations
 
@@ -33,25 +33,17 @@ def _coordinator(name, *, fails=False):
     return coordinator
 
 
-def test_unload_saves_state_when_a_driver_fails_to_close(monkeypatch):
+def test_unload_completes_when_a_driver_fails_to_close(monkeypatch):
     monkeypatch.setattr(integration.asyncio, "sleep", _noop)
-    saved = []
+    cancelled = []
 
-    def _saver(label, *, fails=False):
-        async def save():
-            if fails:
-                raise OSError("disk full")
-            saved.append(label)
-
-        return save
+    async def _cancel():
+        cancelled.append("recorder")
 
     controller = SimpleNamespace(
         _unloading=False,
         async_stop_background_tasks=_noop,
-        _consumption_tracker=SimpleNamespace(
-            async_stop_background_work=_noop,
-            async_save_all=_saver("tracker"),
-        ),
+        _recorder_coordinator=SimpleNamespace(async_cancel=_cancel),
     )
     broken = _coordinator("broken", fails=True)
     healthy = _coordinator("healthy")
@@ -76,5 +68,5 @@ def test_unload_saves_state_when_a_driver_fails_to_close(monkeypatch):
     assert asyncio.run(integration.async_unload_entry(hass, entry)) is True
 
     assert healthy.closed == ["healthy"]
-    assert saved == ["tracker"]
+    assert cancelled == ["recorder"]
     assert "entry1" not in hass.data[DOMAIN]

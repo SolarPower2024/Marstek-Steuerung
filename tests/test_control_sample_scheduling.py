@@ -84,7 +84,6 @@ def _main_controller(state_holder, pd_calls):
             clear=lambda c, **k: None,
             last_reason=lambda c, default="": default,
         ),
-        _consumption_tracker=None,
         _balance_monitor=None,
         _pricing_mgr=SimpleNamespace(maybe_check_price_data_health=lambda: None),
         manual_mode_enabled=False,
@@ -120,7 +119,6 @@ def _main_controller(state_holder, pd_calls):
         config_entry=SimpleNamespace(entry_id="control-sample", data={}),
         hass=SimpleNamespace(states=_States()),
         _apply_meter_transform=lambda state: float(state.state),
-        _check_solar_forecast_health=lambda: None,
         _check_main_sensor_liveness=lambda _now=None: None,
         _check_missing_configured_sensors=lambda: None,
         _is_capacity_protection_soc_limited=lambda: False,
@@ -157,9 +155,6 @@ def _main_controller(state_holder, pd_calls):
         _effective_system_capacity=lambda _batteries, is_charging: 2500.0,
         max_contracted_power=0,
         grid_charging_active=False,
-        _daily_grid_at_min_soc_kwh=0.0,
-        _grid_at_min_soc_last_ts=None,
-        _grid_at_min_soc_sensor=None,
         _power_distribution=SimpleNamespace(
             _select_batteries_for_operation=lambda _power, batteries, is_charging=None: batteries,
             _distribute_power_by_limits=lambda power, batteries, is_charging=None: {

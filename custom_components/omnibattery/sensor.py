@@ -34,8 +34,8 @@ from .energy import (
     BACKUP_DISCHARGING_ENERGY_KEY,
     effective_total_discharging_energy,
 )
-from .tracking.consumption_profile import INTERVAL_COUNT, INTERVAL_MINUTES
-from .sensors.aggregate_sensors import AGGREGATE_SENSOR_DEFINITIONS, SYSTEM_BATTERY_CELL_POWER_DEFINITION, MarstekVenusAggregateSensor, DailyGridAtMinSocSensor, SystemAlarmSensor, PdControlQualitySensor
+from .tracking.home_load import read_total_solar_power_kw
+from .sensors.aggregate_sensors import AGGREGATE_SENSOR_DEFINITIONS, SYSTEM_BATTERY_CELL_POWER_DEFINITION, MarstekVenusAggregateSensor, SystemAlarmSensor, PdControlQualitySensor
 from .sensors.aggregate_sensors import RelayGuardSensor, PeakGridSourceSensor  # FORK: diagnostic sensors
 from .sensors.calculated_sensors import (
     MarstekVenusEfficiencySensor,
@@ -176,10 +176,6 @@ async def async_setup_entry(
     if controller:
         entities.append(NonResponsiveBatteriesSensor(hass, entry, controller, coordinators))
 
-    # Add daily grid-at-min-soc energy sensor (feeds into consumption estimation)
-    if controller:
-        entities.append(DailyGridAtMinSocSensor(controller))
-
     # Add PD control-quality diagnostic sensor (feeds the tuning-profile feedback)
     if controller:
         entities.append(PdControlQualitySensor(controller))
@@ -187,10 +183,6 @@ async def async_setup_entry(
         entities.append(RelayGuardSensor(controller))
         entities.append(PeakGridSourceSensor(controller))
 
-    # Exact daily energy totals from the real power sensors (panel "Energía hoy").
-    # Each is added only when its source sensor is configured.
-    # Daily solar = external solar sensor + independent battery-reported
-    # DC-coupled PV (individual MPPT channels).
     has_solar_telemetry = any(
         bool(
             has_connected_mppt_pv(c)
@@ -200,10 +192,6 @@ async def async_setup_entry(
         )
         for c in coordinators
     )
-    if controller and (
-        getattr(controller, "solar_production_sensor", None) or has_solar_telemetry
-    ):
-        entities.append(DailySolarEnergySensor(controller))
     # Live total solar power (external sensor + battery-reported DC PV). Only
     # useful when a battery actually has DC-coupled PV; without it the sensor
     # would just mirror the external sensor.
@@ -214,31 +202,12 @@ async def async_setup_entry(
     # aggregate instead of the unsigned system_charge_power. MPPT is included when
     # available; non-MPPT systems fall back to battery_power per coordinator.
     entities.append(MarstekVenusAggregateSensor(coordinators, SYSTEM_BATTERY_CELL_POWER_DEFINITION, entry, hass))
-    # The daily home total is derived from the (always-present) net grid meter:
-    # grid + battery AC + solar, matching the power-flow Home Consumption sensor.
-    if controller and getattr(controller, "consumption_sensor", None):
-        entities.append(DailyHomeEnergySensor(controller))
-    # Grid import/export are sign-split from the net consumption meter, which is
-    # always configured, so these are always added.
-    if controller and getattr(controller, "consumption_sensor", None):
-        entities.append(DailyGridImportEnergySensor(controller))
-        entities.append(DailyGridExportEnergySensor(controller))
-
-    # Quarter-hour household profile.  It is diagnostic-only and remains
-    # available even while it is learning; control consumers explicitly inspect
-    # the maturity/source metadata before using it.
-    if controller and getattr(controller, "_consumption_tracker", None) is not None:
-        entities.append(ConsumptionProfileCaptureSensor(controller))
-        entities.append(ConsumptionProfileSensor(controller))
-
-
 
     async_add_entities(entities)
 
     # Balance monitor sensors (registered separately so they get their own setup call)
     from .sensors import balance_sensors as _balance_sensors
     await _balance_sensors.async_setup_entry(hass, entry, async_add_entities)
-
 
 
 class MarstekVenusSensor(CoordinatorEntity, SensorEntity):
@@ -959,212 +928,11 @@ class NonResponsiveBatteriesSensor(SensorEntity):
         }
 
 
-class ConsumptionProfileSensor(SensorEntity):
-    """Expected household consumption for the current local day.
-
-    This is a forecast rather than an accumulated meter, so it deliberately
-    has no state class.  The value may be recalculated as the profile changes.
-    """
-
-    _attr_has_entity_name = True
-    _attr_translation_key = "expected_home_consumption_profile"
-    _attr_unique_id = f"{SYSTEM_UNIQUE_ID_PREFIX}expected_home_consumption_profile"
-    _attr_device_class = SensorDeviceClass.ENERGY
-    _attr_state_class = None
-    _attr_native_unit_of_measurement = "kWh"
-    _attr_suggested_display_precision = 2
-    _attr_icon = "mdi:chart-bell-curve-cumulative"
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_should_poll = True
-
-    def __init__(self, controller) -> None:
-        """Initialize the profile diagnostic sensor."""
-        self._controller = controller
-        self.entity_id = system_entity_id("sensor", "expected_home_consumption_profile")
-
-    def _target_date(self):
-        tracker = getattr(self._controller, "_consumption_tracker", None)
-        profile = getattr(tracker, "consumption_profile", None)
-        today = getattr(profile, "_today", None)
-        if callable(today):
-            try:
-                return today()
-            except Exception:  # noqa: BLE001
-                pass
-        return dt_util.now().date()
-
-    def _forecast(self):
-        tracker = getattr(self._controller, "_consumption_tracker", None)
-        profile = getattr(tracker, "consumption_profile", None)
-        forecast_for_date = getattr(tracker, "forecast_consumption_for_date", None)
-        if profile is None or not callable(forecast_for_date):
-            return None
-        try:
-            return forecast_for_date(self._target_date())
-        except Exception as exc:  # noqa: BLE001
-            _LOGGER.debug("Consumption profile sensor: forecast unavailable: %s", exc)
-            return None
-
-    @property
-    def native_value(self) -> float | None:
-        forecast = self._forecast()
-        return round(forecast.energy_kwh, 3) if forecast is not None else None
-
-    @property
-    def extra_state_attributes(self) -> dict:
-        forecast = self._forecast()
-        tracker = getattr(self._controller, "_consumption_tracker", None)
-        profile = getattr(tracker, "consumption_profile", None)
-        if forecast is None or profile is None:
-            return {"state": "unavailable"}
-        intervals = [round(value, 6) for value in forecast.intervals_kwh]
-        hourly = [
-            round(sum(intervals[index:index + 4]), 6)
-            for index in range(0, INTERVAL_COUNT, 4)
-        ]
-        peak_index = max(range(len(hourly)), key=hourly.__getitem__) if hourly else 0
-        return {
-            "target_date": self._target_date().isoformat(),
-            "interval_minutes": INTERVAL_MINUTES,
-            "hourly_profile_kwh": hourly,
-            "interval_profile_kwh": intervals,
-            "expected_remaining_kwh": round(forecast.energy_kwh, 6),
-            "source": forecast.source,
-            "mature": forecast.mature,
-            "coverage_ratio": round(forecast.coverage_ratio, 6),
-            "weekday_samples": forecast.weekday_samples,
-            "day_type_samples": forecast.day_type_samples,
-            "total_profile_days": forecast.total_days,
-            "newest_profile_date": (
-                forecast.newest_profile_date.isoformat()
-                if forecast.newest_profile_date is not None
-                else None
-            ),
-            "fallback_reason": forecast.fallback_reason,
-            "peak_hour": peak_index,
-            "peak_hour_kwh": round(hourly[peak_index], 6) if hourly else 0.0,
-        }
-
-    @property
-    def device_info(self):
-        return {
-            "identifiers": {(DOMAIN, "marstek_venus_system")},
-            "name": "Omnibattery System",
-            "manufacturer": "Omnibattery",
-            "model": "Multi-Battery System",
-        }
-
-
-class ConsumptionProfileCaptureSensor(SensorEntity):
-    """Live raw energy captured for the current profile day.
-
-    The value is a daily accumulated total and resets at the next local day.
-    """
-
-    _attr_has_entity_name = True
-    _attr_translation_key = "consumption_profile_capture"
-    _attr_unique_id = f"{SYSTEM_UNIQUE_ID_PREFIX}consumption_profile_capture"
-    _attr_device_class = SensorDeviceClass.ENERGY
-    _attr_state_class = SensorStateClass.TOTAL_INCREASING
-    _attr_native_unit_of_measurement = "kWh"
-    _attr_suggested_display_precision = 3
-    _attr_icon = "mdi:chart-timeline-variant-shimmer"
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_should_poll = True
-
-    def __init__(self, controller) -> None:
-        """Initialize the live profile-capture sensor."""
-        self._controller = controller
-        self.entity_id = system_entity_id("sensor", "consumption_profile_capture")
-
-    def _capture(self):
-        tracker = getattr(self._controller, "_consumption_tracker", None)
-        profile = getattr(tracker, "consumption_profile", None)
-        if profile is None:
-            return None
-        try:
-            return profile.current_day_capture()
-        except Exception as exc:  # noqa: BLE001
-            _LOGGER.debug("Consumption profile capture unavailable: %s", exc)
-            return None
-
-    @property
-    def native_value(self) -> float | None:
-        capture = self._capture()
-        return round(capture["energy_kwh"], 3) if capture is not None else None
-
-    @property
-    def extra_state_attributes(self) -> dict:
-        capture = self._capture()
-        if capture is None:
-            return {"state": "unavailable"}
-        return {
-            "capture_date": capture["date"],
-            "capture_complete": capture["complete"],
-            "interval_minutes": INTERVAL_MINUTES,
-            "capture_valid_intervals": capture["valid_intervals"],
-            "capture_coverage_ratio": capture["coverage_ratio"],
-            "hourly_capture_kwh": capture["hourly_energy_kwh"],
-            "interval_capture_kwh": capture["interval_energy_kwh"],
-            "interval_coverage_s": capture["interval_coverage_s"],
-        }
-
-    @property
-    def device_info(self):
-        return {
-            "identifiers": {(DOMAIN, "marstek_venus_system")},
-            "name": "Omnibattery System",
-            "manufacturer": "Omnibattery",
-            "model": "Multi-Battery System",
-        }
-
-
-class DailySolarEnergySensor(SensorEntity):
-    """Exact daily solar production (kWh), integrated from the real solar power.
-
-    The controller integrates total solar — the configured solar_production_sensor
-    plus independent battery PV (Venus MPPT inputs) — at control-loop cadence and resets at local midnight (see
-    ConsumptionTracker); this entity just surfaces that running total.
-    total_increasing so HA handles the daily reset.
-    """
-
-    _attr_has_entity_name = True
-    _attr_translation_key = "system_daily_solar_energy"
-    _attr_unique_id = f"{SYSTEM_UNIQUE_ID_PREFIX}daily_solar_energy"
-    _attr_device_class = SensorDeviceClass.ENERGY
-    _attr_state_class = SensorStateClass.TOTAL_INCREASING
-    _attr_native_unit_of_measurement = "kWh"
-    _attr_suggested_display_precision = 2
-    _attr_icon = "mdi:solar-power"
-    _attr_should_poll = True
-
-    def __init__(self, controller) -> None:
-        """Initialize the daily solar energy sensor."""
-        self._controller = controller
-        self.entity_id = system_entity_id("sensor", "daily_solar_energy")
-
-    @property
-    def native_value(self) -> float:
-        """Return today's accumulated solar production in kWh."""
-        return round(self._controller._daily_solar_energy_kwh, 2)
-
-    @property
-    def device_info(self):
-        """Return device information for the system."""
-        return {
-            "identifiers": {(DOMAIN, "marstek_venus_system")},
-            "name": "Omnibattery System",
-            "manufacturer": "Omnibattery",
-            "model": "Multi-Battery System",
-        }
-
-
 class SystemSolarPowerSensor(SensorEntity):
     """Instantaneous total solar production from external and independent PV.
 
     Sums the configured solar_production_sensor and independent battery PV —
-    Venus MPPT inputs — just as the
-    ConsumptionTracker does for daily solar energy. The entity is omitted when no battery contributes
+    Venus MPPT inputs. The entity is omitted when no battery contributes
     independent PV so it cannot duplicate the external sensor.
     """
 
@@ -1186,130 +954,10 @@ class SystemSolarPowerSensor(SensorEntity):
     @property
     def native_value(self) -> float | None:
         """Return total instantaneous solar production in W (None if no source readable)."""
-        tracker = self._controller._consumption_tracker
-        if tracker is None:
-            return None
-        power_kw = tracker._read_total_solar_power_kw()
+        power_kw = read_total_solar_power_kw(self.hass, self._controller)
         if power_kw is None:
             return None
         return round(power_kw * 1000.0)
-
-    @property
-    def device_info(self):
-        """Return device information for the system."""
-        return {
-            "identifiers": {(DOMAIN, "marstek_venus_system")},
-            "name": "Omnibattery System",
-            "manufacturer": "Omnibattery",
-            "model": "Multi-Battery System",
-        }
-
-
-class DailyHomeEnergySensor(SensorEntity):
-    """Exact daily home consumption (kWh), integrated from the home power.
-
-    The value is derived from grid + battery AC + solar, matching the power-flow
-    Home Consumption sensor and the daily household accumulator. Both
-    integrate the full 24 h; excluded/additional loads only adjust the
-    consumption-history contract.
-    """
-
-    _attr_has_entity_name = True
-    _attr_translation_key = "system_daily_home_energy"
-    _attr_unique_id = f"{SYSTEM_UNIQUE_ID_PREFIX}daily_home_energy"
-    _attr_device_class = SensorDeviceClass.ENERGY
-    _attr_state_class = SensorStateClass.TOTAL_INCREASING
-    _attr_native_unit_of_measurement = "kWh"
-    _attr_suggested_display_precision = 2
-    _attr_icon = "mdi:home-lightning-bolt"
-    _attr_should_poll = True
-
-    def __init__(self, controller) -> None:
-        """Initialize the daily home energy sensor."""
-        self._controller = controller
-        self.entity_id = system_entity_id("sensor", "daily_home_energy")
-
-    @property
-    def native_value(self) -> float:
-        """Return today's accumulated home consumption in kWh."""
-        return round(self._controller._daily_home_energy_kwh, 2)
-
-    @property
-    def device_info(self):
-        """Return device information for the system."""
-        return {
-            "identifiers": {(DOMAIN, "marstek_venus_system")},
-            "name": "Omnibattery System",
-            "manufacturer": "Omnibattery",
-            "model": "Multi-Battery System",
-        }
-
-
-class DailyGridImportEnergySensor(SensorEntity):
-    """Exact daily grid import (kWh), integrated from the net consumption meter.
-
-    The controller integrates the positive half of the consumption_sensor (power
-    drawn FROM the grid) at control-loop cadence and resets at local midnight
-    (see ConsumptionTracker); this entity surfaces that running total.
-    """
-
-    _attr_has_entity_name = True
-    _attr_translation_key = "system_daily_grid_import_energy"
-    _attr_unique_id = f"{SYSTEM_UNIQUE_ID_PREFIX}daily_grid_import_energy"
-    _attr_device_class = SensorDeviceClass.ENERGY
-    _attr_state_class = SensorStateClass.TOTAL_INCREASING
-    _attr_native_unit_of_measurement = "kWh"
-    _attr_suggested_display_precision = 2
-    _attr_icon = "mdi:transmission-tower-import"
-    _attr_should_poll = True
-
-    def __init__(self, controller) -> None:
-        """Initialize the daily grid import energy sensor."""
-        self._controller = controller
-        self.entity_id = system_entity_id("sensor", "daily_grid_import_energy")
-
-    @property
-    def native_value(self) -> float:
-        """Return today's accumulated grid import in kWh."""
-        return round(self._controller._daily_grid_import_energy_kwh, 2)
-
-    @property
-    def device_info(self):
-        """Return device information for the system."""
-        return {
-            "identifiers": {(DOMAIN, "marstek_venus_system")},
-            "name": "Omnibattery System",
-            "manufacturer": "Omnibattery",
-            "model": "Multi-Battery System",
-        }
-
-
-class DailyGridExportEnergySensor(SensorEntity):
-    """Exact daily grid export (kWh), integrated from the net consumption meter.
-
-    Mirrors DailyGridImportEnergySensor but for the negative half of the
-    consumption_sensor (power fed TO the grid).
-    """
-
-    _attr_has_entity_name = True
-    _attr_translation_key = "system_daily_grid_export_energy"
-    _attr_unique_id = f"{SYSTEM_UNIQUE_ID_PREFIX}daily_grid_export_energy"
-    _attr_device_class = SensorDeviceClass.ENERGY
-    _attr_state_class = SensorStateClass.TOTAL_INCREASING
-    _attr_native_unit_of_measurement = "kWh"
-    _attr_suggested_display_precision = 2
-    _attr_icon = "mdi:transmission-tower-export"
-    _attr_should_poll = True
-
-    def __init__(self, controller) -> None:
-        """Initialize the daily grid export energy sensor."""
-        self._controller = controller
-        self.entity_id = system_entity_id("sensor", "daily_grid_export_energy")
-
-    @property
-    def native_value(self) -> float:
-        """Return today's accumulated grid export in kWh."""
-        return round(self._controller._daily_grid_export_energy_kwh, 2)
 
     @property
     def device_info(self):

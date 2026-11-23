@@ -336,9 +336,7 @@ class PrimaryBatterySelect(_BatteryNameSelect):
 class ChargePrioritySelect(_BatteryNameSelect):
     """Which battery is filled first.
 
-    Left automatic, the order follows the day: with sun enough for everything the
-    battery needing the most hours goes first, and on a thin day the one that
-    loses the least to conversion.
+    Left automatic, the battery needing the most hours at full power goes first.
     """
 
     _conf_key = CONF_CHARGE_PRIORITY
@@ -352,7 +350,7 @@ class ChargePrioritySelect(_BatteryNameSelect):
     @property
     def extra_state_attributes(self) -> dict:
         """Show the order in force and what decided it."""
-        from .control.charge_order import charge_order, scarce_solar_day, time_to_full_h
+        from .control.charge_order import charge_order, time_to_full_h
 
         controller = self._controller
         if controller is None:
@@ -363,7 +361,6 @@ class ChargePrioritySelect(_BatteryNameSelect):
             "hours_to_full": {
                 c.name: round(time_to_full_h(controller, c), 1) for c in batteries
             },
-            "thin_solar_day": scarce_solar_day(controller),
         }
 
 

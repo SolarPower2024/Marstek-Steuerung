@@ -35,15 +35,14 @@ Las entidades por batería normalmente usan `<domain>.<battery-name>_<key>`, mos
 
 Estas entidades pertenecen a **Omnibattery System**, no a una batería.
 
-??? "Sensores de potencia, energía y aprendizaje"
+??? "Sensores de potencia y energía"
 
     | Claves | Cuándo aparecen |
     |---|---|
     | `system_soc`, `system_charge_power`, `system_discharge_power`, `system_battery_cell_power`, `system_total_energy`, `system_stored_energy` | Mediciones básicas del sistema |
-    | `home_consumption`, `system_daily_home_energy`, `system_daily_grid_import_energy`, `system_daily_grid_export_energy`, `system_daily_grid_at_min_soc_energy` | Medidor de red y controlador disponibles |
+    | `home_consumption` | Medidor de red y controlador disponibles |
     | `system_daily_charging_energy`, `system_daily_discharging_energy` | Energía agregada básica |
-    | `system_solar_power`, `system_daily_solar_energy` | Telemetría solar de batería admitida o fuente solar configurada, según corresponda |
-    | `expected_home_consumption_profile`, `consumption_profile_capture` | Aprendizaje de consumo disponible |
+    | `system_solar_power` | Una batería expone telemetría FV independiente (MPPT) |
 
 ??? "Sensores de control y diagnóstico"
 
@@ -66,7 +65,7 @@ Estas entidades pertenecen a **Omnibattery System**, no a una batería.
 
 ??? "Interruptores del sistema"
 
-    - Opciones de controlador siempre disponibles: `manual_mode`, `no_pd_mode`, `three_phase_protection`, `weekly_full_charge_enabled`, `vacation_mode`
+    - Opciones de controlador siempre disponibles: `manual_mode`, `no_pd_mode`, `three_phase_protection`, `weekly_full_charge_enabled`
     - Funciones condicionales: `offgrid_mode`, `primary_feedforward`, `system_power_limits`, `temp_charge_limit`, `temp_charge_limit_discharge`, `capacity_protection`, `capacity_protection_excluded_devices`
     - Controles generados: `time_slot` para cada franja horaria configurada; `excluded_device_enabled`, `excluded_device_solar_surplus`, `excluded_device_dynamic_power_control` y `excluded_device_cover_home` para cada dispositivo excluido aplicable
     - Compatibilidad con automatización externa: `automation_charging_active`
@@ -155,8 +154,6 @@ Las entidades de batería dependen del controlador. Una entidad ausente normalme
 
     **PD Control Quality** usa `stable`, `oscillating`, `sluggish`, `battery_limited`, `blocked` o `collecting_data`. Sus atributos exponen el error de seguimiento, la tasa de oscilación, la antigüedad de la métrica, los ajustes activos de control proporcional–derivativo (PD) y el perfil.
 
-
-    **Expected Home Consumption Profile** expone fuente, madurez, cobertura, recuentos de muestras y datos de previsión. **Vacation Mode** expone su línea base y periodos de aprendizaje excluidos.
 
 ## Seguridad de control
 

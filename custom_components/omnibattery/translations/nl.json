@@ -1,9 +1,5 @@
 {
   "issues": {
-    "recorder_excluded_sensors": {
-      "title": "Sensoren uitgesloten van Recorder",
-      "description": "Recorder sluit deze sensoren uit die Omnibattery gebruikt om zonne- en huishoudelijke verbruiksprofielen te herstellen: {sensors}. Pas de include/exclude-regels van Recorder aan zodat deze sensoren worden opgenomen en herstart Home Assistant om de configuratie toe te passen. De waarschuwing verdwijnt automatisch zodra ze worden opgenomen. Ontbrekende historische metingen kunnen niet worden hersteld; live leren en bestaande opgeslagen profielen blijven werken."
-    },
     "excluded_device_ev_type": {
       "title": "Markeer je EV-lader bij de uitgesloten apparaten",
       "description": "Het nieuwe energiestroomdiagram (inschakelen met de knop in de kop van de stroomkaart) tekent EV-laders op een eigen kabel, naast de auto. Omnibattery kan niet weten welk uitgesloten apparaat de lader is; totdat je het markeert, wordt het vermogen ervan op de kabel van de overige uitgesloten apparaten (de buitenunit) getoond en blijft de EV-kabel leeg. Open Opties → Uitgesloten apparaten en sla je apparaten opnieuw op, met \"EV-lader\" aangevinkt bij de lader (laat het uit bij de andere). Dit heeft alleen invloed op hoe het diagram wordt getekend, niet op de batterijbesturing. De melding verdwijnt zodra de apparaten zijn opgeslagen."
@@ -39,14 +35,6 @@
     "slow_main_sensor": {
       "title": "De netvermogenssensor werkt te langzaam bij",
       "description": "De geconfigureerde netsensor {sensor} werkt ongeveer elke {observed_interval} seconden bij. Intervallen van {warning_interval} seconden of meer zijn trager dan aanbevolen en kunnen de regelkwaliteit verminderen. Omnibattery volgt de laatste meting totdat deze ouder is dan {stale_limit} seconden. Gebruik een snellere sensor als u een nauwkeurigere realtime regeling nodig hebt."
-    },
-    "solar_forecast_unusable": {
-      "title": "Zonneprognose onbruikbaar",
-      "description": "De ingestelde zonneprognose-sensor {sensor} is al meer dan {minutes} minuten niet beschikbaar of onleesbaar. Omnibattery blijft draaien, maar alles wat op de prognose leunt werkt nu blind: de resterende-zon-schatting leest 0 kWh. Controleer de sensor of de integratie die hem levert."
-    },
-    "solar_forecast_remaining_recommended": {
-      "title": "Gebruik een resterende zonneprognose",
-      "description": "{sensor} is een verouderde zonneprognose voor de hele dag. Omnibattery blijft deze ondersteunen, maar eerdere prognosefouten kunnen beslissingen binnen de dag onnauwkeurig maken. Configureer in de Omnibattery-opties de provider-sensor voor de prognose \"vandaag resterend\" om de resterende zonne-energie nauwkeuriger te berekenen."
     }
   },
   "config": {
@@ -57,13 +45,11 @@
       },
       "user": {
         "title": "Omnibattery configureren",
-        "description": "Selecteer de sensor die het netimport/-exportvermogen meet. Optioneel kunt u de zonne-voorspellingssensor configureren voor geavanceerde functies.",
+        "description": "Selecteer de sensor die het netimport/-exportvermogen meet.",
         "data": {
           "consumption_sensor": "Netverbruikssensor",
           "offgrid_power_sensor": "Off-grid vermogenssensor (optioneel)",
           "offgrid_meter_inverted": "Teken van off-grid meter omgekeerd",
-          "solar_forecast_sensor": "Zonneprognosesensor voor de hele dag (verouderd)",
-          "solar_forecast_remaining_sensor": "Sensor resterende zonneprognose vandaag (aanbevolen)",
           "solar_production_sensor": "Zonneproductiesensor (optioneel)",
           "meter_inverted": "Meterteken omgekeerd",
           "max_contracted_power": "Maximaal gecontracteerd vermogen (W)",
@@ -73,8 +59,6 @@
           "consumption_sensor": "Realtime sensor voor geïmporteerd (+) of geëxporteerd (-) netvermogen. Updates elke 1-2 seconden worden aanbevolen. Tragere sensoren worden geaccepteerd, maar vertraagde metingen verminderen de regelkwaliteit; de laatste meting wordt maximaal 65 seconden gevolgd.",
           "offgrid_power_sensor": "Afzonderlijke W/kW-meter voor het back-upcircuit. Deze moet verschillen van de normale netsensor. Configuratie toont een softwareschakelaar die deze bron voor regeling en statistieken selecteert; de fysieke off-grid/EPS-poort van de batterij wordt niet ingeschakeld.",
           "offgrid_meter_inverted": "Schakel dit in wanneer de off-grid sensor de omgekeerde conventie gebruikt: positief = export en negatief = verbruik. Dit geldt alleen wanneer de off-grid metermodus actief is.",
-          "solar_forecast_sensor": "Verouderde sensor met de zonneprognose voor de hele dag. Bestaande installaties kunnen deze tijdens de overgang blijven gebruiken; kies voor nieuwe configuraties bij voorkeur Resterend vandaag.",
-          "solar_forecast_remaining_sensor": "Sensor met de vandaag nog verwachte zonneproductie in kWh. Bij opslaan vervangt deze de verouderde prognose voor de hele dag en wordt nooit verminderd met reeds gemeten productie.",
           "solar_production_sensor": "Realtime PV-productievermogenssensor (W/kW) van een externe omvormer die niet via de MPPT-ingangen van de batterij loopt. Wordt gebruikt om de Zon-node in het energiestroomdiagram van het dashboard te tonen. Laat leeg als je panelen rechtstreeks de MPPT van de batterij voeden.",
           "meter_inverted": "Schakel deze optie in als uw meter de omgekeerde conventie gebruikt: positief = export, negatief = import. De eenheid (W/kW) wordt automatisch gedetecteerd.",
           "max_contracted_power": "Totaal gecontracteerd vermogen in watt. Het systeem overschrijdt deze limiet niet bij het laden om het uitvallen van de zekering te voorkomen",
@@ -427,8 +411,6 @@
       "invalid_mac": "Dit lijkt geen MAC-adres te zijn. Er worden zes paren hexadecimale cijfers verwacht, bijvoorbeeld dc:04:5a:14:6b:33.",
       "cannot_connect": "Kan geen verbinding maken met de batterij. Controleer het IP-adres en of de batterij toegankelijk is op het netwerk.",
       "no_battery": "Inverter reached, but it reports no battery. Check that the LUNA2000 is attached and the Modbus slave ID points at the inverter.",
-      "sensor_not_found": "Zonnevoorspellingssensor bestaat niet. Controleer of de sensor beschikbaar is.",
-      "invalid_unit": "Zonnevoorspellingssensor moet 'kWh' of 'Wh' als eenheid hebben.",
       "solar_production_sensor_not_found": "Zonneproductiesensor bestaat niet. Controleer of de sensor beschikbaar is.",
       "solar_production_invalid_unit": "Zonneproductiesensor moet 'W' of 'kW' als eenheid hebben.",
       "solar_production_sensor_circular": "Een door OmniBattery gemaakte zonnesensor kan niet opnieuw als externe zonneproductie-invoer worden gebruikt.",
@@ -522,8 +504,6 @@
           "physical_grid_sensor": "Physical grid meter (optional)",
           "physical_grid_inverted": "Physical grid meter sign inverted",
           "capacity_protection_limit_entity": "Dynamic peak limit entity (optional)",
-          "solar_forecast_sensor": "Zonneprognosesensor voor de hele dag (verouderd)",
-          "solar_forecast_remaining_sensor": "Sensor resterende zonneprognose vandaag (aanbevolen)",
           "solar_production_sensor": "Zonneproductiesensor (optioneel)",
           "meter_inverted": "Meterteken omgekeerd",
           "max_contracted_power": "Maximaal gecontracteerd vermogen (W)",
@@ -536,8 +516,6 @@
           "physical_grid_sensor": "Real grid meter at the billing point. Used for peak shaving and contracted power. If empty, the control sensor above is used.",
           "physical_grid_inverted": "Enable if this meter uses the opposite sign convention: positive = export, negative = import.",
           "capacity_protection_limit_entity": "Sensor, number or input_number providing the peak limit in W. If empty or unreadable, the fixed peak limit is used.",
-          "solar_forecast_sensor": "Verouderde sensor met de zonneprognose voor de hele dag. Bestaande installaties kunnen deze tijdens de overgang blijven gebruiken; kies voor nieuwe configuraties bij voorkeur Resterend vandaag.",
-          "solar_forecast_remaining_sensor": "Sensor met de vandaag nog verwachte zonneproductie in kWh. Bij opslaan vervangt deze de verouderde prognose voor de hele dag en wordt nooit verminderd met reeds gemeten productie.",
           "solar_production_sensor": "Realtime PV-productievermogenssensor (W/kW) van een externe omvormer die niet via de MPPT-ingangen van de batterij loopt. Wordt gebruikt om de Zon-node in het energiestroomdiagram van het dashboard te tonen. Laat leeg als je panelen rechtstreeks de MPPT van de batterij voeden.",
           "meter_inverted": "Schakel deze optie in als uw meter de omgekeerde conventie gebruikt: positief = export, negatief = import. De eenheid (W/kW) wordt automatisch gedetecteerd.",
           "max_contracted_power": "Totaal gecontracteerd vermogen in watt. Het systeem overschrijdt deze limiet niet bij het laden om het uitvallen van de zekering te voorkomen",
@@ -842,8 +820,6 @@
       "invalid_mac": "Dit lijkt geen MAC-adres te zijn. Er worden zes paren hexadecimale cijfers verwacht, bijvoorbeeld dc:04:5a:14:6b:33.",
       "cannot_connect": "Kan geen verbinding maken met de batterij. Controleer het IP-adres en of de batterij toegankelijk is op het netwerk.",
       "no_battery": "Inverter reached, but it reports no battery. Check that the LUNA2000 is attached and the Modbus slave ID points at the inverter.",
-      "sensor_not_found": "Zonnevoorspellingssensor bestaat niet. Controleer of de sensor beschikbaar is.",
-      "invalid_unit": "Zonnevoorspellingssensor moet 'kWh' of 'Wh' als eenheid hebben.",
       "solar_production_sensor_not_found": "Zonneproductiesensor bestaat niet. Controleer of de sensor beschikbaar is.",
       "solar_production_invalid_unit": "Zonneproductiesensor moet 'W' of 'kW' als eenheid hebben.",
       "solar_production_sensor_circular": "Een door OmniBattery gemaakte zonnesensor kan niet opnieuw als externe zonneproductie-invoer worden gebruikt.",
@@ -924,9 +900,6 @@
       },
       "system_power_limits": {
         "name": "Systeemvermogenslimieten"
-      },
-      "vacation_mode": {
-        "name": "Vakantiemodus"
       },
       "temp_charge_limit": {
         "name": "Temperatuurbegrenzing laden"
@@ -1012,18 +985,6 @@
       "system_solar_power": {
         "name": "Totaal Zonnevermogen"
       },
-      "system_daily_solar_energy": {
-        "name": "Dagelijkse Zonneproductie"
-      },
-      "system_daily_home_energy": {
-        "name": "Dagelijks Huishoudverbruik"
-      },
-      "expected_home_consumption_profile": {
-        "name": "Verwacht huishoudelijk verbruiksprofiel"
-      },
-      "consumption_profile_capture": {
-        "name": "Huidige verbruiksprofielregistratie"
-      },
       "system_relay_guard": {
         "name": "Relay Guard",
         "state": {
@@ -1059,12 +1020,6 @@
       },
       "home_consumption": {
         "name": "Huishoudverbruik"
-      },
-      "system_daily_grid_import_energy": {
-        "name": "Dagelijkse Netimport"
-      },
-      "system_daily_grid_export_energy": {
-        "name": "Dagelijkse Netexport"
       },
       "non_responsive_batteries": {
         "name": "Niet-reagerende Batterijen"
@@ -1262,9 +1217,6 @@
       "system_daily_discharging_energy": {
         "name": "Dagelijkse Systeem Ontlaadenergie"
       },
-      "system_daily_grid_at_min_soc_energy": {
-        "name": "Net bij Min. SOC"
-      },
       "system_alarm_status": {
         "name": "Systeem Alarmstatus"
       },
@@ -1276,9 +1228,6 @@
       },
       "software_version": {
         "name": "Softwareversie"
-      },
-      "daily_solar_energy": {
-        "name": "Dagelijkse zonne-energie"
       },
       "backup_function": {
         "name": "Back-upfunctie"
@@ -1542,30 +1491,8 @@
     }
   },
   "exceptions": {
-    "exclude_days_invalid_range": {
-      "message": "De einddatum kan niet vóór de startdatum liggen."
-    },
-    "exclude_days_too_old": {
-      "message": "Verbruiksleren bewaart alleen de laatste {days} dagen, dus een oudere dag kan niet meer worden uitgesloten."
-    },
     "manual_control_required": {
       "message": "{battery} staat onder automatische besturing, dus Force Mode en de laad-/ontlaadsetpoints worden elke regelcyclus overschreven. Zet eerst Manual Mode aan (systeembreed of voor deze accu) voordat je hem rechtstreeks aanstuurt."
-    }
-  },
-  "services": {
-    "exclude_consumption_days": {
-      "name": "Verbruiksdagen uitsluiten",
-      "description": "Houdt volledige lokale dagen buiten het geleerde verbruik, voor een dag die het huishouden niet vertegenwoordigt: een meteruitval, een eenmalige gebeurtenis, een afwezigheid. Fysieke energiemeters en geschiedenis blijven ongemoeid; alleen het leren negeert die dagen. De uitsluiting wordt bewaard, zodat een latere Recorder-backfill de dagen niet kan terugzetten.",
-      "fields": {
-        "start_date": {
-          "name": "Startdatum",
-          "description": "Eerste lokale dag die wordt uitgesloten."
-        },
-        "end_date": {
-          "name": "Einddatum",
-          "description": "Laatste lokale dag die wordt uitgesloten. Zonder opgave wordt alleen de startdag uitgesloten."
-        }
-      }
     }
   }
 }

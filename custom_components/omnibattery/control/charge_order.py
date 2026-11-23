@@ -18,43 +18,10 @@ grid. Shares proportional to the room left aim every battery at the same finish
 time, which is the earliest any of them can be done. Discharge is untouched:
 there the question is who can deliver now, and the power rating answers it.
 
-The order follows the day. With sun enough for all of them, the battery needing
-the most hours goes first, because it is the one at risk of not finishing. On a
-day the forecast cannot fill them, the DC-coupled one leads instead: its
-photovoltaic input never leaves DC, so scarce kilowatt-hours lose the least
-there.
-
-Two things about "scarce" that cost real time on the reference installation:
-
-* it is measured against the room in the **DC-coupled battery**, not the room in
-  the whole fleet. Asking "is there enough to fill everything" is almost never
-  true on a mixed installation, so every day came out scarce and the AC battery
-  was passed over on all of them -- while its own empty capacity was most of
-  what made the day look scarce. It sat at its 12 % floor taking 0.02 kWh in a
-  day; measured against the DC battery's room, the next day it took 13.99 kWh.
-  Beyond that room there is nothing left to concentrate, so the day stops being
-  scarce at exactly the point the preference stops paying. That also retires the
-  hybrid from the front as it fills, with nobody having to command it aside.
-* the solar and consumption halves run off **one clock**.
-  :func:`read_remaining_solar_kwh` keeps its own ``now``; left to itself it
-  converts the solar side against a different minute than the consumption side
-  was trimmed to, and a test that pins the clock moves only half the sum.
+The order: a nominated battery first, then the one needing the most hours at
+full power, because it is the one at risk of not finishing.
 """
 from __future__ import annotations
-
-import logging
-
-from homeassistant.util import dt as dt_util
-
-from ..const import SCARCITY_HYSTERESIS_KWH
-from ..solar_forecast import read_remaining_solar_kwh
-
-_LOGGER = logging.getLogger(__name__)
-
-
-def _is_dc_coupled(coordinator) -> bool:
-    """Whether this battery's photovoltaic input reaches it without an AC stage."""
-    return bool(getattr(getattr(coordinator, "driver", None), "dc_coupled", False))
 
 
 def battery_remaining_kwh(coordinator):
@@ -109,111 +76,14 @@ def charge_allocation_weights(batteries, limits) -> dict:
     return weights
 
 
-def charge_outlook_kwh(controller, now=None):
-    """``(surplus still expected today, the room it is measured against)`` in kWh.
-
-    Both halves have to describe the same stretch of day. The solar half comes
-    from :func:`read_remaining_solar_kwh`, the integration's one normalized
-    answer to "how much is still to come" -- a provider's remaining figure passes
-    through untouched, a legacy whole-day sensor is converted once, and either
-    unit is handled there. Consumption is cut to the part of its own measurement
-    window still ahead, because a whole-day average against a remaining forecast
-    tilts every afternoon towards scarcity.
-
-    None while any input is missing, or while no battery is DC-coupled, which
-    both mean "no opinion" rather than "scarce".
-    """
-    tracker = getattr(controller, "_consumption_tracker", None)
-    if tracker is None:
-        return None
-
-    dc_coupled = [
-        coordinator for coordinator in getattr(controller, "coordinators", [])
-        if _is_dc_coupled(coordinator)
-    ]
-    if not dc_coupled:
-        # Nothing to concentrate the scarce kilowatt-hours into, so the question
-        # does not arise. Measuring against the fleet instead is the trap above.
-        return None
-    dc_room = sum(battery_remaining_kwh(c) or 0.0 for c in dc_coupled)
-
-    now = now or dt_util.now()
-    # One clock for both halves -- see the module docstring.
-    solar = read_remaining_solar_kwh(
-        controller.hass, controller, now=now, update_controller=False
-    )
-    # "fallback"/"unsafe_zero" is how that module says it had nothing usable to
-    # read. Taking its 0 kWh at face value would call every day scarce.
-    if (
-        solar is None
-        or getattr(solar, "source", None) in (None, "fallback")
-        or getattr(solar, "conversion", None) == "unsafe_zero"
-    ):
-        return None
-
-    now_h = now.hour + now.minute / 60.0
-    remaining_consumption = tracker.get_avg_daily_consumption()
-    try:
-        window_per_day = float(tracker.get_consumption_window_hours_per_day())
-        if window_per_day > 0:
-            ahead = float(
-                tracker.consumption_window_hours_in_range(now_h, tracker.estimate_t_end())
-            )
-            remaining_consumption *= max(0.0, ahead) / window_per_day
-    except Exception:  # noqa: BLE001 - an unlearned tracker keeps the whole-day figure
-        pass
-
-    return solar.remaining_kwh - remaining_consumption, dc_room
-
-
-def scarce_solar_day(controller, now=None) -> bool:
-    """Whether today's sun is worth concentrating in the DC-coupled battery.
-
-    True while the expected surplus still fits in it. Beyond that the excess has
-    to be shared out regardless, and there is nothing to gain by keeping the
-    other batteries waiting.
-
-    Latched: a forecast wanders all day, and without a band the charge order
-    would follow it. An unknown outlook leaves the standing verdict alone.
-    """
-    scarce = bool(getattr(controller, "_scarce_solar_latched", False))
-    outlook = charge_outlook_kwh(controller, now=now)
-    if outlook is None:
-        if not any(
-            _is_dc_coupled(coordinator)
-            for coordinator in getattr(controller, "coordinators", [])
-        ):
-            # No DC battery at all: not "unknown", genuinely never scarce, and a
-            # latch left standing from a removed battery would outlive it.
-            controller._scarce_solar_latched = False
-            return False
-        return scarce
-    surplus, dc_room = outlook
-    if scarce:
-        if surplus > dc_room + SCARCITY_HYSTERESIS_KWH:
-            scarce = False
-    elif surplus < dc_room - SCARCITY_HYSTERESIS_KWH:
-        scarce = True
-    controller._scarce_solar_latched = scarce
-    return scarce
-
-
 def charge_order(controller, batteries) -> list:
     """Batteries in the order they should be filled.
 
-    Ample sun: longest time to full first -- that battery is the one at risk of
-    not finishing, and the others can catch up in the time it needs anyway.
-
-    Scarce sun: the DC-coupled one first, because the kilowatt-hours that do
-    arrive are worth putting where the least of them is lost to conversion. Once
-    the surplus no longer fits it the day counts as ample again, which is how an
-    AC-coupled battery gets served without the hybrid ever being told to stand
-    down.
-
-    A nominated battery overrides both.
+    Longest time to full first -- that battery is the one at risk of not
+    finishing, and the others can catch up in the time it needs anyway. A
+    nominated battery overrides this.
     """
     named = (getattr(controller, "charge_priority", "") or "").strip()
-    scarce = scarce_solar_day(controller)
     active = getattr(controller, "_active_charge_batteries", None) or []
 
     def sort_key(coordinator):
@@ -221,10 +91,6 @@ def charge_order(controller, batteries) -> list:
         # A battery already charging keeps a small edge, so two of them with
         # nearly equal claims do not trade places from one cycle to the next.
         head_start = 1.1 if coordinator in active else 1.0
-        if scarce:
-            efficient = 0 if _is_dc_coupled(coordinator) else 1
-            room = (battery_remaining_kwh(coordinator) or 0.0) * head_start
-            return (chosen, efficient, -room)
         return (chosen, -time_to_full_h(controller, coordinator) * head_start)
 
     return sorted(batteries, key=sort_key)

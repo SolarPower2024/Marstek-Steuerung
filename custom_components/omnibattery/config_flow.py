@@ -60,11 +60,8 @@ from .config_backup import (
 from .infra.lifecycle import clear_reload_pending, mark_reload_pending
 from .infra.entity_naming import is_omnibattery_solar_entity
 from .infra.device_lookup import get_entry_device
-from .solar_forecast import normalize_solar_forecast_config
 from .const import (
     DOMAIN,
-    CONF_SOLAR_FORECAST_SENSOR,
-    CONF_SOLAR_FORECAST_REMAINING_SENSOR,
     CONF_SOLAR_PRODUCTION_SENSOR,
     CONF_MAX_CONTRACTED_POWER,
     CONF_OFFGRID_POWER_SENSOR,
@@ -178,8 +175,6 @@ def _restore_unrenderable_sensors(
     """
     restored = dict(user_input)
     for key in (
-        CONF_SOLAR_FORECAST_SENSOR,
-        CONF_SOLAR_FORECAST_REMAINING_SENSOR,
         CONF_SOLAR_PRODUCTION_SENSOR,
         CONF_OFFGRID_POWER_SENSOR,
         CONF_PHYSICAL_GRID_SENSOR,
@@ -882,7 +877,7 @@ class MarstekVenusConfigFlow(LegacyDomainMigrationMixin, ConfigFlow, domain=DOMA
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Step 1: Ask for the consumption sensor and optional solar forecast sensor."""
+        """Step 1: Ask for the consumption sensor and the optional meters."""
         # Rebrand migration: a HACS domain rename leaves the legacy
         # marstek_venus_energy_manager config entries in .storage. The new domain
         # starts with zero entries, so the config flow is the only entry point HA
@@ -904,25 +899,7 @@ class MarstekVenusConfigFlow(LegacyDomainMigrationMixin, ConfigFlow, domain=DOMA
         errors = {}
 
         if user_input is not None:
-            # The old field remains explicitly whole-day; the new field is the
-            # provider's post-now value. Saving it replaces the legacy whole-day
-            # value instead of persisting both forecast horizons.
-            forecast_sensor = user_input.get(CONF_SOLAR_FORECAST_SENSOR)
-            remaining_sensor = user_input.get(CONF_SOLAR_FORECAST_REMAINING_SENSOR)
             solar_sensor = user_input.get(CONF_SOLAR_PRODUCTION_SENSOR)
-            forecast_candidates = (
-                ((CONF_SOLAR_FORECAST_REMAINING_SENSOR, remaining_sensor),)
-                if remaining_sensor
-                else ((CONF_SOLAR_FORECAST_SENSOR, forecast_sensor),)
-            )
-            for key, sensor in forecast_candidates:
-                if sensor:
-                    forecast_state = self.hass.states.get(sensor)
-                    if forecast_state is None:
-                        errors[key] = "sensor_not_found"
-                    elif forecast_state.attributes.get("unit_of_measurement", "") not in ["kWh", "Wh"]:
-                        errors[key] = "invalid_unit"
-
             errors.update(_validate_solar_production_sensor(self.hass, user_input))
 
             errors.update(_validate_offgrid_power_sensor(self.hass, user_input))
@@ -936,12 +913,6 @@ class MarstekVenusConfigFlow(LegacyDomainMigrationMixin, ConfigFlow, domain=DOMA
                         CONF_OFFGRID_METER_INVERTED, False
                     )
                     self.config_data[CONF_OFFGRID_MODE_ENABLED] = False
-                if remaining_sensor:
-                    self.config_data.pop(CONF_SOLAR_FORECAST_SENSOR, None)
-                    self.config_data[CONF_SOLAR_FORECAST_REMAINING_SENSOR] = remaining_sensor
-                else:
-                    self.config_data[CONF_SOLAR_FORECAST_SENSOR] = forecast_sensor
-                    self.config_data[CONF_SOLAR_FORECAST_REMAINING_SENSOR] = None
                 self.config_data[CONF_SOLAR_PRODUCTION_SENSOR] = solar_sensor
                 self.config_data[CONF_METER_INVERTED] = user_input.get(CONF_METER_INVERTED, False)
                 self.config_data["max_contracted_power"] = user_input["max_contracted_power"]
@@ -966,10 +937,6 @@ class MarstekVenusConfigFlow(LegacyDomainMigrationMixin, ConfigFlow, domain=DOMA
                                 min=1000, max=20000, step=100, mode=NumberSelectorMode.BOX
                             )
                         ),
-                    vol.Optional(CONF_SOLAR_FORECAST_SENSOR):
-                        EntitySelector(EntitySelectorConfig(domain="sensor")),
-                    vol.Optional(CONF_SOLAR_FORECAST_REMAINING_SENSOR):
-                        EntitySelector(EntitySelectorConfig(domain="sensor")),
                     vol.Optional(CONF_SOLAR_PRODUCTION_SENSOR):
                         EntitySelector(EntitySelectorConfig(domain="sensor")),
                     vol.Optional(CONF_OFFGRID_POWER_SENSOR):
@@ -1499,8 +1466,6 @@ class MarstekVenusConfigFlow(LegacyDomainMigrationMixin, ConfigFlow, domain=DOMA
         switch/slider entities are created; everything is tuned live from the
         dashboard (the panel hides a disabled feature's parameters).
         """
-        if not self.config_data.get(CONF_SOLAR_FORECAST_SENSOR):
-            self.config_data[CONF_SOLAR_FORECAST_SENSOR] = None
         self.config_data.setdefault(CONF_ENABLE_WEEKLY_FULL_CHARGE, False)
         self.config_data.setdefault(CONF_WEEKLY_FULL_CHARGE_DAY, "sun")
         self.config_data.setdefault(CONF_ENABLE_TEMP_CHARGE_LIMIT, False)
@@ -1511,7 +1476,7 @@ class MarstekVenusConfigFlow(LegacyDomainMigrationMixin, ConfigFlow, domain=DOMA
         self.config_data[CONF_ENABLE_BALANCE_MONITOR] = True
         return self.async_create_entry(
             title="Omnibattery",
-            data=normalize_solar_forecast_config(self.config_data),
+            data=self.config_data,
         )
 
     def _migrate_battery_registry_ids(
@@ -1933,7 +1898,6 @@ class OptionsFlowHandler(OptionsFlow):
             new_data.pop(CONF_PHYSICAL_GRID_INVERTED, None)
         if not new_data.get(CONF_CAPACITY_PROTECTION_LIMIT_ENTITY):
             new_data.pop(CONF_CAPACITY_PROTECTION_LIMIT_ENTITY, None)
-        new_data = normalize_solar_forecast_config(new_data)
         new_data[CONF_ENABLE_BALANCE_MONITOR] = True
         entry_id = self.config_entry.entry_id
         mark_reload_pending(self.hass, entry_id)
@@ -2001,7 +1965,7 @@ class OptionsFlowHandler(OptionsFlow):
         )
 
     async def async_step_sensors(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Configure consumption sensor and optional solar forecast sensor."""
+        """Configure the consumption sensor and the optional meters."""
         errors = {}
         current_three_phase_enabled = self.config_entry.data.get(
             CONF_THREE_PHASE_ENABLED,
@@ -2009,35 +1973,16 @@ class OptionsFlowHandler(OptionsFlow):
         )
         try:
             if user_input is not None:
-                # Validate both explicit forecast horizons.
-                forecast_sensor = user_input.get(CONF_SOLAR_FORECAST_SENSOR)
-                remaining_sensor = user_input.get(CONF_SOLAR_FORECAST_REMAINING_SENSOR)
-                solar_sensor = user_input.get(CONF_SOLAR_PRODUCTION_SENSOR)
-                forecast_candidates = (
-                    ((CONF_SOLAR_FORECAST_REMAINING_SENSOR, remaining_sensor),)
-                    if remaining_sensor
-                    else ((CONF_SOLAR_FORECAST_SENSOR, forecast_sensor),)
-                )
-                for key, sensor in forecast_candidates:
-                    if sensor:
-                        forecast_state = self.hass.states.get(sensor)
-                        if forecast_state is None:
-                            errors[key] = "sensor_not_found"
-                        elif forecast_state.attributes.get("unit_of_measurement", "") not in ["kWh", "Wh"]:
-                            errors[key] = "invalid_unit"
-
                 errors.update(_validate_solar_production_sensor(self.hass, user_input))
 
                 errors.update(_validate_offgrid_power_sensor(self.hass, user_input))
 
                 if not errors:
                     # Runs after validation so a preserved dead reference cannot
-                    # block the save with `sensor_not_found` (#419).
+                    # block the save with a `*_not_found` error (#419).
                     user_input = _restore_unrenderable_sensors(
                         self.hass, user_input, self.config_entry.data
                     )
-                    forecast_sensor = user_input.get(CONF_SOLAR_FORECAST_SENSOR)
-                    remaining_sensor = user_input.get(CONF_SOLAR_FORECAST_REMAINING_SENSOR)
                     solar_sensor = user_input.get(CONF_SOLAR_PRODUCTION_SENSOR)
                     self.config_data["consumption_sensor"] = user_input["consumption_sensor"]
                     self.config_data[CONF_OFFGRID_POWER_SENSOR] = (
@@ -2046,14 +1991,6 @@ class OptionsFlowHandler(OptionsFlow):
                     self.config_data[CONF_OFFGRID_METER_INVERTED] = user_input.get(
                         CONF_OFFGRID_METER_INVERTED, False
                     )
-                    if remaining_sensor:
-                        self.config_data.pop(CONF_SOLAR_FORECAST_SENSOR, None)
-                        self.config_data[CONF_SOLAR_FORECAST_REMAINING_SENSOR] = remaining_sensor
-                    else:
-                        self.config_data[CONF_SOLAR_FORECAST_SENSOR] = forecast_sensor
-                        # This explicit marker removes a prior remaining sensor
-                        # during the merge in `_save_and_finish`.
-                        self.config_data[CONF_SOLAR_FORECAST_REMAINING_SENSOR] = None
                     self.config_data[CONF_SOLAR_PRODUCTION_SENSOR] = solar_sensor
                     self.config_data[CONF_METER_INVERTED] = user_input.get(CONF_METER_INVERTED, False)
                     # FORK: optional physical grid meter and dynamic peak-limit entity.
@@ -2080,8 +2017,6 @@ class OptionsFlowHandler(OptionsFlow):
 
             # Load current configuration with defensive defaults
             current_sensor = self.config_entry.data.get("consumption_sensor", "")
-            current_forecast = self.config_entry.data.get(CONF_SOLAR_FORECAST_SENSOR, "")
-            current_remaining_forecast = self.config_entry.data.get(CONF_SOLAR_FORECAST_REMAINING_SENSOR, "")
             current_solar = self.config_entry.data.get(CONF_SOLAR_PRODUCTION_SENSOR, "")
             current_offgrid = self.config_entry.data.get(CONF_OFFGRID_POWER_SENSOR, "")
             current_offgrid_inverted = self.config_entry.data.get(
@@ -2110,10 +2045,6 @@ class OptionsFlowHandler(OptionsFlow):
                                 min=1000, max=20000, step=100, mode=NumberSelectorMode.BOX
                             )
                         ),
-                    vol.Optional(CONF_SOLAR_FORECAST_SENSOR, description={"suggested_value": current_forecast} if current_forecast else {}):
-                        EntitySelector(EntitySelectorConfig(domain="sensor")),
-                    vol.Optional(CONF_SOLAR_FORECAST_REMAINING_SENSOR, description={"suggested_value": current_remaining_forecast} if current_remaining_forecast else {}):
-                        EntitySelector(EntitySelectorConfig(domain="sensor")),
                     vol.Optional(CONF_SOLAR_PRODUCTION_SENSOR, description={"suggested_value": current_solar} if current_solar else {}):
                         EntitySelector(EntitySelectorConfig(domain="sensor")),
                     vol.Optional(CONF_OFFGRID_POWER_SENSOR, description={"suggested_value": current_offgrid} if current_offgrid else {}):

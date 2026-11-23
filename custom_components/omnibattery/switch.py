@@ -33,7 +33,6 @@ from .const import (
     CONF_PRIMARY_FEEDFORWARD_ENABLED,
     CONF_SYSTEM_MAX_CHARGE_POWER,
     CONF_SYSTEM_MAX_DISCHARGE_POWER,
-    CONF_VACATION_MODE_ENABLED,
     CONF_THREE_PHASE_ENABLED,
     NOTIFICATION_ID_PREFIX,
 )
@@ -87,7 +86,6 @@ async def async_setup_entry(
         # Weekly full charge enable/disable (system-level, always present so it can
         # be turned on from the dashboard even if configured off at setup).
         entities.append(WeeklyFullChargeEnableSwitch(hass, entry, controller))
-        entities.append(VacationModeSwitch(hass, entry, controller))
 
     # Add capacity protection switch (system-level, when configured, regardless of enabled state)
     if controller and CONF_CAPACITY_PROTECTION_ENABLED in entry.data:
@@ -439,57 +437,6 @@ class BatteryFullChargeVoltageTaperSwitch(SwitchEntity):
     @property
     def device_info(self):
         return self.coordinator.battery_device_info
-
-class VacationModeSwitch(SwitchEntity):
-    """Persistently pause consumption learning while the household is away."""
-
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, controller) -> None:
-        self.hass = hass
-        self.entry = entry
-        self.controller = controller
-        self._attr_has_entity_name = True
-        self._attr_translation_key = "vacation_mode"
-        self._attr_unique_id = f"{SYSTEM_UNIQUE_ID_PREFIX}vacation_mode"
-        self.entity_id = system_entity_id("switch", "vacation_mode")
-        self._attr_icon = "mdi:palm-tree"
-        self._attr_should_poll = False
-
-    @property
-    def is_on(self) -> bool:
-        return bool(getattr(self.controller, "vacation_mode_enabled", False))
-
-    @property
-    def extra_state_attributes(self) -> dict:
-        tracker = getattr(self.controller, "_consumption_tracker", None)
-        status = getattr(tracker, "vacation_diagnostics", None)
-        return status() if callable(status) else {}
-
-    async def _set_enabled(self, enabled: bool) -> None:
-        self.controller.vacation_mode_enabled = enabled
-        data = dict(self.entry.data)
-        data[CONF_VACATION_MODE_ENABLED] = enabled
-        self.hass.config_entries.async_update_entry(self.entry, data=data)
-        tracker = getattr(self.controller, "_consumption_tracker", None)
-        setter = getattr(tracker, "async_set_vacation_mode", None)
-        if callable(setter):
-            await setter(enabled)
-        self.async_write_ha_state()
-        self.controller.schedule_control_cycle()
-
-    async def async_turn_on(self, **kwargs) -> None:
-        await self._set_enabled(True)
-
-    async def async_turn_off(self, **kwargs) -> None:
-        await self._set_enabled(False)
-
-    @property
-    def device_info(self):
-        return {
-            "identifiers": {(DOMAIN, "marstek_venus_system")},
-            "name": "Omnibattery System",
-            "manufacturer": "Omnibattery",
-            "model": "Multi-Battery System",
-        }
 
 
 class TimeSlotSwitch(SwitchEntity):

@@ -20,7 +20,10 @@ from datetime import date, datetime, timedelta
 from time import monotonic
 from typing import TYPE_CHECKING, Any
 
+from homeassistant.const import SUN_EVENT_SUNRISE
 from homeassistant.helpers.storage import Store
+from homeassistant.helpers.sun import get_astral_event_date
+from homeassistant.util import dt as dt_util
 
 from .pack_soc import control_vmax, soc_vs_ceiling
 from ..const import (
@@ -64,8 +67,8 @@ class WeeklyFullChargeManager:
     ) -> None:
         self._hass = hass
         self._controller = controller
-        # Bundled store: weekly charge flags + solar_t_start.
-        # Format preserved for backward-compat with existing user installs.
+        # Weekly charge flags. Older installs also stored "solar_t_start" here;
+        # that key is ignored now.
         self._store = Store(hass, 1, f"{DOMAIN}.{config_entry.entry_id}.weekly_charge_state")
         # Per-battery debounce counter for BMS-cutoff detection (in-memory only).
         self._bms_cutoff_counts: dict[str, int] = {}
@@ -298,18 +301,22 @@ class WeeklyFullChargeManager:
         return self._bms_cutoff_counts.get(coordinator.name, 0) >= _BMS_CUTOFF_REQUIRED_CYCLES
 
     def _sunrise_on(self, day: date) -> datetime | None:
-        """Local sunrise on ``day`` (naive), or None when it cannot be told."""
-        tracker = getattr(self._controller, "_consumption_tracker", None)
-        calculate = getattr(tracker, "calculate_sunrise", None)
-        if not callable(calculate):
+        """Local sunrise on ``day`` (naive), or None when it cannot be told.
+
+        Uses Home Assistant's own sun data (configured home location). None at
+        polar night/day or without a usable location, which makes the window
+        end at midnight.
+        """
+        hass = getattr(self, "_hass", None)
+        if hass is None:
             return None
         try:
-            hours = calculate(day)
-        except Exception:  # noqa: BLE001
+            moment = get_astral_event_date(hass, SUN_EVENT_SUNRISE, day)
+        except Exception:  # noqa: BLE001 - no location / astral failure
             return None
-        if hours is None:
+        if moment is None:
             return None
-        return datetime.combine(day, datetime.min.time()) + timedelta(hours=float(hours))
+        return dt_util.as_local(moment).replace(tzinfo=None)
 
     def window_end(self, now: datetime) -> datetime | None:
         """When the current charge window ends: the sunrise after the target day.
@@ -449,7 +456,6 @@ class WeeklyFullChargeManager:
                 saved_state = data.get("state")
                 if saved_state:
                     ctrl._weekly_charge_status["state"] = saved_state
-                ctrl._solar_t_start = data.get("solar_t_start")
                 ctrl._weekly_charge_needs_restore = bool(data.get("restore_pending", False))
                 self._restore_saved_max_soc(data.get("saved_max_soc"))
                 getattr(self, "_cutoff_applied_names", set()).clear()
@@ -503,8 +509,6 @@ class WeeklyFullChargeManager:
                 "saved_max_soc": dict(getattr(ctrl, "_weekly_charge_saved_max_soc", {})),
                 "date": date.today().isoformat(),
                 "timestamp": now.isoformat(),
-                # Bundled in the same store for legacy reasons
-                "solar_t_start": ctrl._solar_t_start,
             }
             await self._store.async_save(data)
             _LOGGER.debug("Weekly Full Charge: Saved state to storage")

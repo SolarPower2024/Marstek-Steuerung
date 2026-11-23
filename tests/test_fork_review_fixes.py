@@ -201,27 +201,6 @@ def test_control_sensor_event_keeps_upstream_rate_limit():
     assert ctrl._last_cycle_monotonic >= before
 
 
-# --- 8: grid-at-min-SOC power ---------------------------------------------
-
-def test_grid_at_min_soc_power_without_second_sensor_is_sensor_actual():
-    ctrl = _controller(previous_power=0.0)
-    ctrl.read_statistics_grid_w = lambda: 9999.0  # must not be used
-    assert C._grid_at_min_soc_power(ctrl, 321.5) == 321.5
-    ctrl._grid_view = GridView()  # present but not configured
-    assert C._grid_at_min_soc_power(ctrl, 321.5) == 321.5
-
-
-def test_grid_at_min_soc_power_with_second_sensor_uses_statistics():
-    ctrl = _controller(previous_power=0.0)
-    _with_view(ctrl, 0.0)
-    ctrl.read_statistics_grid_w = lambda: 1500.0
-    assert C._grid_at_min_soc_power(ctrl, 321.5) == 1500.0
-    ctrl.read_statistics_grid_w = lambda: -200.0
-    assert C._grid_at_min_soc_power(ctrl, 321.5) == 0.0
-    ctrl.read_statistics_grid_w = lambda: None
-    assert C._grid_at_min_soc_power(ctrl, 321.5) == 321.5
-
-
 # --- 11/13: repair issue and config robustness ----------------------------
 
 def _config_ctrl(data):

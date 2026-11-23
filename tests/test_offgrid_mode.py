@@ -66,13 +66,6 @@ def test_source_change_resets_control_and_statistics_sample_anchors():
     ctrl._control_sample_is_new = False
     ctrl._stale_cycles = 4
     ctrl._consumption_sensor_issue = "sensor.grid"
-    tracker = SimpleNamespace(
-        _daily_home_last_time=1.0,
-        _daily_home_last_power_kw=0.1,
-        _daily_grid_last_time=1.0,
-        _daily_grid_last_power_kw=0.2,
-    )
-    ctrl._consumption_tracker = tracker
 
     ctrl.set_offgrid_mode(True)
 
@@ -82,8 +75,6 @@ def test_source_change_resets_control_and_statistics_sample_anchors():
     assert ctrl._last_sensor_cadence_time is None
     assert ctrl._last_control_sample_value is None
     assert ctrl._control_sample_is_new is True
-    assert tracker._daily_home_last_time is None
-    assert tracker._daily_grid_last_time is None
 
 
 def test_offgrid_sensor_validation_requires_distinct_available_power_sensor():

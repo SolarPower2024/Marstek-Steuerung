@@ -1,9 +1,5 @@
 {
   "issues": {
-    "recorder_excluded_sensors": {
-      "title": "Sensoren vom Recorder ausgeschlossen",
-      "description": "Der Recorder schließt diese Sensoren aus, die Omnibattery zur Wiederherstellung der Solar- und Haushaltsverbrauchsprofile verwendet: {sensors}. Passen Sie die include/exclude-Regeln des Recorders an und starten Sie Home Assistant neu, um die Konfiguration anzuwenden. Die Warnung verschwindet automatisch, sobald die Sensoren eingeschlossen sind. Fehlende frühere Messwerte können nicht wiederhergestellt werden; das Lernen aus aktuellen Werten und vorhandene gespeicherte Profile funktionieren weiterhin."
-    },
     "excluded_device_ev_type": {
       "title": "E-Auto-Ladegerät unter den ausgeschlossenen Geräten markieren",
       "description": "Das neue Energieflussdiagramm (über die Schaltfläche im Kopf der Fluss-Karte einschalten) zeichnet E-Auto-Ladegeräte auf einer eigenen Leitung neben dem Auto. Omnibattery kann nicht erkennen, welches ausgeschlossene Gerät das Ladegerät ist; bis du es markierst, erscheint seine Leistung auf der Leitung der übrigen ausgeschlossenen Geräte (Außeneinheit) und die E-Auto-Leitung bleibt leer. Öffne Optionen → Ausgeschlossene Geräte und speichere deine Geräte erneut; aktiviere dabei \"E-Auto-Ladegerät\" beim Ladegerät (bei den anderen deaktiviert lassen). Betrifft nur die Darstellung des Diagramms, nicht die Batteriesteuerung. Der Hinweis verschwindet, sobald die Geräte gespeichert sind."
@@ -39,14 +35,6 @@
     "slow_main_sensor": {
       "title": "Der Netzleistungssensor aktualisiert zu langsam",
       "description": "Der konfigurierte Netzsensor {sensor} aktualisiert ungefähr alle {observed_interval} Sekunden. Intervalle von {warning_interval} Sekunden oder mehr sind langsamer als empfohlen und können die Regelqualität verringern. Omnibattery folgt dem letzten Messwert, bis er älter als {stale_limit} Sekunden ist. Verwenden Sie einen schnelleren Sensor, wenn Sie eine präzisere Echtzeitregelung benötigen."
-    },
-    "solar_forecast_unusable": {
-      "title": "Solarprognose unbrauchbar",
-      "description": "Der konfigurierte Solarprognose-Sensor {sensor} ist seit über {minutes} Minuten nicht verfügbar oder nicht lesbar. Omnibattery läuft weiter, aber alles, was auf der Prognose beruht, arbeitet blind: die Restsonnen-Schätzung liest 0 kWh. Prüfen Sie den Sensor oder die Integration, die ihn liefert."
-    },
-    "solar_forecast_remaining_recommended": {
-      "title": "Verbleibende Solarprognose verwenden",
-      "description": "{sensor} ist eine ältere Solarprognose für den ganzen Tag. Omnibattery unterstützt sie weiterhin, aber bereits eingetretene Prognosefehler können Entscheidungen innerhalb des Tages ungenau machen. Konfigurieren Sie in den Omnibattery-Optionen den Sensor des Anbieters für die Prognose \"heute verbleibend\", um die verbleibende Solarenergie genauer zu berechnen."
     }
   },
   "config": {
@@ -57,13 +45,11 @@
       },
       "user": {
         "title": "Omnibattery konfigurieren",
-        "description": "Wählen Sie den Sensor aus, der die Netzimport-/Exportleistung misst. Optional können Sie den Solarprognose-Sensor für erweiterte Funktionen konfigurieren.",
+        "description": "Wählen Sie den Sensor aus, der die Netzimport-/Exportleistung misst.",
         "data": {
           "consumption_sensor": "Netzverbrauchssensor",
           "offgrid_power_sensor": "Off-Grid-Leistungssensor (optional)",
           "offgrid_meter_inverted": "Vorzeichen des Off-Grid-Zählers invertiert",
-          "solar_forecast_sensor": "Solarprognose-Sensor für den gesamten Tag (veraltet)",
-          "solar_forecast_remaining_sensor": "Sensor für die heute verbleibende Solarprognose (empfohlen)",
           "solar_production_sensor": "Solarproduktionssensor (optional)",
           "meter_inverted": "Zählervorzeichen invertiert",
           "max_contracted_power": "Maximale Vertragsleistung (W)",
@@ -73,8 +59,6 @@
           "consumption_sensor": "Echtzeitsensor für importierte (+) oder exportierte (-) Netzleistung. Aktualisierungen alle 1-2 Sekunden werden empfohlen. Langsamere Sensoren werden akzeptiert, verzögerte Messwerte verringern jedoch die Regelqualität; dem letzten Messwert wird bis zu 65 Sekunden lang gefolgt.",
           "offgrid_power_sensor": "Separater W/kW-Zähler für den versorgten Ersatzstromkreis. Er muss sich vom normalen Netzsensor unterscheiden. Die Konfiguration stellt einen Software-Schalter bereit, der diese Quelle für Regelung und Statistiken auswählt; der physische Off-Grid/EPS-Port der Batterie wird dadurch nicht aktiviert.",
           "offgrid_meter_inverted": "Aktivieren, wenn der Off-Grid-Sensor die umgekehrte Konvention verwendet: positiv = Export und negativ = Verbrauch. Gilt nur bei aktivem Off-Grid-Zählermodus.",
-          "solar_forecast_sensor": "Veralteter Sensor für die Solarprognose des gesamten Tages. Bestehende Installationen können ihn während der Übergangszeit weiterverwenden; für neue Konfigurationen wird Heute verbleibend empfohlen.",
-          "solar_forecast_remaining_sensor": "Sensor für die heute noch erwartete Solarproduktion in kWh. Beim Speichern ersetzt er die veraltete Ganztagesprognose und wird nicht um die bereits gemessene Produktion reduziert.",
           "solar_production_sensor": "Echtzeit-PV-Produktionsleistungssensor (W/kW) von einem externen Wechselrichter, der nicht über die MPPT-Eingänge der Batterie geführt wird. Wird verwendet, um den Solar-Knoten im Energiefluss-Diagramm des Dashboards anzuzeigen. Leer lassen, wenn deine Module direkt den MPPT der Batterie speisen.",
           "meter_inverted": "Aktivieren Sie diese Option, wenn Ihr Zähler die umgekehrte Konvention verwendet: positiv = Export, negativ = Import. Die Einheit (W/kW) wird automatisch erkannt.",
           "max_contracted_power": "Gesamt-Vertragsleistung in Watt. Das System überschreitet dieses Limit beim Laden nicht, um ein Auslösen der Sicherung zu vermeiden",
@@ -427,8 +411,6 @@
       "invalid_mac": "Das sieht nicht wie eine MAC-Adresse aus. Erwartet werden sechs Paare hexadezimaler Ziffern, zum Beispiel dc:04:5a:14:6b:33.",
       "cannot_connect": "Verbindung zur Batterie nicht möglich. Überprüfen Sie die IP-Adresse und dass die Batterie im Netzwerk erreichbar ist.",
       "no_battery": "Wechselrichter erreichbar, meldet aber keine Batterie. Prüfe, ob die LUNA2000 angeschlossen ist und die Modbus-Slave-ID auf den Wechselrichter zeigt.",
-      "sensor_not_found": "Solarprognose-Sensor existiert nicht. Überprüfen Sie, dass der Sensor verfügbar ist.",
-      "invalid_unit": "Solarprognose-Sensor muss 'kWh' oder 'Wh' als Einheit haben.",
       "solar_production_sensor_not_found": "Solarproduktions-Sensor existiert nicht. Überprüfen Sie, dass der Sensor verfügbar ist.",
       "solar_production_invalid_unit": "Solarproduktions-Sensor muss 'W' oder 'kW' als Einheit haben.",
       "solar_production_sensor_circular": "Ein von OmniBattery erstellter Solarsensor kann nicht als externer Solarproduktionseingang wiederverwendet werden.",
@@ -522,8 +504,6 @@
           "physical_grid_sensor": "Physischer Netzzähler (optional)",
           "physical_grid_inverted": "Vorzeichen des physischen Netzzählers umkehren",
           "capacity_protection_limit_entity": "Entität für dynamisches Peak-Limit (optional)",
-          "solar_forecast_sensor": "Solarprognose-Sensor für den gesamten Tag (veraltet)",
-          "solar_forecast_remaining_sensor": "Sensor für die heute verbleibende Solarprognose (empfohlen)",
           "solar_production_sensor": "Solarproduktionssensor (optional)",
           "meter_inverted": "Zählervorzeichen invertiert",
           "max_contracted_power": "Maximale Vertragsleistung (W)",
@@ -536,8 +516,6 @@
           "physical_grid_sensor": "Realer Netzzähler am Abrechnungspunkt. Wird für Spitzenkappung und vertragliche Leistung verwendet. Falls leer, wird der obige Regelsensor verwendet.",
           "physical_grid_inverted": "Aktivieren, wenn dieser Zähler die umgekehrte Konvention nutzt: positiv = Einspeisung, negativ = Bezug.",
           "capacity_protection_limit_entity": "Sensor, Number oder Input-Number mit dem Peak-Limit in W. Falls leer oder nicht lesbar, gilt das feste Peak-Limit.",
-          "solar_forecast_sensor": "Veralteter Sensor für die Solarprognose des gesamten Tages. Bestehende Installationen können ihn während der Übergangszeit weiterverwenden; für neue Konfigurationen wird Heute verbleibend empfohlen.",
-          "solar_forecast_remaining_sensor": "Sensor für die heute noch erwartete Solarproduktion in kWh. Beim Speichern ersetzt er die veraltete Ganztagesprognose und wird nicht um die bereits gemessene Produktion reduziert.",
           "solar_production_sensor": "Echtzeit-PV-Produktionsleistungssensor (W/kW) von einem externen Wechselrichter, der nicht über die MPPT-Eingänge der Batterie geführt wird. Wird verwendet, um den Solar-Knoten im Energiefluss-Diagramm des Dashboards anzuzeigen. Leer lassen, wenn deine Module direkt den MPPT der Batterie speisen.",
           "meter_inverted": "Aktivieren Sie diese Option, wenn Ihr Zähler die umgekehrte Konvention verwendet: positiv = Export, negativ = Import. Die Einheit (W/kW) wird automatisch erkannt.",
           "max_contracted_power": "Gesamt-Vertragsleistung in Watt. Das System überschreitet dieses Limit beim Laden nicht, um ein Auslösen der Sicherung zu vermeiden",
@@ -842,8 +820,6 @@
       "invalid_mac": "Das sieht nicht wie eine MAC-Adresse aus. Erwartet werden sechs Paare hexadezimaler Ziffern, zum Beispiel dc:04:5a:14:6b:33.",
       "cannot_connect": "Verbindung zur Batterie nicht möglich. Überprüfen Sie die IP-Adresse und dass die Batterie im Netzwerk erreichbar ist.",
       "no_battery": "Wechselrichter erreichbar, meldet aber keine Batterie. Prüfe, ob die LUNA2000 angeschlossen ist und die Modbus-Slave-ID auf den Wechselrichter zeigt.",
-      "sensor_not_found": "Solarprognose-Sensor existiert nicht. Überprüfen Sie, dass der Sensor verfügbar ist.",
-      "invalid_unit": "Solarprognose-Sensor muss 'kWh' oder 'Wh' als Einheit haben.",
       "solar_production_sensor_not_found": "Solarproduktions-Sensor existiert nicht. Überprüfen Sie, dass der Sensor verfügbar ist.",
       "solar_production_invalid_unit": "Solarproduktions-Sensor muss 'W' oder 'kW' als Einheit haben.",
       "solar_production_sensor_circular": "Ein von OmniBattery erstellter Solarsensor kann nicht als externer Solarproduktionseingang wiederverwendet werden.",
@@ -924,9 +900,6 @@
       },
       "system_power_limits": {
         "name": "System-Leistungsgrenzen"
-      },
-      "vacation_mode": {
-        "name": "Urlaubsmodus"
       },
       "temp_charge_limit": {
         "name": "Temperaturbasierte Ladebegrenzung"
@@ -1012,18 +985,6 @@
       "system_solar_power": {
         "name": "Gesamt-Solarleistung"
       },
-      "system_daily_solar_energy": {
-        "name": "Tägliche Solarproduktion"
-      },
-      "system_daily_home_energy": {
-        "name": "Täglicher Haushaltsverbrauch"
-      },
-      "expected_home_consumption_profile": {
-        "name": "Erwartetes Haushaltsverbrauchsprofil"
-      },
-      "consumption_profile_capture": {
-        "name": "Aktuelle Verbrauchsprofilerfassung"
-      },
       "system_relay_guard": {
         "name": "Relais-Schutz",
         "state": {
@@ -1059,12 +1020,6 @@
       },
       "home_consumption": {
         "name": "Haushaltsverbrauch"
-      },
-      "system_daily_grid_import_energy": {
-        "name": "Täglicher Netzbezug"
-      },
-      "system_daily_grid_export_energy": {
-        "name": "Tägliche Netzeinspeisung"
       },
       "non_responsive_batteries": {
         "name": "Nicht reagierende Batterien"
@@ -1262,9 +1217,6 @@
       "system_daily_discharging_energy": {
         "name": "Tägliche System-Entladeenergie"
       },
-      "system_daily_grid_at_min_soc_energy": {
-        "name": "Netz bei Min. SOC"
-      },
       "system_alarm_status": {
         "name": "System-Alarmstatus"
       },
@@ -1276,9 +1228,6 @@
       },
       "software_version": {
         "name": "Softwareversion"
-      },
-      "daily_solar_energy": {
-        "name": "Tägliche Solarenergie"
       },
       "backup_function": {
         "name": "Notstromfunktion"
@@ -1542,30 +1491,8 @@
     }
   },
   "exceptions": {
-    "exclude_days_invalid_range": {
-      "message": "Das Enddatum darf nicht vor dem Startdatum liegen."
-    },
-    "exclude_days_too_old": {
-      "message": "Das Verbrauchslernen behält nur die letzten {days} Tage, ein älterer Tag kann daher nicht mehr ausgeschlossen werden."
-    },
     "manual_control_required": {
       "message": "{battery} wird automatisch gesteuert, daher werden der Force-Modus und die Lade-/Entlade-Sollwerte bei jedem Steuerungszyklus überschrieben. Aktiviere den manuellen Modus (systemweit oder für diese Batterie), bevor du direkt Befehle sendest."
-    }
-  },
-  "services": {
-    "exclude_consumption_days": {
-      "name": "Verbrauchstage ausschließen",
-      "description": "Nimmt vollständige lokale Tage aus dem gelernten Verbrauch heraus, wenn ein Tag den Haushalt nicht repräsentiert: ein Zählerausfall, ein einmaliges Ereignis, eine Abwesenheit. Physische Zähler und Verlauf bleiben unverändert; nur das Lernen ignoriert diese Tage. Der Ausschluss wird gespeichert, sodass ein späterer Recorder-Backfill die Tage nicht zurückholen kann.",
-      "fields": {
-        "start_date": {
-          "name": "Startdatum",
-          "description": "Erster lokaler Tag, der ausgeschlossen wird."
-        },
-        "end_date": {
-          "name": "Enddatum",
-          "description": "Letzter lokaler Tag, der ausgeschlossen wird. Ohne Angabe wird nur der Starttag ausgeschlossen."
-        }
-      }
     }
   }
 }

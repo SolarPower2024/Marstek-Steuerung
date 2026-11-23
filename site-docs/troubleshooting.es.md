@@ -94,13 +94,6 @@ Durante hasta 65 segundos después de la última lectura, el valor bloqueado sig
 
 **Resultado esperado:** **PD Control Quality** pasa a estable tras observar el controlador suficiente funcionamiento normal.
 
-## La previsión o el perfil de consumo recurre a un método alternativo
-
-??? "La fuente de consumo muestra `legacy_daily` o el perfil solar recurre a un método alternativo"
-    Una fuente de previsión de consumo `legacy_daily` es esperable mientras el perfil de 28 días sigue aprendiendo, o cuando el intervalo solicitado no cumple su contrato de cobertura. Comprueba **Expected Home Consumption Profile** y los diagnósticos de integración. Cambiar una fuente o ajuste de carga excluida conserva todos los días aprendidos; un cambio de zona horaria los redistribuye según el desplazamiento entre las dos zonas, y el relleno de Recorder reconstruye en segundo plano lo que siga faltando. No se interpola un hueco de más de cinco minutos.
-
-    También es esperable que una previsión solar permanezca inmadura o recurra a un método alternativo durante los primeros días. El aprendizaje necesita potencia FV directa del sensor externo configurado o canales MPPT legibles, al menos siete días de calidad cerrados, cobertura reciente y evidencia suficiente en el intervalo futuro solicitado; se excluyen muestras no válidas, negativas y con huecos largos, y las señales de limitación de producción pueden excluir intervalos. Un cambio de fuente o capacidad inicia una generación nueva. Comprueba la sección `solar_profile` de los diagnósticos y `solar_timeline_fallback_reason`; el perfil no puede reparar una previsión meteorológica incorrecta ni modelar una limitación de producción que no puede observar.
-
 ## La carga completa semanal o el balance de celdas no terminó
 
 | Causa probable | Qué comprobar | Acción |

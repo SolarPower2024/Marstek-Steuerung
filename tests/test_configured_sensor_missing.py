@@ -17,7 +17,6 @@ from custom_components.omnibattery import ChargeDischargeController
 from custom_components.omnibattery.config_flow import _restore_unrenderable_sensors
 from custom_components.omnibattery.const import (
     CONF_OFFGRID_POWER_SENSOR,
-    CONF_SOLAR_FORECAST_REMAINING_SENSOR,
     CONF_SOLAR_PRODUCTION_SENSOR,
     MISSING_SENSOR_ISSUE_DELAY_S,
 )
@@ -37,13 +36,13 @@ def _hass(existing: set[str]) -> SimpleNamespace:
 def test_missing_stored_sensor_survives_an_empty_submission():
     stored = {
         CONF_SOLAR_PRODUCTION_SENSOR: "sensor.pv",
-        CONF_SOLAR_FORECAST_REMAINING_SENSOR: "sensor.remaining",
+        CONF_OFFGRID_POWER_SENSOR: "sensor.offgrid",
     }
 
     restored = _restore_unrenderable_sensors(_hass(set()), {}, stored)
 
     assert restored[CONF_SOLAR_PRODUCTION_SENSOR] == "sensor.pv"
-    assert restored[CONF_SOLAR_FORECAST_REMAINING_SENSOR] == "sensor.remaining"
+    assert restored[CONF_OFFGRID_POWER_SENSOR] == "sensor.offgrid"
 
 
 def test_existing_stored_sensor_can_still_be_cleared():

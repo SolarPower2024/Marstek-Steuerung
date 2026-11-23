@@ -111,38 +111,7 @@ MAX_CHARGE_HYSTERESIS_PERCENT = 50
 # repeatedly cross the split-load threshold. Refreshed while the split condition holds.
 MULTI_BATTERY_SELECTION_HOLD_SECONDS = 120
 
-# A manual, persistent learning pause. The exact affected periods and the
-# measured overnight baseline live in ConsumptionTracker's Store; this flag is
-# kept in the entry so the switch restores before the first control cycle.
-CONF_VACATION_MODE_ENABLED = "vacation_mode_enabled"
-CONF_SOLAR_FORECAST_SENSOR = "solar_forecast_sensor"
-# Explicit post-now forecast.  The old key remains a whole-day ``today`` value
-# for backwards compatibility and must not be silently reinterpreted.
-CONF_SOLAR_FORECAST_REMAINING_SENSOR = "solar_forecast_remaining_sensor"
 CONF_SOLAR_PRODUCTION_SENSOR = "solar_production_sensor"
-# Temporal solar profile.  The normal behaviour is automatic: the learned
-# curve takes over once it is mature, and the historical sinusoid remains the
-# safe fallback while it learns.  ``shadow`` is retained only as a legacy
-# value so existing config entries can be normalized without data loss.
-CONF_SOLAR_PROFILE_MODE = "solar_profile_mode"
-SOLAR_PROFILE_MODE_OFF = "off"
-SOLAR_PROFILE_MODE_SHADOW = "shadow"
-SOLAR_PROFILE_MODE_ACTIVE = "active"
-SOLAR_PROFILE_MODES = (
-    SOLAR_PROFILE_MODE_OFF,
-    SOLAR_PROFILE_MODE_SHADOW,
-    SOLAR_PROFILE_MODE_ACTIVE,
-)
-DEFAULT_SOLAR_PROFILE_MODE = SOLAR_PROFILE_MODE_ACTIVE
-
-
-def normalize_solar_profile_mode(mode: str | None) -> str:
-    """Normalize legacy rollout values to the current automatic behaviour."""
-    if mode == SOLAR_PROFILE_MODE_OFF:
-        return SOLAR_PROFILE_MODE_OFF
-    return SOLAR_PROFILE_MODE_ACTIVE
-
-
 CONF_HOUSEHOLD_CONSUMPTION_SENSOR = "household_consumption_sensor"  # legacy; migrated out in v6
 CONF_MAX_CONTRACTED_POWER = "max_contracted_power"
 
@@ -224,10 +193,6 @@ DEFAULT_SLOT_MODE = SLOT_MODE_PD
 DEFAULT_SLOT_SOC_MIN_FLOOR = 12
 DEFAULT_SLOT_SOC_MAX_CEILING = 100
 MAX_TIME_SLOTS = 8
-
-# Default base consumption fallback (kWh/day)
-DEFAULT_BASE_CONSUMPTION_KWH = 5.0  # Fallback when no consumption history available
-
 
 # Weekly Full Charge Configuration
 CONF_ENABLE_WEEKLY_FULL_CHARGE = "enable_weekly_full_charge"
@@ -400,11 +365,6 @@ SLOW_SENSOR_WARN_INTERVALS = 3
 # minute of sustained fast cadence.
 SLOW_SENSOR_RECOVERY_INTERVALS = 20
 
-
-# How long a configured solar-forecast sensor must stay unreadable before a
-# Repairs issue is raised. Long enough to ride
-# out a provider outage, short enough to catch a dead sensor the same day.
-FORECAST_DATA_ISSUE_DELAY_S = 7200.0
 
 # How long a configured sensor entity must stay absent from the state machine
 # before a Repairs issue names it (#419). Long enough for the integration that
@@ -611,9 +571,6 @@ SURPLUS_GUARD_HYSTERESIS_W = 100
 # one, and reads as a surplus for one sample. The effective window is
 # max(this, 2 * slowest actuator_latency_s), as for the zero-cross hold.
 SURPLUS_GUARD_MIN_HOLD_S = 5.0
-# How far the outlook has to move before the scarce/ample verdict flips. A
-# forecast wanders all day; without this the charge order would follow it.
-SCARCITY_HYSTERESIS_KWH = 2.0
 CONF_NO_PD_COMMAND_DELAY = "no_pd_command_delay"
 CONF_ENABLE_SYSTEM_POWER_LIMITS = "enable_system_power_limits"
 CONF_SYSTEM_MAX_CHARGE_POWER = "system_max_charge_power"

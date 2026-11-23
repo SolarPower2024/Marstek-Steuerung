@@ -35,7 +35,7 @@ from ..const.integration_const import (
 from ..drivers.base import DELIVERED_AC_POWER_KEY
 from ..infra.coordinator import MarstekVenusDataUpdateCoordinator
 from ..infra.entity_naming import system_entity_id
-from ..tracking.consumption_tracker import (
+from ..tracking.home_load import (
     has_battery_charging,
     home_balance_is_suspicious,
 )
@@ -131,48 +131,6 @@ SYSTEM_BATTERY_CELL_POWER_DEFINITION = {
     "icon": "mdi:home-battery",
     "precision": 0,
 }
-
-
-class DailyGridAtMinSocSensor(SensorEntity):
-    """Tracks daily grid energy imported when all batteries are at min SOC during a discharge window.
-
-    This energy represents household demand that the battery could not cover.
-    It is accumulated in real-time by the ChargeDischargeController and resets at midnight.
-    """
-
-    def __init__(self, controller) -> None:
-        """Initialize the sensor."""
-        self._controller = controller
-
-        self._attr_has_entity_name = True
-        self._attr_unique_id = "marstek_venus_system_daily_grid_at_min_soc_energy"
-        self.entity_id = system_entity_id("sensor", "daily_grid_at_min_soc_energy")
-        self._attr_translation_key = "system_daily_grid_at_min_soc_energy"
-        self._attr_native_unit_of_measurement = "kWh"
-        self._attr_device_class = SensorDeviceClass.ENERGY
-        self._attr_state_class = SensorStateClass.TOTAL_INCREASING
-        self._attr_suggested_display_precision = 2
-        self._attr_icon = "mdi:transmission-tower-import"
-        self._attr_should_poll = False
-
-    async def async_added_to_hass(self) -> None:
-        """Register with controller once entity is added to HA."""
-        self._controller._grid_at_min_soc_sensor = self
-
-    @property
-    def native_value(self) -> float:
-        """Return accumulated daily grid import at min SOC."""
-        return round(self._controller._daily_grid_at_min_soc_kwh, 2)
-
-    @property
-    def device_info(self):
-        """Return device information for the system."""
-        return {
-            "identifiers": {(DOMAIN, "marstek_venus_system")},
-            "name": "Omnibattery System",
-            "manufacturer": "Omnibattery",
-            "model": "Multi-Battery System",
-        }
 
 
 class PdControlQualitySensor(SensorEntity):
@@ -847,8 +805,7 @@ class MarstekVenusAggregateSensor(RestoreEntity, SensorEntity):
         # independently polled grid/solar/battery values being sampled at
         # different instants while the batteries are charging. Keep the last
         # coherent estimate as a numeric display value instead of turning a
-        # transient mismatch into 0 W or unknown. The consumption tracker has
-        # its own strict validation and will not integrate this held value.
+        # transient mismatch into 0 W or unknown.
         if home_balance_is_suspicious(
             total,
             battery_charging=has_battery_charging(self.coordinators),

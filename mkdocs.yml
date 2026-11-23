@@ -83,8 +83,6 @@ plugins:
             Features: Funcionalidades
             Follow home consumption: Seguir el consumo de casa
             PD Controller: Controlador PD
-            Make the most of solar: Aprovechar el sol
-            Daily consumption estimate: Estimación de consumo diario
             Protect your installation: Proteger la instalación
             Peak shaving: Peak shaving
             Temperature charge limit: Límite de carga por temperatura
@@ -160,8 +158,6 @@ nav:
   - Features:
       - Follow home consumption:
           - PD Controller: features/pd-controller.md
-      - Make the most of solar:
-          - Daily consumption estimate: features/consumption-estimate.md
       - Protect your installation:
           - Peak shaving: features/peak-shaving.md
           - Temperature charge limit: features/temperature-charge-limit.md

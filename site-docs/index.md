@@ -6,7 +6,7 @@ Omnibattery connects compatible home batteries to Home Assistant so they can fol
 
 ## Is Omnibattery for me?
 
-**Use it if** you already have a supported battery and a Home Assistant sensor that measures power imported from or exported to the grid. It is especially useful when you want one place to coordinate batteries, solar forecasts and household loads.
+**Use it if** you already have a supported battery and a Home Assistant sensor that measures power imported from or exported to the grid. It is especially useful when you want one place to coordinate batteries, solar production and household loads.
 
 **You do not need it if** the manufacturer's own control already meets your needs, or if you only want to view battery data without Home Assistant adjusting battery power.
 
@@ -29,7 +29,7 @@ Omnibattery can coordinate supported brands in the same installation. Check the 
 
 -   :material-white-balance-sunny: **Make better use of solar energy**
 
-    Combine live production, battery capacity and forecasts to decide when energy should be stored.
+    Store solar surplus as it happens and share it across batteries by the room each one has left.
 
 -   :material-clock-outline: **Run on your schedule**
 

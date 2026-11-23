@@ -148,9 +148,8 @@ A driver chooses the cadence for each `ReadGroup`. During a real command change,
 
 The `tracking/` package owns persisted observations and projections:
 
-- `ConsumptionTracker` composes consumption history, daily counters, recorder backfill, and the consumption profile.
-- `ConsumptionProfileTracker` stores local-day interval data and produces weighted forecasts.
-- `SolarProfileTracker` learns a normalized solar-production shape.
+- `home_load` holds the helpers behind the live **Home Consumption** and **System Solar Power** sensors.
+- `RecorderBackfillCoordinator` (`backfill.py`) serializes the short Recorder queries used to migrate the daily charge/discharge counters.
 - `BalanceMonitor` records cell-voltage spread around full charge.
 - `NonResponsiveTracker` tracks failed delivery episodes and recovery.
 

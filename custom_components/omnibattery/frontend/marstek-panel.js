@@ -49,7 +49,6 @@ const I18N = {
     placeholderMsg: "This view is coming in a future phase. For now, use the Overview view.",
     cardFlow: "Energy flow", cardSoc: "System status", cardDaily: "Energy today",
     cardWeekly: "Weekly energy", cardPower: "Power", cardSocToday: "SOC · today",
-    forecastToday: "Solar forecast · 00:05", solarRemaining: "Solar remaining", expectedConsumption: "Expected consumption",
     grid: "Grid", solar: "Solar", home: "Home", battery: "Battery",
     excludedDevices: "Excluded devices",
     importing: "Importing", exporting: "Exporting",
@@ -57,8 +56,7 @@ const I18N = {
     selfConsumptionSuffix: "% self-consumption", units: "units",
     charge: "Charge", discharge: "Discharge", availOf: "of {value} available",
     charged: "Charged", discharged: "Discharged",
-    gridImport: "Grid imported", gridExport: "Grid exported",
-    now: "now", noData: "No data", imported: "Imported", exported: "Exported",
+    now: "now", noData: "No data",
     diagTitle: "Integration status",
     diagIntegration: "Integration", diagPhaseProtection: "Phase protection", diagPdState: "PD state", diagAlarm: "Alarm",
     diagActiveBatteries: "Active batteries", diagNonResponsive: "No response",
@@ -91,7 +89,7 @@ const I18N = {
     bcChargeToSoc: "Charge to SOC", bcChargeHysteresis: "Charge hysteresis", bcBackup: "Backup function",
     bcBackupThreshold: "Backup threshold", bcVoltageTaper: "100% charge taper", bcBatteryPhase: "Battery phase",
     secPhaseProtection: "Three-phase protection", threePhaseProtection: "Three-phase current protection",
-    secManual: "Manual mode", secOffgridMeter: "Off-grid meter mode", secVacation: "Vacation mode", itemEnable: "Enable",
+    secManual: "Manual mode", secOffgridMeter: "Off-grid meter mode", itemEnable: "Enable",
     secTempLimit: "Temperature charge limit", itemTempLimitC: "Temperature limit", itemTempLimitBand: "Ramp band", itemTempLimitFloor: "Minimum charge power", itemTempApplyDischarge: "Also throttle discharge",
     itemMaxContracted: "Max contracted power",
     itemSocThreshold: "SOC threshold", itemSocHysteresis: "Discharge hysteresis", itemPeakLimit: "Peak limit", itemExcludedPeakShaving: "Peak shaving for excluded devices",
@@ -124,7 +122,6 @@ const I18N = {
     placeholderMsg: "Esta vista llegará en una próxima fase. Por ahora, usa la vista Resumen.",
     cardFlow: "Flujo de energía", cardSoc: "Estado del sistema", cardDaily: "Energía hoy",
     cardWeekly: "Energía semanal", cardPower: "Potencias", cardSocToday: "SOC · hoy",
-    forecastToday: "Previsión solar · 00:05", solarRemaining: "Solar restante", expectedConsumption: "Consumo esperado",
     grid: "Red", solar: "Solar", home: "Casa", battery: "Batería",
     excludedDevices: "Disp. excluidos",
     importing: "Importando", exporting: "Exportando",
@@ -132,8 +129,7 @@ const I18N = {
     selfConsumptionSuffix: "% autoconsumo", units: "uds",
     charge: "Carga", discharge: "Descarga", availOf: "de {value} disponibles",
     charged: "Cargada", discharged: "Descargada",
-    gridImport: "Red importada", gridExport: "Red exportada",
-    now: "ahora", noData: "Sin datos", imported: "Importada", exported: "Exportada",
+    now: "ahora", noData: "Sin datos",
     diagTitle: "Estado de la integración",
     diagIntegration: "Integración", diagPhaseProtection: "Protección trifásica", diagPdState: "Estado PD", diagAlarm: "Alarma",
     diagActiveBatteries: "Baterías activas", diagNonResponsive: "Sin respuesta",
@@ -166,7 +162,7 @@ const I18N = {
     bcChargeToSoc: "Cargar hasta SOC", bcChargeHysteresis: "Histéresis de carga", bcBackup: "Función de respaldo",
     bcBackupThreshold: "Umbral de respaldo", bcVoltageTaper: "Reducción carga 100%", bcBatteryPhase: "Fase de la batería",
     secPhaseProtection: "Protección trifásica", threePhaseProtection: "Protección de corriente trifásica",
-    secManual: "Modo manual", secOffgridMeter: "Modo de medidor off-grid", secVacation: "Modo vacaciones", itemEnable: "Activar",
+    secManual: "Modo manual", secOffgridMeter: "Modo de medidor off-grid", itemEnable: "Activar",
     secTempLimit: "Límite de carga por temperatura", itemTempLimitC: "Límite de temperatura", itemTempLimitBand: "Banda de reducción", itemTempLimitFloor: "Potencia de carga mínima", itemTempApplyDischarge: "Reducir también la descarga",
     itemMaxContracted: "Potencia contratada máx.",
     itemSocThreshold: "Umbral de SOC", itemSocHysteresis: "Histéresis de descarga", itemPeakLimit: "Límite de pico", itemExcludedPeakShaving: "Reducción de picos para dispositivos excluidos",
@@ -200,7 +196,6 @@ const I18N = {
     placeholderMsg: "Aquesta vista arribarà en una fase futura. De moment, fes servir la vista Resum.",
     cardFlow: "Flux d'energia", cardSoc: "Estat del sistema", cardDaily: "Energia avui",
     cardWeekly: "Energia setmanal", cardPower: "Potències", cardSocToday: "SOC · avui",
-    forecastToday: "Previsió solar · 00:05", solarRemaining: "Solar restant", expectedConsumption: "Consum esperat",
     grid: "Xarxa", solar: "Solar", home: "Casa", battery: "Bateria",
     excludedDevices: "Disp. exclosos",
     importing: "Important", exporting: "Exportant",
@@ -208,8 +203,7 @@ const I18N = {
     selfConsumptionSuffix: "% autoconsum", units: "uts",
     charge: "Càrrega", discharge: "Descàrrega", availOf: "de {value} disponibles",
     charged: "Carregada", discharged: "Descarregada",
-    gridImport: "Xarxa importada", gridExport: "Xarxa exportada",
-    now: "ara", noData: "Sense dades", imported: "Importada", exported: "Exportada",
+    now: "ara", noData: "Sense dades",
     diagTitle: "Estat de la integració",
     diagIntegration: "Integració", diagPhaseProtection: "Protecció trifàsica", diagPdState: "Estat PD", diagAlarm: "Alarma",
     diagActiveBatteries: "Bateries actives", diagNonResponsive: "Sense resposta",
@@ -237,7 +231,7 @@ const I18N = {
     bcMaxCharge: "Màx. càrrega", bcMaxDischarge: "Màx. descàrrega",
     bcChargeToSoc: "Carregar fins a SOC", bcChargeHysteresis: "Histèresi de càrrega", bcBackup: "Funció de reserva",
     bcBackupThreshold: "Llindar de reserva", bcVoltageTaper: "Reducció càrrega 100%", bcActiveBalance: "Balanç actiu",
-    secManual: "Mode manual", secOffgridMeter: "Mode de mesurador off-grid", secVacation: "Mode vacances", itemEnable: "Activar",
+    secManual: "Mode manual", secOffgridMeter: "Mode de mesurador off-grid", itemEnable: "Activar",
     secTempLimit: "Límit de càrrega per temperatura", itemTempLimitC: "Límit de temperatura", itemTempLimitBand: "Banda de reducció", itemTempLimitFloor: "Potència de càrrega mínima", itemTempApplyDischarge: "Redueix també la descàrrega",
     itemMaxContracted: "Potència contractada màx.",
     itemSocThreshold: "Llindar de SOC", itemSocHysteresis: "Histèresi de descàrrega", itemPeakLimit: "Límit de pic", itemExcludedPeakShaving: "Reducció de pics per a dispositius exclosos",
@@ -271,7 +265,6 @@ const I18N = {
     placeholderMsg: "Diese Ansicht kommt in einer späteren Phase. Nutze vorerst die Übersicht.",
     cardFlow: "Energiefluss", cardSoc: "Systemstatus", cardDaily: "Energie heute",
     cardWeekly: "Wochenenergie", cardPower: "Leistung", cardSocToday: "SOC · heute",
-    forecastToday: "Solarprognose · 00:05", solarRemaining: "Verbleibende Solarenergie", expectedConsumption: "Erwarteter Verbrauch",
     grid: "Netz", solar: "Solar", home: "Haus", battery: "Batterie",
     excludedDevices: "Ausgeschl. Geräte",
     importing: "Bezug", exporting: "Einspeisung",
@@ -279,8 +272,7 @@ const I18N = {
     selfConsumptionSuffix: "% Eigenverbrauch", units: "Einh.",
     charge: "Laden", discharge: "Entladen", availOf: "von {value} verfügbar",
     charged: "Geladen", discharged: "Entladen",
-    gridImport: "Netzbezug", gridExport: "Netzeinspeisung",
-    now: "jetzt", noData: "Keine Daten", imported: "Bezug", exported: "Einspeisung",
+    now: "jetzt", noData: "Keine Daten",
     diagTitle: "Integrationsstatus",
     diagIntegration: "Integration", diagPhaseProtection: "Phasenschutz", diagPdState: "PD-Status", diagAlarm: "Alarm",
     diagActiveBatteries: "Aktive Batterien", diagNonResponsive: "Keine Antwort",
@@ -308,7 +300,7 @@ const I18N = {
     bcMaxCharge: "Max. Ladeleistung", bcMaxDischarge: "Max. Entladeleistung",
     bcChargeToSoc: "Laden bis SOC", bcChargeHysteresis: "Ladehysterese", bcBackup: "Backup-Funktion",
     bcBackupThreshold: "Backup-Schwelle", bcVoltageTaper: "100%-Ladungsreduktion", bcActiveBalance: "Aktiver Zellabgleich",
-    secManual: "Manueller Modus", secOffgridMeter: "Off-Grid-Zählermodus", secVacation: "Urlaubsmodus", itemEnable: "Aktivieren",
+    secManual: "Manueller Modus", secOffgridMeter: "Off-Grid-Zählermodus", itemEnable: "Aktivieren",
     secTempLimit: "Temperaturbasierte Ladebegrenzung", itemTempLimitC: "Temperaturgrenze", itemTempLimitBand: "Drosselbereich", itemTempLimitFloor: "Minimale Ladeleistung", itemTempApplyDischarge: "Auch Entladung drosseln",
     itemMaxContracted: "Max. Vertragsleistung",
     itemSocThreshold: "SOC-Schwelle", itemSocHysteresis: "Entladehysterese", itemPeakLimit: "Spitzenlimit", itemExcludedPeakShaving: "Spitzenlastkappung für ausgeschlossene Geräte",
@@ -342,7 +334,6 @@ const I18N = {
     placeholderMsg: "Cette vue arrivera dans une phase ultérieure. Pour l'instant, utilisez la vue Résumé.",
     cardFlow: "Flux d'énergie", cardSoc: "État du système", cardDaily: "Énergie aujourd'hui",
     cardWeekly: "Énergie hebdomadaire", cardPower: "Puissances", cardSocToday: "SOC · aujourd'hui",
-    forecastToday: "Prévision solaire · 00:05", solarRemaining: "Solaire restant", expectedConsumption: "Consommation prévue",
     grid: "Réseau", solar: "Solaire", home: "Maison", battery: "Batterie",
     excludedDevices: "Appareils exclus",
     importing: "Importation", exporting: "Exportation",
@@ -350,8 +341,7 @@ const I18N = {
     selfConsumptionSuffix: "% autoconsommation", units: "unités",
     charge: "Charge", discharge: "Décharge", availOf: "sur {value} disponibles",
     charged: "Chargée", discharged: "Déchargée",
-    gridImport: "Réseau importé", gridExport: "Réseau exporté",
-    now: "maintenant", noData: "Aucune donnée", imported: "Importée", exported: "Exportée",
+    now: "maintenant", noData: "Aucune donnée",
     diagTitle: "État de l'intégration",
     diagIntegration: "Intégration", diagPhaseProtection: "Protection de phase", diagPdState: "État PD", diagAlarm: "Alarme",
     diagActiveBatteries: "Batteries actives", diagNonResponsive: "Sans réponse",
@@ -379,7 +369,7 @@ const I18N = {
     bcMaxCharge: "Charge max.", bcMaxDischarge: "Décharge max.",
     bcChargeToSoc: "Charger jusqu'à SOC", bcChargeHysteresis: "Hystérésis de charge", bcBackup: "Fonction de secours",
     bcBackupThreshold: "Seuil de secours", bcVoltageTaper: "Réduction charge 100%", bcActiveBalance: "Équilibrage actif",
-    secManual: "Mode manuel", secOffgridMeter: "Mode compteur hors réseau", secVacation: "Mode vacances", itemEnable: "Activer",
+    secManual: "Mode manuel", secOffgridMeter: "Mode compteur hors réseau", itemEnable: "Activer",
     secTempLimit: "Limite de charge par température", itemTempLimitC: "Limite de température", itemTempLimitBand: "Plage de réduction", itemTempLimitFloor: "Puissance de charge minimale", itemTempApplyDischarge: "Réduire aussi la décharge",
     itemMaxContracted: "Puissance contractuelle max.",
     itemSocThreshold: "Seuil SOC", itemSocHysteresis: "Hystérésis de décharge", itemPeakLimit: "Limite de pointe", itemExcludedPeakShaving: "Écrêtement des pointes pour appareils exclus",
@@ -413,7 +403,6 @@ const I18N = {
     placeholderMsg: "Deze weergave komt in een latere fase. Gebruik voorlopig het Overzicht.",
     cardFlow: "Energiestroom", cardSoc: "Systeemstatus", cardDaily: "Energie vandaag",
     cardWeekly: "Energie per week", cardPower: "Vermogen", cardSocToday: "SOC · vandaag",
-    forecastToday: "Zonneverwachting · 00:05", solarRemaining: "Resterende zonne-energie", expectedConsumption: "Verwacht verbruik",
     grid: "Net", solar: "Zon", home: "Huis", battery: "Batterij",
     excludedDevices: "Uitgesloten app.",
     importing: "Invoer", exporting: "Teruglevering",
@@ -421,8 +410,7 @@ const I18N = {
     selfConsumptionSuffix: "% zelfconsumptie", units: "stuks",
     charge: "Laden", discharge: "Ontladen", availOf: "van {value} beschikbaar",
     charged: "Geladen", discharged: "Ontladen",
-    gridImport: "Net ingevoerd", gridExport: "Net teruggeleverd",
-    now: "nu", noData: "Geen gegevens", imported: "Ingevoerd", exported: "Teruggeleverd",
+    now: "nu", noData: "Geen gegevens",
     diagTitle: "Integratiestatus",
     diagIntegration: "Integratie", diagPhaseProtection: "Fasebeveiliging", diagPdState: "PD-status", diagAlarm: "Alarm",
     diagActiveBatteries: "Actieve batterijen", diagNonResponsive: "Geen reactie",
@@ -450,7 +438,7 @@ const I18N = {
     bcMaxCharge: "Max. laden", bcMaxDischarge: "Max. ontladen",
     bcChargeToSoc: "Laden tot SOC", bcChargeHysteresis: "Laadhysterese", bcBackup: "Back-upfunctie",
     bcBackupThreshold: "Back-updrempel", bcVoltageTaper: "100%-laadbegrenzing", bcActiveBalance: "Actieve celbalans",
-    secManual: "Handmatige modus", secOffgridMeter: "Off-grid metermodus", secVacation: "Vakantiemodus", itemEnable: "Inschakelen",
+    secManual: "Handmatige modus", secOffgridMeter: "Off-grid metermodus", itemEnable: "Inschakelen",
     secTempLimit: "Temperatuurbegrenzing laden", itemTempLimitC: "Temperatuurlimiet", itemTempLimitBand: "Afbouwband", itemTempLimitFloor: "Minimaal laadvermogen", itemTempApplyDischarge: "Ook ontladen terugregelen",
     itemMaxContracted: "Max. gecontracteerd vermogen",
     itemSocThreshold: "SOC-drempel", itemSocHysteresis: "Ontlaadhysterese", itemPeakLimit: "Pieklimiet", itemExcludedPeakShaving: "Piekbegrenzing voor uitgesloten apparaten",
@@ -529,11 +517,6 @@ const K = {
   sysHomePower: "system_home_consumption", // derived instantaneous home consumption (W)
   sysDailyCharge: "system_daily_charging_energy",
   sysDailyDischarge: "system_daily_discharging_energy",
-  sysDailySolar: "system_daily_solar_energy", // exact daily PV production (kWh)
-  sysDailyHome: "system_daily_home_energy", // exact daily home consumption (kWh)
-  sysDailyGridImport: "system_daily_grid_import_energy", // exact daily grid import (kWh)
-  sysDailyGridExport: "system_daily_grid_export_energy", // exact daily grid export (kWh)
-  consumptionProfile: "expected_home_consumption_profile",
   sysAlarm: "system_alarm_status",
   pdQuality: "system_pd_control_quality", // PD control-quality verdict
   // diagnostics / flags
@@ -707,7 +690,6 @@ const SYS_SECTIONS = [
     tk: "secCommon",
     icon: "mdi:tune-vertical",
     items: [
-      { key: "vacation_mode", domain: "switch", lk: "secVacation", icon: "mdi:palm-tree" },
       { key: "pd_controller_deadband", lk: "itemPdDeadband", icon: "mdi:arrow-collapse-horizontal" },
       { key: "pd_min_charge_power", lk: "itemPdMinCharge", icon: "mdi:battery-charging-low" },
       { key: "pd_min_discharge_power", lk: "itemPdMinDischarge", icon: "mdi:battery-low" },
@@ -825,14 +807,13 @@ const SYS_HELP = {
     battery_phase: "Select the physical AC phase for this battery. Choose Unassigned when it is not connected to a protected phase; it then remains outside the three-phase envelope and continues normal automatic operation.",
     secManual: "When ON, automatic control (PD, time slots, peak shaving…) is paused and every battery is set to 0 W (idle). Turn it OFF to resume automatic control.",
     secOffgridMeter: "Selects the configured off-grid power sensor as the source for control and derived statistics. It does not enable any battery off-grid/EPS port. A battery actively supplying its own off-grid output remains excluded from PD.",
-    vacation_mode: "When ON, household-consumption learning and the legacy daily average are paused. Physical consumption meters and battery control continue normally. Forecasts use a constant baseline calculated from 01:00–05:00: a night is valid after 3 hours of coverage, using the median of up to the last three valid nights. Turn it OFF to resume learning; vacation data remains excluded from Recorder backfill.",
     battery_manual_mode: "When ON, this battery is idled once and removed from automatic control. Its manual force mode and setpoints can then be selected while other batteries continue automatically. Omnibattery software limits do not constrain it, but the battery's own BMS/driver protections still apply. Global Manual Mode is separate.",
     secWeeklyFull: "Select the day of the week when batteries should charge to 100% for cell balancing. After reaching 100%, the system reverts to your configured maximum charge limit.",
     secSlots: "Define when and how the batteries are allowed to operate. The ticks control each direction, SOC and power. Manual mode forces an exact power, bypassing the PD algorithm.",
     secExcluded: "Configure devices with special management: you can EXCLUDE devices that should NOT be powered by battery, or ADD devices that SHOULD be powered by battery even if they're not in the home consumption sensor.",
-    secCommon: "System-wide controls. Vacation Mode pauses household-consumption learning without stopping physical metering or battery control. The remaining knobs are shared by both the PD controller and No-PD direct tracking; changing them affects whichever control mode is active.",
+    secCommon: "System-wide controls. These knobs are shared by both the PD controller and No-PD direct tracking; changing them affects whichever control mode is active.",
     secPd: "Configure advanced PD controller parameters for expert tuning of battery charge/discharge behavior. Only modify these if you understand PID control theory. Default values work well for most installations.",
-    charge_priority: "Which battery is filled first. Left automatic it follows the day: with sun enough for every battery, the one needing the most hours goes first, since it is the one at risk of not finishing before sunset. On a thin day the DC-coupled one goes first instead, because scarce kilowatt-hours are worth putting where the least of them is lost to conversion. The surplus itself is shared by the room each battery has left, so they aim to finish together rather than one first and one never.",
+    charge_priority: "Which battery is filled first. Left automatic, the one needing the most hours at full power goes first, since it is the one at risk of not finishing before sunset. The surplus itself is shared by the room each battery has left, so they aim to finish together rather than one first and one never.",
     primary_battery: "Which battery serves the house first while one is enough. Discharge normally goes to the fullest battery; a primary sorts ahead of that. Charging follows the charge priority above, so the two level out again afterwards.",
     primary_feedforward: "Commands the primary battery to what actually needs doing instead of waiting for the grid to deviate: the load the batteries have to cover — house consumption less whatever PV is supplying, and less every battery's own output — or the surplus that wants storing. Useful when a second regulator shares the meter: a hybrid inverter on self-consumption removes the deviation before this controller sees one, so the other battery never runs. It is a floor, not a target — the loop may always ask for more, and every blocker still has the last word. With none nominated it addresses the battery the ordinary ordering would have picked anyway, the fullest. Off by default: check the switch attributes against your meter first, they show the figures either way.",
     secNoPd: "When ON, the PD controller is bypassed and each battery tracks the grid setpoint 1:1 (raw, kp=1, no integral/derivative/smoothing/rate-limit). It still reuses the deadband, min charge/discharge power, relay cooldown and target-grid-power knobs above. Use only if PD tuning can't tame your meter; PD is the safer default.",
@@ -877,14 +858,13 @@ const SYS_HELP = {
     battery_phase: "Selecciona la fase física de CA de esta batería. Elige Sin asignar si no está conectada a una fase protegida; quedará fuera de la envolvente trifásica y seguirá funcionando normalmente en automático.",
     secManual: "Cuando está ACTIVADO, el control automático (PD, franjas horarias, reducción de picos…) se pausa y todas las baterías se ponen a 0 W (en reposo). DESACTÍVALO para reanudar el control automático.",
     secOffgridMeter: "Selecciona el sensor de potencia off-grid configurado como fuente del control y de las estadísticas derivadas. No habilita ningún puerto off-grid/EPS. Una batería que suministre por su propia salida off-grid sigue excluida del PD.",
-    vacation_mode: "Al ACTIVARLO se pausan el aprendizaje del consumo doméstico y la media diaria heredada. Los contadores físicos y el control de las baterías siguen funcionando normalmente. Las previsiones usan un baseline constante calculado entre las 01:00 y las 05:00: una noche es válida con 3 horas de cobertura y se usa la mediana de hasta las tres últimas noches válidas. DESACTÍVALO para reanudar el aprendizaje; los datos vacacionales seguirán excluidos del backfill de Recorder.",
     battery_manual_mode: "Al ACTIVARLO, esta batería pasa una vez a 0 W y sale del control automático. Sus modos y consignas manuales se pueden elegir entonces; las demás baterías continúan en automático. Los límites de software de Omnibattery no la restringen, pero sí las protecciones propias del BMS/driver. El Modo manual global es independiente.",
     secWeeklyFull: "Selecciona el día de la semana en el que las baterías deben cargarse al 100% para el balanceo de celdas. Una vez alcanzado el 100%, el sistema revertirá al límite de carga máximo configurado.",
     secSlots: "Define cuándo y cómo se permite operar a las baterías. Los ticks permiten controlar cada dirección, el SOC y la potencia. El modo manual fuerza una potencia exacta ignorando el algoritmo PD.",
     secExcluded: "Configura dispositivos con gestión especial: puedes EXCLUIR dispositivos que NO deben alimentarse por batería, o AÑADIR dispositivos que SÍ debe alimentar la batería aunque no estén en el sensor de consumo del hogar.",
-    secCommon: "Controles generales del sistema. Modo vacaciones pausa el aprendizaje del consumo doméstico sin detener la medición física ni el control de las baterías. El resto de parámetros se comparte entre el controlador PD y el seguimiento directo sin PD; cambiarlos afecta al modo que esté activo.",
+    secCommon: "Controles generales del sistema. Estos parámetros se comparten entre el controlador PD y el seguimiento directo sin PD; cambiarlos afecta al modo que esté activo.",
     secPd: "Configura parámetros avanzados del controlador PD para ajustar el comportamiento de carga/descarga de las baterías. Solo modifica estos valores si comprendes la teoría de control PID. Los valores predeterminados funcionan bien para la mayoría de instalaciones.",
-    charge_priority: "Qué batería se llena primero. En automático sigue el día: con sol suficiente para todas, va primero la que necesita más horas, porque es la que corre riesgo de no terminar antes del anochecer. En un día pobre va primero la de acoplamiento CC, porque los kilovatios-hora escasos conviene ponerlos donde menos se pierden en conversión. El excedente se reparte según el hueco que le queda a cada batería, de modo que terminen a la vez.",
+    charge_priority: "Qué batería se llena primero. En automático va primero la que necesita más horas a plena potencia, porque es la que corre riesgo de no terminar antes del anochecer. El excedente se reparte según el hueco que le queda a cada batería, de modo que terminen a la vez.",
     primary_battery: "Qué batería atiende primero la casa mientras basta con una. La descarga va normalmente a la más cargada; una principal se antepone. La carga sigue la prioridad de carga de arriba, de modo que ambas se igualan después.",
     primary_feedforward: "Ordena a la batería principal la magnitud real en lugar de esperar a que la red se desvíe: la carga que las baterías deben cubrir —consumo de la casa menos lo que aporta la fotovoltaica y menos la salida de cada batería— o el excedente que quiere almacenarse. Útil cuando otro regulador comparte el contador: un inversor híbrido en autoconsumo elimina la desviación antes de que este controlador la vea, y la otra batería nunca entra. Es un suelo, no un objetivo: el lazo siempre puede pedir más y todo bloqueo posterior tiene la última palabra. Sin ninguna nominada se dirige a la que el orden normal habría elegido igualmente, la más cargada. Desactivado por defecto: compara antes los atributos del interruptor con tu contador, que muestran las cifras esté activado o no.",
     secNoPd: "Cuando está ACTIVADO, se omite el controlador PD y cada batería sigue la consigna de red 1:1 (en bruto, kp=1, sin integral/derivativo/suavizado/límite de variación). Sigue reutilizando la banda muerta, las potencias mín. de carga/descarga, el tiempo de relé y la potencia objetivo de red de arriba. Úsalo solo si el ajuste PD no puede domar tu medidor; PD es el valor por defecto más seguro.",
@@ -929,14 +909,13 @@ const SYS_HELP = {
     battery_phase: "Fase AC física (L1/L2/L3) on està cablejada aquesta bateria, o Sense assignar si queda fora de l'esquema de fases protegides. Una bateria sense fase queda fora de l'envolupant trifàsica i continua funcionant normalment en automàtic.",
     secManual: "Quan està ACTIVAT, el control automàtic (PD, franges horàries, reducció de pics…) es pausa i totes les bateries es posen a 0 W (en repòs). DESACTIVA'L per reprendre el control automàtic.",
     secOffgridMeter: "Selecciona el sensor de potència off-grid configurat com a font del control i de les estadístiques derivades. No habilita cap port off-grid/EPS de cap bateria. Una bateria que subministri per la seva pròpia sortida off-grid continua exclosa del PD.",
-    vacation_mode: "Quan està ACTIVAT, es pausen l'aprenentatge del consum domèstic i la mitjana diària heretada. Els comptadors físics i el control de les bateries continuen funcionant normalment. Les previsions utilitzen un baseline constant calculat entre la 01:00 i les 05:00: una nit és vàlida amb 3 hores de cobertura i s'utilitza la mediana de fins a les tres últimes nits vàlides. DESACTIVA'L per reprendre l'aprenentatge; les dades de vacances continuaran excloses del backfill de Recorder.",
     battery_manual_mode: "Quan s'ACTIVA, aquesta bateria passa una vegada a 0 W i surt del control automàtic. Els seus modes i consignes manuals es poden triar aleshores; les altres bateries segueixen en automàtic. Els límits de programari d'Omnibattery no la restringeixen, però sí les proteccions pròpies del BMS/driver. El mode manual global és independent.",
     secWeeklyFull: "Selecciona el dia de la setmana en què les bateries s'han de carregar al 100% per a l'equilibratge de cel·les. Un cop assolit el 100%, el sistema tornarà al límit de càrrega màxim configurat.",
     secSlots: "Defineix quan i com es permet operar a les bateries. Els ticks permeten controlar cada direcció, el SOC i la potència. El mode manual força una potència exacta ignorant l'algorisme PD.",
     secExcluded: "Configura dispositius amb gestió especial: pots EXCLOURE dispositius que NO s'han d'alimentar per bateria, o AFEGIR dispositius que SÍ ha d'alimentar la bateria encara que no estiguin al sensor de consum de la llar.",
-    secCommon: "Controls generals del sistema. El Mode vacances pausa l'aprenentatge del consum domèstic sense aturar la mesura física ni el control de les bateries. La resta de paràmetres es comparteixen entre el controlador PD i el seguiment directe sense PD; canviar-los afecta el mode actiu.",
+    secCommon: "Controls generals del sistema. Aquests paràmetres es comparteixen entre el controlador PD i el seguiment directe sense PD; canviar-los afecta el mode actiu.",
     secPd: "Configura paràmetres avançats del controlador PD per ajustar el comportament de càrrega/descàrrega de les bateries. Només modifica aquests valors si comprens la teoria de control PID. Els valors per defecte funcionen bé per a la majoria d'instal·lacions.",
-    charge_priority: "Quina bateria s’omple primer. En automàtic segueix el dia: amb prou sol per a totes, va primer la que necessita més hores, perquè és la que corre el risc de no acabar abans del vespre. En un dia pobre va primer la d’acoblament CC, perquè els quilowatts hora escassos val més posar-los on menys se’n perden en conversió. L’excedent es reparteix segons el buit que li queda a cada bateria, de manera que acabin alhora.",
+    charge_priority: "Quina bateria s’omple primer. En automàtic va primer la que necessita més hores a plena potència, perquè és la que corre el risc de no acabar abans del vespre. L’excedent es reparteix segons el buit que li queda a cada bateria, de manera que acabin alhora.",
     primary_battery: "Quina bateria atén primer la casa mentre una és suficient. La descàrrega va normalment a la més carregada; una principal s’avança. La càrrega segueix la prioritat de càrrega de dalt, de manera que totes dues s’igualen després.",
     primary_feedforward: "Ordena a la bateria principal la magnitud real en lloc d’esperar que la xarxa es desviï: la càrrega que les bateries han de cobrir —consum de la casa menys el que aporta la fotovoltaica i menys la sortida de cada bateria— o l’excedent que vol emmagatzemar-se. Útil quan un altre regulador comparteix el comptador: un inversor híbrid en autoconsum elimina la desviació abans que aquest controlador la vegi, i l’altra bateria no entra mai. És un terra, no un objectiu: el llaç sempre pot demanar més i qualsevol bloqueig posterior té l’última paraula. Sense cap nominada s’adreça a la que l’ordre normal hauria triat igualment, la més carregada. Desactivat per defecte: compara abans els atributs de l’interruptor amb el teu comptador, que mostren les xifres tant si està activat com si no.",
     secNoPd: "Quan està ACTIVAT, s'omet el controlador PD i cada bateria segueix la consigna de xarxa 1:1 (en brut, kp=1, sense integral/derivatiu/suavitzat/límit de variació). Continua reutilitzant la banda morta, les potències mín. de càrrega/descàrrega, el temps de relé i la potència objectiu de xarxa de dalt. Usa'l només si l'ajust PD no pot domar el teu mesurador; PD és el valor per defecte més segur.",
@@ -981,14 +960,13 @@ const SYS_HELP = {
     battery_phase: "Physische AC-Phase (L1/L2/L3), an die diese Batterie angeschlossen ist, oder Nicht zugewiesen außerhalb des geschützten Phasenschemas. Eine Batterie ohne Phase liegt außerhalb der Dreiphasen-Schutzhülle und arbeitet im Automatikbetrieb normal weiter.",
     secManual: "Wenn EIN, wird die automatische Regelung (PD, Zeitfenster, Lastspitzenkappung…) pausiert und jede Batterie auf 0 W (Leerlauf) gesetzt. Schalte AUS, um die automatische Regelung fortzusetzen.",
     secOffgridMeter: "Wählt den konfigurierten Off-Grid-Leistungssensor als Quelle für Regelung und abgeleitete Statistiken. Es wird kein Off-Grid-/EPS-Anschluss einer Batterie aktiviert. Eine Batterie, die aktiv über ihren eigenen Off-Grid-Ausgang versorgt, bleibt von der PD-Regelung ausgeschlossen.",
-    vacation_mode: "Wenn EIN, werden das Lernen des Haushaltsverbrauchs und der bisherige Tagesmittelwert pausiert. Physische Verbrauchszähler und die Batteriesteuerung laufen normal weiter. Prognosen verwenden eine konstante Grundlast aus 01:00–05:00 Uhr: Eine Nacht gilt ab 3 Stunden Abdeckung; verwendet wird der Median der bis zu drei letzten gültigen Nächte. Schalte AUS, um das Lernen fortzusetzen; Urlaubsdaten bleiben vom Recorder-Backfill ausgeschlossen.",
     battery_manual_mode: "Wenn EIN, wird diese Batterie einmal auf 0 W gesetzt und aus der automatischen Regelung genommen. Ihr manueller Modus und ihre Sollwerte können danach gewählt werden; andere Batterien laufen automatisch weiter. Omnibattery-Softwaregrenzen wirken nicht, die eigenen BMS-/Treiber-Schutzfunktionen jedoch schon. Der globale manuelle Modus ist unabhängig.",
     secWeeklyFull: "Wähle den Wochentag, an dem die Batterien zum Zellausgleich auf 100% geladen werden. Nach Erreichen von 100% kehrt das System zum konfigurierten maximalen Ladelimit zurück.",
     secSlots: "Lege fest, wann und wie die Batterien arbeiten dürfen. Die Häkchen steuern jede Richtung, SOC und Leistung. Der manuelle Modus erzwingt eine exakte Leistung und umgeht den PD-Algorithmus.",
     secExcluded: "Geräte mit spezieller Verwaltung konfigurieren: Du kannst Geräte AUSSCHLIESSEN, die NICHT von der Batterie versorgt werden sollen, oder Geräte HINZUFÜGEN, die von der Batterie versorgt werden SOLLEN, auch wenn sie nicht im Hausverbrauchssensor erfasst sind.",
-    secCommon: "Systemweite Steuerung. Der Urlaubsmodus pausiert das Lernen des Haushaltsverbrauchs, ohne Messung oder Batteriesteuerung anzuhalten. Die übrigen Parameter werden vom PD-Regler und der direkten Nachführung ohne PD gemeinsam genutzt; Änderungen wirken auf den aktiven Modus.",
+    secCommon: "Systemweite Steuerung. Diese Parameter werden vom PD-Regler und der direkten Nachführung ohne PD gemeinsam genutzt; Änderungen wirken auf den aktiven Modus.",
     secPd: "Erweiterte PD-Reglerparameter für die Experten-Abstimmung des Lade-/Entladeverhaltens konfigurieren. Ändere diese nur, wenn du die PID-Regelungstheorie verstehst. Die Standardwerte funktionieren für die meisten Installationen gut.",
-    charge_priority: "Welche Batterie zuerst gefüllt wird. Auf Automatisch richtet es sich nach dem Tag: Reicht die Sonne für alle, geht die mit der längsten Ladedauer voran — sie ist die, die es bis Sonnenuntergang womöglich nicht schafft. An einem dünnen Tag geht stattdessen die DC-gekoppelte voran, weil knappe Kilowattstunden dort landen sollten, wo am wenigsten davon in der Wandlung verloren geht. Der Überschuss selbst wird nach dem verbleibenden Platz aufgeteilt, damit alle möglichst gleichzeitig fertig werden.",
+    charge_priority: "Welche Batterie zuerst gefüllt wird. Auf Automatisch geht die mit der längsten Ladedauer bei voller Leistung voran — sie ist die, die es bis Sonnenuntergang womöglich nicht schafft. Der Überschuss selbst wird nach dem verbleibenden Platz aufgeteilt, damit alle möglichst gleichzeitig fertig werden.",
     primary_battery: "Welche Batterie das Haus zuerst versorgt, solange eine reicht. Entladen wird sonst die vollste; eine Primärbatterie rückt davor. Geladen wird nach der Ladereihenfolge oben, damit sich die Ladestände danach wieder angleichen.",
     primary_feedforward: "Gibt der Primärbatterie direkt vor, was tatsächlich zu tun ist, statt auf eine Abweichung am Zähler zu warten: die Last, die die Batterien decken müssen — Hausverbrauch abzüglich PV-Ertrag und abzüglich der eigenen Abgabe jeder Batterie — beziehungsweise den Überschuss, der einzulagern wäre. Sinnvoll, wenn ein zweiter Regler am selben Zähler hängt: Ein Hybridwechselrichter im Eigenverbrauch beseitigt die Abweichung, bevor dieser Regler sie sieht — die andere Batterie kommt dann nie zum Zug. Es ist eine Untergrenze, kein Sollwert: Der Regler darf immer mehr anfordern, und jede Sperre behält das letzte Wort. Ohne Auswahl wird die Batterie angesprochen, die auch sonst an der Reihe wäre, also die vollste. Standardmäßig aus: Die Attribute des Schalters zeigen die Zahlen in beiden Zuständen, vor dem Einschalten mit dem Zähler vergleichen.",
     secNoPd: "Wenn EIN, wird der PD-Regler umgangen und jede Batterie folgt dem Netz-Sollwert 1:1 (roh, kp=1, ohne Integral/Differential/Glättung/Änderungsbegrenzung). Totzone, min. Lade-/Entladeleistung, Relais-Mindestlaufzeit und Ziel-Netzleistung von oben werden weiterhin genutzt. Nur verwenden, wenn die PD-Abstimmung deinen Zähler nicht bändigen kann; PD ist der sicherere Standard.",
@@ -1033,14 +1011,13 @@ const SYS_HELP = {
     battery_phase: "Phase AC physique (L1/L2/L3) à laquelle cette batterie est raccordée, ou Non assignée hors du schéma de phases protégées. Une batterie sans phase est exclue de l'enveloppe triphasée et continue à fonctionner normalement en automatique.",
     secManual: "Quand ACTIVÉ, le contrôle automatique (PD, plages horaires, écrêtage des pics…) est mis en pause et chaque batterie est réglée à 0 W (repos). DÉSACTIVE-le pour reprendre le contrôle automatique.",
     secOffgridMeter: "Sélectionne le capteur de puissance hors réseau configuré comme source de la régulation et des statistiques dérivées. Cela n'active aucun port hors réseau/EPS d'une batterie. Une batterie qui alimente activement sa propre sortie hors réseau reste exclue du PD.",
-    vacation_mode: "Quand il est ACTIVÉ, l'apprentissage de la consommation du foyer et l'ancienne moyenne journalière sont suspendus. Les compteurs physiques et le contrôle des batteries continuent normalement. Les prévisions utilisent une charge de base constante calculée de 01:00 à 05:00 : une nuit est valide avec 3 heures de couverture et la médiane des trois dernières nuits valides au maximum est utilisée. DÉSACTIVE-le pour reprendre l'apprentissage ; les données de vacances restent exclues du backfill Recorder.",
     battery_manual_mode: "Lorsque cette option est activée, cette batterie passe une fois à 0 W et sort du contrôle automatique. Son mode et ses consignes manuels peuvent ensuite être choisis ; les autres batteries continuent en automatique. Les limites logicielles d'Omnibattery ne s'appliquent pas, mais les protections du BMS/driver restent actives. Le mode manuel global est indépendant.",
     secWeeklyFull: "Sélectionne le jour de la semaine où les batteries doivent se charger à 100% pour l'équilibrage des cellules. Une fois 100% atteint, le système revient à la limite de charge maximale configurée.",
     secSlots: "Définis quand et comment les batteries sont autorisées à fonctionner. Les cases contrôlent chaque direction, le SOC et la puissance. Le mode manuel force une puissance exacte en contournant l'algorithme PD.",
     secExcluded: "Configure des appareils avec une gestion spéciale : tu peux EXCLURE des appareils qui ne doivent PAS être alimentés par la batterie, ou AJOUTER des appareils qui DOIVENT être alimentés par la batterie même s'ils ne sont pas dans le capteur de consommation domestique.",
-    secCommon: "Contrôles généraux du système. Le Mode vacances suspend l'apprentissage de la consommation sans arrêter les mesures physiques ni le contrôle des batteries. Les autres paramètres sont partagés par le régulateur PD et le suivi direct sans PD ; les modifier affecte le mode actif.",
+    secCommon: "Contrôles généraux du système. Ces paramètres sont partagés par le régulateur PD et le suivi direct sans PD ; les modifier affecte le mode actif.",
     secPd: "Configure les paramètres avancés du contrôleur PD pour un réglage expert du comportement de charge/décharge des batteries. Ne modifie ces valeurs que si tu comprends la théorie du contrôle PID. Les valeurs par défaut conviennent à la plupart des installations.",
-    charge_priority: "Quelle batterie est remplie en premier. En automatique cela suit la journée : si le soleil suffit pour toutes, celle qui demande le plus d’heures passe devant, car c’est elle qui risque de ne pas finir avant le coucher. Par temps maigre, c’est la batterie à couplage CC qui passe devant, parce que des kilowattheures rares méritent d’aller là où le moins s’en perd en conversion. L’excédent se répartit selon la place restante, pour que les batteries finissent ensemble.",
+    charge_priority: "Quelle batterie est remplie en premier. En automatique, celle qui demande le plus d’heures à pleine puissance passe devant, car c’est elle qui risque de ne pas finir avant le coucher. L’excédent se répartit selon la place restante, pour que les batteries finissent ensemble.",
     primary_battery: "Quelle batterie sert la maison en premier tant qu’une seule suffit. La décharge va normalement à la plus chargée ; une batterie principale passe devant. La charge suit la priorité de charge ci-dessus, si bien que les deux se rejoignent ensuite.",
     primary_feedforward: "Commande à la batterie principale la grandeur réelle au lieu d’attendre un écart au compteur : la charge que les batteries doivent couvrir — consommation du foyer moins l’apport photovoltaïque et moins la sortie de chaque batterie — ou l’excédent qui demande à être stocké. Utile quand un second régulateur partage le compteur : un onduleur hybride en autoconsommation supprime l’écart avant que ce régulateur ne le voie, et l’autre batterie ne sert jamais. C’est un plancher, pas une consigne : la boucle peut toujours demander plus, et tout blocage garde le dernier mot. Sans nomination, c’est la batterie que l’ordre habituel aurait choisie, la plus chargée. Désactivé par défaut : compare d’abord les attributs de l’interrupteur à ton compteur, ils affichent les chiffres dans les deux cas.",
     secNoPd: "Quand ACTIVÉ, le régulateur PD est contourné et chaque batterie suit la consigne réseau 1:1 (brut, kp=1, sans intégral/dérivé/lissage/limite de variation). La bande morte, les puissances min. de charge/décharge, la temporisation relais et la puissance cible réseau ci-dessus restent utilisées. À n'utiliser que si le réglage PD ne parvient pas à dompter ton compteur ; PD est la valeur par défaut la plus sûre.",
@@ -1085,14 +1062,13 @@ const SYS_HELP = {
     battery_phase: "Fysieke AC-fase (L1/L2/L3) waarop deze batterij is aangesloten, of Niet toegewezen buiten het beschermde faseschema. Een batterij zonder fase valt buiten de driefasenbeveiliging en blijft normaal automatisch werken.",
     secManual: "Wanneer AAN, wordt de automatische regeling (PD, tijdvensters, piekafvlakking…) gepauzeerd en wordt elke batterij op 0 W (rust) gezet. Zet UIT om de automatische regeling te hervatten.",
     secOffgridMeter: "Selecteert de geconfigureerde off-grid-vermogenssensor als bron voor de regeling en de afgeleide statistieken. Dit activeert geen off-grid-/EPS-poort van een batterij. Een batterij die actief via haar eigen off-grid-uitgang levert, blijft uitgesloten van PD.",
-    vacation_mode: "Wanneer AAN, worden het leren van het huishoudverbruik en het oude daggemiddelde gepauzeerd. Fysieke verbruiksmeters en de batterijregeling blijven normaal werken. Prognoses gebruiken een constante basislast uit 01:00–05:00: een nacht is geldig vanaf 3 uur dekking en de mediaan van maximaal de laatste drie geldige nachten wordt gebruikt. Zet UIT om het leren te hervatten; vakantiegegevens blijven uitgesloten van Recorder-backfill.",
     battery_manual_mode: "Als deze optie AAN staat, wordt deze batterij eenmalig op 0 W gezet en uit de automatische regeling gehaald. De handmatige modus en setpoints kunnen daarna worden gekozen; andere batterijen blijven automatisch werken. Softwarelimieten van Omnibattery gelden niet, maar de eigen BMS-/driverbeveiliging wel. De globale handmatige modus staat hier los van.",
     secWeeklyFull: "Selecteer de dag van de week waarop de batterijen tot 100% moeten laden voor celbalancering. Na het bereiken van 100% keert het systeem terug naar de geconfigureerde maximale laadlimiet.",
     secSlots: "Bepaal wanneer en hoe de batterijen mogen werken. De vinkjes regelen elke richting, SOC en vermogen. De handmatige modus forceert een exact vermogen en omzeilt het PD-algoritme.",
     secExcluded: "Configureer apparaten met speciaal beheer: je kunt apparaten UITSLUITEN die NIET door de batterij gevoed mogen worden, of apparaten TOEVOEGEN die WEL door de batterij gevoed moeten worden, ook al staan ze niet in de huisverbruikssensor.",
-    secCommon: "Algemene systeembediening. Vakantiemodus pauzeert het leren van huishoudverbruik zonder fysieke meting of batterijregeling te stoppen. De overige parameters worden gedeeld door de PD-regelaar en directe tracking zonder PD; wijzigingen beïnvloeden de actieve modus.",
+    secCommon: "Algemene systeembediening. Deze parameters worden gedeeld door de PD-regelaar en directe tracking zonder PD; wijzigingen beïnvloeden de actieve modus.",
     secPd: "Configureer geavanceerde PD-regelaarparameters voor het expert-afstemmen van het laad-/ontlaadgedrag. Wijzig deze alleen als je de PID-regeltheorie begrijpt. De standaardwaarden werken goed voor de meeste installaties.",
-    charge_priority: "Welke batterij het eerst wordt gevuld. Op automatisch volgt dit de dag: is er zon genoeg voor alle, dan gaat degene met de langste laadduur voorop, want die haalt het mogelijk niet voor zonsondergang. Op een schrale dag gaat juist de DC-gekoppelde voorop, omdat schaarse kilowattuur het best terechtkomen waar er het minst van verloren gaat in omzetting. Het overschot zelf wordt verdeeld naar de resterende ruimte, zodat ze samen klaar zijn.",
+    charge_priority: "Welke batterij het eerst wordt gevuld. Op automatisch gaat degene met de langste laadduur op vol vermogen voorop, want die haalt het mogelijk niet voor zonsondergang. Het overschot zelf wordt verdeeld naar de resterende ruimte, zodat ze samen klaar zijn.",
     primary_battery: "Welke batterij het huis het eerst bedient zolang er één volstaat. Ontladen gaat normaal naar de volste; een primaire batterij gaat daarvoor. Laden volgt de laadvolgorde hierboven, zodat beide daarna weer gelijk lopen.",
     primary_feedforward: "Geeft de primaire batterij direct de werkelijke grootheid als setpoint, in plaats van te wachten op een afwijking op de meter: de belasting die de batterijen moeten dekken — huisverbruik minus wat de PV levert en minus de eigen afgifte van elke batterij — of het overschot dat opgeslagen wil worden. Nuttig wanneer een tweede regelaar dezelfde meter deelt: een hybride omvormer op zelfverbruik haalt de afwijking weg voordat deze regelaar hem ziet, en de andere batterij komt nooit aan bod. Het is een ondergrens, geen setpoint: de regeling mag altijd meer vragen, en elke blokkade houdt het laatste woord. Zonder keuze wordt de batterij aangesproken die de gewone volgorde toch al zou kiezen, de volste. Standaard uit: vergelijk eerst de attributen van de schakelaar met je meter, die tonen de cijfers hoe dan ook.",
     secNoPd: "Wanneer AAN wordt de PD-regelaar omzeild en volgt elke batterij het net-setpoint 1:1 (ruw, kp=1, zonder integraal/afgeleide/afvlakking/snelheidslimiet). De dode band, min. laad-/ontlaadvermogen, relais-wachttijd en doelnetvermogen hierboven blijven in gebruik. Gebruik dit alleen als PD-afstemming je meter niet kan temmen; PD is de veiligere standaard.",
@@ -1147,7 +1123,7 @@ class MarstekVenusPanel extends HTMLElement {
     this._socSeries = []; // SOC % samples for the sparkline (history seed + live)
     this._socLastPush = 0; // last live-append timestamp (s), to throttle pushes
     this._powerSeries = null; // { t:[...], solar/home/grid/battery:[...] } kW, 24h
-    this._weekly = null; // { days:[..7], charge/discharge/import/export:[..7] } kWh
+    this._weekly = null; // { days:[..7], charge/discharge:[..7] } kWh
     this._histTimer = null;
     this._historyRefresh = null;
     this._historyStarted = false;
@@ -1168,7 +1144,6 @@ class MarstekVenusPanel extends HTMLElement {
     // Home Assistant may assign/refresh `panel` after `hass`. Recompute now so
     // payload-backed sources (notably excluded devices) do not remain hidden
     // until an unrelated entity state update happens to arrive.
-    this._linkForecastRows();
     if (this._hass) this._update();
   }
   set narrow(v) {
@@ -1346,12 +1321,6 @@ class MarstekVenusPanel extends HTMLElement {
     if (!stateObj) return null;
     const n = Number(stateObj.state);
     return Number.isNaN(n) ? null : n;
-  }
-  _energyKwh(stateObj) {
-    const n = this._num(stateObj);
-    if (n == null) return null;
-    const unit = String((stateObj.attributes || {}).unit_of_measurement || "kWh").toLowerCase();
-    return unit === "wh" ? n / 1000 : n;
   }
   /** Sum numeric states for a key across all batteries: one value per device.
    *  A device can expose two entities with the same translation_key (for
@@ -1646,20 +1615,6 @@ class MarstekVenusPanel extends HTMLElement {
     for (const row of DIAG_ROWS) diagStates[row.key] = this._stateFor(byKey, row.key);
     const alarmObj = diagStates[K.sysAlarm];
 
-    // exact daily solar/home/grid energy (kWh) from the backend accumulator sensors
-    const dailySolar = this._num(this._stateFor(byKey, K.sysDailySolar));
-    const dailyHome = this._num(this._stateFor(byKey, K.sysDailyHome));
-    const dailyGridImport = this._num(this._stateFor(byKey, K.sysDailyGridImport));
-    const dailyGridExport = this._num(this._stateFor(byKey, K.sysDailyGridExport));
-    const profileObj = this._stateFor(byKey, K.consumptionProfile);
-    // No backend source for the initial daily forecast any more: that row stays hidden.
-    const forecastInitial = null;
-    const remainingEntity = this._panelConfig.solar_forecast_remaining_entity
-      ? hass.states[this._panelConfig.solar_forecast_remaining_entity]
-      : null;
-    const solarRemaining = this._energyKwh(remainingEntity);
-    const expectedConsumption = this._num(profileObj);
-
     return {
       nBat,
       solar,
@@ -1678,13 +1633,6 @@ class MarstekVenusPanel extends HTMLElement {
       stored,
       dailyCharge,
       dailyDischarge,
-      dailySolar,
-      dailyHome,
-      dailyGridImport,
-      dailyGridExport,
-      forecastInitial,
-      solarRemaining,
-      expectedConsumption,
       active,
       offline,
       maxCharge: maxCh,
@@ -2174,52 +2122,16 @@ class MarstekVenusPanel extends HTMLElement {
       </div>`;
     body.innerHTML =
       bar("ch", this._t("charged"), "var(--battery)") +
-      bar("dis", this._t("discharged"), "var(--grid)") +
-      bar("sol", this._t("solar"), "var(--solar)") +
-      bar("home", this._t("home"), "var(--home)") +
-      bar("imp", this._t("gridImport"), "var(--flow-purple)") +
-      bar("exp", this._t("gridExport"), "var(--flow-orange)") +
-      bar("forecast", this._t("forecastToday"), "var(--solar)") +
-      bar("remaining", this._t("solarRemaining"), "var(--solar)") +
-      bar("expected", this._t("expectedConsumption"), "var(--home)");
+      bar("dis", this._t("discharged"), "var(--grid)");
     card.appendChild(body);
     const rows = body.querySelectorAll(".daily-row");
     // click an energy row -> more-info (history graph)
     this._linkMoreInfo(rows[0], this._sysEntityId(K.sysDailyCharge));
     this._linkMoreInfo(rows[1], this._sysEntityId(K.sysDailyDischarge));
-    this._linkMoreInfo(rows[2], this._sysEntityId(K.sysDailySolar));
-    this._linkMoreInfo(rows[3], this._sysEntityId(K.sysDailyHome));
-    this._linkMoreInfo(rows[4], this._sysEntityId(K.sysDailyGridImport));
-    this._linkMoreInfo(rows[5], this._sysEntityId(K.sysDailyGridExport));
-    this._r.dForecastRow = rows[6];
-    this._r.dRemainingRow = rows[7];
-    this._linkForecastRows();
-    this._linkMoreInfo(rows[8], this._sysEntityId(K.consumptionProfile));
     this._r.dChV = body.querySelector(".daily-ch-v");
     this._r.dChBar = body.querySelector(".daily-ch-bar");
     this._r.dDisV = body.querySelector(".daily-dis-v");
     this._r.dDisBar = body.querySelector(".daily-dis-bar");
-    this._r.dSolRow = rows[2];
-    this._r.dSolV = body.querySelector(".daily-sol-v");
-    this._r.dSolBar = body.querySelector(".daily-sol-bar");
-    this._r.dHomeRow = rows[3];
-    this._r.dHomeV = body.querySelector(".daily-home-v");
-    this._r.dHomeBar = body.querySelector(".daily-home-bar");
-    this._r.dImpRow = rows[4];
-    this._r.dImpV = body.querySelector(".daily-imp-v");
-    this._r.dImpBar = body.querySelector(".daily-imp-bar");
-    this._r.dExpRow = rows[5];
-    this._r.dExpV = body.querySelector(".daily-exp-v");
-    this._r.dExpBar = body.querySelector(".daily-exp-bar");
-    this._r.dForecastRow = rows[6];
-    this._r.dForecastV = body.querySelector(".daily-forecast-v");
-    this._r.dForecastBar = body.querySelector(".daily-forecast-bar");
-    this._r.dRemainingRow = rows[7];
-    this._r.dRemainingV = body.querySelector(".daily-remaining-v");
-    this._r.dRemainingBar = body.querySelector(".daily-remaining-bar");
-    this._r.dExpectedRow = rows[8];
-    this._r.dExpectedV = body.querySelector(".daily-expected-v");
-    this._r.dExpectedBar = body.querySelector(".daily-expected-bar");
     return card;
   }
 
@@ -2651,8 +2563,6 @@ class MarstekVenusPanel extends HTMLElement {
       { label: this._t("charge"), color: "var(--battery)", values: wk.charge },
       { label: this._t("discharge"), color: "var(--grid)", values: wk.discharge },
     ];
-    if (wk.import) groups.push({ label: this._t("imported"), color: "var(--flow-purple)", values: wk.import });
-    if (wk.export) groups.push({ label: this._t("exported"), color: "var(--flow-orange)", values: wk.export });
     if (this._r.weeklyLegend) this._r.weeklyLegend.innerHTML = this._legendHTML(groups);
     const { svg, yMax } = this._barChartSVG({ groups, count: wk.days.length });
     plot.innerHTML = this._chartWithYAxis(svg, { yMin: 0, yMax, unit: "kWh" });
@@ -3101,61 +3011,12 @@ class MarstekVenusPanel extends HTMLElement {
     r.pwAvail.textContent = this._t("availOf", { value: `${ftc.v} ${ftc.u}` });
 
     // ----- daily energy -----
-    const sol = m.dailySolar;
-    const hm = m.dailyHome;
-    const imp = m.dailyGridImport;
-    const exp = m.dailyGridExport;
-    const forecast = m.forecastInitial;
-    const remaining = m.solarRemaining;
-    const expected = m.expectedConsumption;
     const u = `<span class="dim" style="font-size:11px"> kWh</span>`;
-    const max = Math.max(
-      m.dailyCharge || 0, m.dailyDischarge || 0, sol || 0, hm || 0,
-      imp || 0, exp || 0, forecast || 0, remaining || 0, expected || 0, 0.1
-    );
+    const max = Math.max(m.dailyCharge || 0, m.dailyDischarge || 0, 0.1);
     r.dChV.innerHTML = `${this._nf(m.dailyCharge, 2)}${u}`;
     r.dChBar.style.width = ((m.dailyCharge || 0) / max) * 100 + "%";
     r.dDisV.innerHTML = `${this._nf(m.dailyDischarge, 2)}${u}`;
     r.dDisBar.style.width = ((m.dailyDischarge || 0) / max) * 100 + "%";
-    // solar / home rows hide entirely when no source sensor is configured
-    if (r.dSolRow) r.dSolRow.style.display = sol == null ? "none" : "";
-    if (sol != null) {
-      r.dSolV.innerHTML = `${this._nf(sol, 2)}${u}`;
-      r.dSolBar.style.width = (sol / max) * 100 + "%";
-    }
-    if (r.dHomeRow) r.dHomeRow.style.display = hm == null ? "none" : "";
-    if (hm != null) {
-      r.dHomeV.innerHTML = `${this._nf(hm, 2)}${u}`;
-      r.dHomeBar.style.width = (hm / max) * 100 + "%";
-    }
-    // grid import / export — hidden until the integrated history is available
-    if (r.dImpRow) r.dImpRow.style.display = imp == null ? "none" : "";
-    if (imp != null) {
-      r.dImpV.innerHTML = `${this._nf(imp, 2)}${u}`;
-      r.dImpBar.style.width = (imp / max) * 100 + "%";
-    }
-    if (r.dExpRow) r.dExpRow.style.display = exp == null ? "none" : "";
-    if (exp != null) {
-      r.dExpV.innerHTML = `${this._nf(exp, 2)}${u}`;
-      r.dExpBar.style.width = (exp / max) * 100 + "%";
-    }
-
-    // ----- daily forecasts -----
-    if (r.dForecastRow) r.dForecastRow.style.display = forecast == null ? "none" : "";
-    if (forecast != null) {
-      r.dForecastV.innerHTML = `${this._nf(forecast, 2)}${u}`;
-      r.dForecastBar.style.width = (forecast / max) * 100 + "%";
-    }
-    if (r.dRemainingRow) r.dRemainingRow.style.display = remaining == null ? "none" : "";
-    if (remaining != null) {
-      r.dRemainingV.innerHTML = `${this._nf(remaining, 2)}${u}`;
-      r.dRemainingBar.style.width = (remaining / max) * 100 + "%";
-    }
-    if (r.dExpectedRow) r.dExpectedRow.style.display = expected == null ? "none" : "";
-    if (expected != null) {
-      r.dExpectedV.innerHTML = `${this._nf(expected, 2)}${u}`;
-      r.dExpectedBar.style.width = (expected / max) * 100 + "%";
-    }
 
     // ----- diagnostics (section 2, two columns) -----
     const ds = m.diagStates || {};
@@ -3418,15 +3279,11 @@ class MarstekVenusPanel extends HTMLElement {
     const chIds = chSys ? [chSys] : (byKey.get(K.dailyCharge) || []);
     const diIds = diSys ? [diSys] : (byKey.get(K.dailyDischarge) || []);
     if (!chIds.length && !diIds.length) { this._weekly = null; this._drawWeekly(); return; }
-    const impSys = (byKey.get(K.sysDailyGridImport) || [])[0];
-    const expSys = (byKey.get(K.sysDailyGridExport) || [])[0];
-    const impIds = impSys ? [impSys] : [];
-    const expIds = expSys ? [expSys] : [];
     const days = 7;
     const boundaries = Array.from(
       { length: days + 1 }, (_, k) => this._dayStartEpoch(k - (days - 1))
     );
-    const allIds = [...new Set([...chIds, ...diIds, ...impIds, ...expIds])];
+    const allIds = [...new Set([...chIds, ...diIds])];
     const startISO = new Date(boundaries[0]).toISOString();
     const endISO = new Date().toISOString();
     // These sources reset at midnight.  Their Recorder ``sum`` is a
@@ -3494,9 +3351,6 @@ class MarstekVenusPanel extends HTMLElement {
     };
     const charge = dailyTotals(chIds);
     const discharge = dailyTotals(diIds);
-    // grid import/export: per-day total = daily-reset sensor's max for that day
-    const impTot = impIds.length ? dailyTotals(impIds) : null;
-    const expTot = expIds.length ? dailyTotals(expIds) : null;
 
     // The current day has an authoritative live value in hass.states. Prefer it
     // over the historical maximum: a transient bad reading stored earlier today
@@ -3516,12 +3370,8 @@ class MarstekVenusPanel extends HTMLElement {
     const todayIndex = days - 1;
     const liveCharge = liveTotal(chIds);
     const liveDischarge = liveTotal(diIds);
-    const liveImport = liveTotal(impIds);
-    const liveExport = liveTotal(expIds);
     if (liveCharge != null) charge[todayIndex] = liveCharge;
     if (liveDischarge != null) discharge[todayIndex] = liveDischarge;
-    if (impTot && liveImport != null) impTot[todayIndex] = liveImport;
-    if (expTot && liveExport != null) expTot[todayIndex] = liveExport;
     const labels = [];
     for (let k = 0; k < days; k++) {
       const dd = new Date(boundaries[k]);
@@ -3533,8 +3383,6 @@ class MarstekVenusPanel extends HTMLElement {
       days: labels,
       charge: charge.map((v) => v || 0),
       discharge: discharge.map((v) => v || 0),
-      import: impTot ? impTot.map((v) => v || 0) : null,
-      export: expTot ? expTot.map((v) => v || 0) : null,
     };
     this._drawWeekly();
   }
@@ -5177,13 +5025,6 @@ class MarstekVenusPanel extends HTMLElement {
     el.addEventListener("click", el._moreInfoHandler);
   }
 
-  _linkForecastRows() {
-    const cfg = this._panelConfig || {};
-    // Each row opens only its own sensor; a missing one stays unlinked.
-    this._linkMoreInfo(this._r.dForecastRow, cfg.solar_forecast_entity);
-    this._linkMoreInfo(this._r.dRemainingRow, cfg.solar_forecast_remaining_entity);
-  }
-
   // --- styles ----------------------------------------------------------------
   _styleEl() {
     const style = document.createElement("style");
@@ -5445,10 +5286,6 @@ class MarstekVenusPanel extends HTMLElement {
       .socbar > span { display: block; height: 100%; border-radius: 999px; background: var(--battery); transition: width 0.8s cubic-bezier(.4,0,.2,1); }
       .daily-body { display: flex; flex-direction: column; gap: 10px; }
       .daily-row { display: flex; flex-direction: column; gap: 4px; }
-      .daily-row-forecast { margin-top: 4px; padding-top: 10px; border-top: 1px solid var(--line); }
-      .daily-row-forecast .socbar > span,
-      .daily-row-remaining .socbar > span,
-      .daily-row-expected .socbar > span { opacity: .62; }
       .daily-head { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; }
 
       .mini-spark { margin-top: 2px; flex: 1 1 auto; min-height: 96px; }

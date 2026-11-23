@@ -13,7 +13,7 @@ Start with the grid meter and battery connection, then add only the controls you
 - Add the battery to your network or prepare the connection details required by its driver.
 - Find a Home Assistant sensor that reports grid import and export power.
 - Have your contracted-power limit available.
-- For optional features, identify any solar forecast, solar production, phase-current, or large-load sensors you plan to use.
+- For optional features, identify any solar production, phase-current, or large-load sensors you plan to use.
 
 ## How to enable it
 

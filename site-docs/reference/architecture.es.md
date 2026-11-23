@@ -148,9 +148,8 @@ Un controlador escoge la cadencia de cada `ReadGroup`. Durante un cambio real de
 
 El paquete `tracking/` posee las observaciones y proyecciones persistidas:
 
-- `ConsumptionTracker` compone el historial de consumo, contadores diarios, relleno desde Recorder y perfil de consumo.
-- `ConsumptionProfileTracker` guarda datos de intervalos de día local y genera previsiones ponderadas.
-- `SolarProfileTracker` aprende una forma normalizada de producción solar.
+- `home_load` contiene las funciones de los sensores en directo **Home Consumption** y **System Solar Power**.
+- `RecorderBackfillCoordinator` (`backfill.py`) serializa las consultas breves a Recorder que migran los contadores diarios de carga/descarga.
 - `BalanceMonitor` registra la diferencia de tensión de celdas cerca de carga completa.
 - `NonResponsiveTracker` sigue episodios de entrega fallida y recuperación.
 

@@ -17,40 +17,29 @@ from homeassistant.const import (
     CONF_NAME,
     CONF_PORT,
 )
-from homeassistant.core import CoreState, HomeAssistant, ServiceCall, callback
+from homeassistant.core import CoreState, HomeAssistant, callback
 from homeassistant.exceptions import (
     ConfigEntryError,
     ConfigEntryNotReady,
     HomeAssistantError,
-    ServiceValidationError,
 )
-from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers import event as event_helpers
 from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers.event import (
     async_call_later,
     async_track_state_change_event,
-    async_track_time_change,
     async_track_time_interval,
 )
 from homeassistant.util import dt as dt_util
 
-import voluptuous as vol
 from pymodbus.exceptions import ConnectionException
 
 from .const import (
     DOMAIN,
     NOTIFICATION_ID_PREFIX,
-    CONF_VACATION_MODE_ENABLED,
-    CONF_SOLAR_FORECAST_SENSOR,
-    CONF_SOLAR_FORECAST_REMAINING_SENSOR,
     CONF_HOUSEHOLD_CONSUMPTION_SENSOR,
     CONF_SOLAR_PRODUCTION_SENSOR,
-    CONF_SOLAR_PROFILE_MODE,
-    SOLAR_PROFILE_MODES,
-    DEFAULT_SOLAR_PROFILE_MODE,
-    normalize_solar_profile_mode,
     CONF_MAX_CONTRACTED_POWER,
     CONF_OFFGRID_POWER_SENSOR,
     CONF_OFFGRID_METER_INVERTED,
@@ -141,7 +130,6 @@ from .const import (
     MAIN_SENSOR_DEAD_S,
     SLOW_SENSOR_WARN_INTERVALS,
     SLOW_SENSOR_RECOVERY_INTERVALS,
-    FORECAST_DATA_ISSUE_DELAY_S,
     MISSING_SENSOR_ISSUE_DELAY_S,
     HOT_PATH_READBACK_MAX_LATENCY_S,
     DISCHARGE_ENGAGE_GRACE_S,
@@ -178,12 +166,6 @@ from .control.relay_guard import RelayGuard
 # FORK: grid view (docs/fork/02-architektur.md)
 from .control.grid_view import GridView
 
-
-from .solar_forecast import (
-    get_configured_solar_forecast_sensor,
-    normalize_solar_forecast_config,
-    read_solar_forecast_kwh,
-)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -351,11 +333,7 @@ async def _async_register_frontend_panel(hass: HomeAssistant, entry: ConfigEntry
 
         panel_config = {"domain": DOMAIN, "title": PANEL_TITLE}
         if entry is not None:
-            from .const import (
-                CONF_SOLAR_FORECAST_SENSOR,
-                CONF_SOLAR_FORECAST_REMAINING_SENSOR,
-                CONF_SOLAR_PRODUCTION_SENSOR,
-            )
+            from .const import CONF_SOLAR_PRODUCTION_SENSOR
 
             data = entry.data
             # FORK: Panel minimal overview flag (read by the frontend as
@@ -399,12 +377,6 @@ async def _async_register_frontend_panel(hass: HomeAssistant, entry: ConfigEntry
             )
             if home_eid:
                 panel_config["home_entity"] = home_eid
-            if data.get(CONF_SOLAR_FORECAST_SENSOR):
-                panel_config["solar_forecast_entity"] = data[CONF_SOLAR_FORECAST_SENSOR]
-            if data.get(CONF_SOLAR_FORECAST_REMAINING_SENSOR):
-                panel_config["solar_forecast_remaining_entity"] = data[
-                    CONF_SOLAR_FORECAST_REMAINING_SENSOR
-                ]
             # Solar node click target. Use the capabilities of the live
             # coordinators. The second panel registration at the end of setup
             # refreshes this payload after all models are known.
@@ -604,9 +576,6 @@ class ChargeDischargeController:
         self._surplus_guard_latched = False
         # When the surplus that would latch it was first seen (None: not seen).
         self._surplus_guard_since = None
-        # Whether today's forecast is expected to fill the DC-coupled battery.
-        # Latched so a wandering forecast cannot reshuffle the charge order.
-        self._scarce_solar_latched = False
         self._no_pd_command_delay = config_entry.data.get(CONF_NO_PD_COMMAND_DELAY, DEFAULT_NO_PD_COMMAND_DELAY)
         self._no_pd_debounce_unsub = None  # cancel handle for a pending debounced cycle
         self.enable_system_power_limits = config_entry.data.get(
@@ -718,7 +687,6 @@ class ChargeDischargeController:
         self._max_sensor_stale_s = MAX_SENSOR_STALE_S
         self._consumption_sensor_issue = None   # invalid/missing state already logged this episode
         self._control_lock = asyncio.Lock()     # serialize control cycle across timer + sensor-event triggers
-        self._grid_at_min_soc_last_ts = None     # last accumulation timestamp for grid-at-min-soc kWh integration
         self._slow_sensor_issue_created = False  # slow-sensor repair currently raised
         self._dead_sensor_issue_created = None   # dead-sensor repair raised (None: not checked yet this run)
         self._main_sensor_dead = False          # meter silent past MAIN_SENSOR_DEAD_S
@@ -808,19 +776,7 @@ class ChargeDischargeController:
         self._ev_charging_states: dict[str, bool] = {}  # sensor_id -> is EV currently charging
         self._ev_pause_until: dict[str, Optional[datetime]] = {}  # sensor_id -> pause end time (UTC)
         
-        self.vacation_mode_enabled = config_entry.data.get(CONF_VACATION_MODE_ENABLED, False)
-        self.solar_forecast_sensor = get_configured_solar_forecast_sensor(
-            self, "today"
-        )
-        self.solar_forecast_remaining_sensor = get_configured_solar_forecast_sensor(
-            self, "remaining"
-        )
-        self.solar_forecast_source: str | None = None
-        self.solar_forecast_diagnostic_source: str | None = None
         self.solar_production_sensor = config_entry.data.get(CONF_SOLAR_PRODUCTION_SENSOR, None)
-        self.solar_profile_mode = normalize_solar_profile_mode(
-            config_entry.data.get(CONF_SOLAR_PROFILE_MODE, DEFAULT_SOLAR_PROFILE_MODE)
-        )
         self.max_contracted_power = config_entry.data.get(CONF_MAX_CONTRACTED_POWER, 7000)
 
         # Derived Home Consumption sensor (our own aggregate). Resolved lazily by
@@ -829,53 +785,14 @@ class ChargeDischargeController:
         # rename because the unique_id never changes.
         self.home_consumption_sensor: Optional[str] = None
 
-        # Home consumption accumulator (24-hour integration of adjusted derived
-        # home power). Owned by ConsumptionTracker (see consumption_tracker.py);
-        # these public attrs remain on the controller so binary_sensor.py and
-        # aggregate_sensors.py keep reading them.
-        self._household_energy_accumulator = 0.0
-        self._household_accumulator_date = None  # date when accumulator was last reset
-
-        # Exact full-day energy totals, integrated from the REAL power sensors
-        # (solar_production_sensor / derived home power) at control-loop cadence,
-        # reset at local midnight, persisted/restored. Surfaced as the
-        # system_daily_solar_energy / system_daily_home_energy sensors.
-        self._daily_solar_energy_kwh = 0.0
-        self._daily_solar_energy_date = None
-        self._daily_home_energy_kwh = 0.0
-        self._daily_home_energy_date = None
-        # Exact daily grid import/export (kWh), sign-split from the net consumption
-        # meter (+import / -export). Surfaced as system_daily_grid_import_energy /
-        # system_daily_grid_export_energy. Shared reset date (one source sensor).
-        self._daily_grid_import_energy_kwh = 0.0
-        self._daily_grid_export_energy_kwh = 0.0
-        self._daily_grid_energy_date = None
-        # Stable reference captured by the full-day forecast evaluation. This
-        # remains separate from the live remaining forecast used later today.
-        self._daily_solar_forecast_initial_kwh = None
-        self._daily_solar_forecast_initial_date = None
-
         # Solar surplus excluded device flag (set each cycle by calculate_adjustment, consumed by PD section)
         self._solar_surplus_discharge_blocked: bool = False
         self._global_charge_blockers: dict[str, dict] = {}
         self._global_discharge_blockers: dict[str, dict] = {}
         self._battery_charge_blockers: dict[MarstekVenusDataUpdateCoordinator, dict[str, dict]] = {}
         self._battery_discharge_blockers: dict[MarstekVenusDataUpdateCoordinator, dict[str, dict]] = {}
-        self._solar_forecast_bad_since = None     # monotonic ts the forecast sensor became unreadable
-        self._solar_forecast_issue_created = False
-        self._solar_forecast_issue_cleared = False
-        self._solar_forecast_migration_issue_created = False
         self._missing_sensors_since = None     # monotonic ts a configured sensor entity went missing
         self._missing_sensors_reported = None  # entity ids named by the current Repairs issue
-
-        # Consumption history for dynamic base consumption (7-day rolling average)
-        # Owned by ConsumptionTracker (which persists it); the list lives on the
-        # controller for backward compatibility with its readers.
-        self._daily_consumption_history = []  # List of (date, consumption_kwh)
-
-        # Grid import accumulator when batteries are at min_soc during discharge window
-        self._daily_grid_at_min_soc_kwh = 0.0
-        self._grid_at_min_soc_sensor = None  # Reference to HA sensor entity for state push
 
         # Manual mode state
         self.manual_mode_enabled = config_entry.data.get(CONF_MANUAL_MODE_ENABLED, False)
@@ -929,9 +846,6 @@ class ChargeDischargeController:
         self._weekly_charge_needs_restore = False  # True when day changed mid-charge and hardware restore is pending
         self._weekly_charge_saved_max_soc: dict[str, int] = {}  # coordinator.name → original max_soc before writing 100%
 
-        # Solar start hour (shared by weekly full charge, solar forecast and the
-        # consumption tracker, which persists it).
-        self._solar_t_start = None
         self._force_full_charge = False         # Manual trigger via button, resets on day change
         self._balance_monitor = None  # Set from async_setup_entry after monitor is created
 
@@ -944,10 +858,6 @@ class ChargeDischargeController:
         self._weekly_charge_mgr = WeeklyFullChargeManager(hass, config_entry, self)
         # Backward-compat alias to the manager's underlying Store
         self._store = self._weekly_charge_mgr.store
-
-        # ConsumptionTracker owns its own Stores (consumption history, accumulators,
-        # solar T_start). Set from async_setup_entry after the controller exists.
-        self._consumption_tracker = None
 
         # Apply no-PD direct-tracking overrides last, so they win over the PD params
         # loaded above (and the grid filter tau just set).
@@ -1000,13 +910,6 @@ class ChargeDischargeController:
         self._control_sample_is_new = True
         self._stale_cycles = 0
         self._consumption_sensor_issue = None
-
-        tracker = getattr(self, "_consumption_tracker", None)
-        if tracker is not None:
-            tracker._daily_home_last_time = None
-            tracker._daily_home_last_power_kw = None
-            tracker._daily_grid_last_time = None
-            tracker._daily_grid_last_power_kw = None
 
     def set_offgrid_mode(self, enabled: bool) -> None:
         """Select the alternate meter without changing any battery setting."""
@@ -1513,18 +1416,6 @@ class ChargeDischargeController:
         self._peak_exit_since = None
         return False
 
-    def _grid_at_min_soc_power(self, sensor_actual: float) -> float:
-        """Grid power integrated by the grid-at-min-SOC accumulator.
-
-        FORK: review 8. The real meter only when one is configured (and usable);
-        otherwise exactly the upstream value ``sensor_actual``.
-        """
-        view = getattr(self, "_grid_view", None)
-        if view is None or not view.has_physical:
-            return sensor_actual
-        stats_w = self.read_statistics_grid_w()
-        return sensor_actual if stats_w is None else max(0.0, stats_w)
-
     def _guard_peak_bypass(self) -> bool:
         """Relay guard bypass: peak discharge or ICP excluded-device protection.
 
@@ -1655,9 +1546,6 @@ class ChargeDischargeController:
         if self.consumption_sensor != old_consumption_sensor:
             self._reset_consumption_source_tracking()
         self.meter_inverted = self.config_entry.data.get(CONF_METER_INVERTED, False)
-        self.vacation_mode_enabled = self.config_entry.data.get(
-            CONF_VACATION_MODE_ENABLED, False
-        )
         if self._phase_power_limiter is not None:
             self._phase_power_limiter.refresh_config()
             self._phase_power_limiter.update_manual_mode_warning(
@@ -1722,16 +1610,7 @@ class ChargeDischargeController:
         self._temp_charge_limit_band_c = self.config_entry.data.get(CONF_TEMP_CHARGE_LIMIT_BAND_C, DEFAULT_TEMP_CHARGE_LIMIT_BAND_C)
         self._temp_charge_limit_floor_pct = self.config_entry.data.get(CONF_TEMP_CHARGE_LIMIT_FLOOR_PCT, DEFAULT_TEMP_CHARGE_LIMIT_FLOOR_PCT)
         self.temp_limit_apply_discharge = self.config_entry.data.get(CONF_TEMP_LIMIT_APPLY_DISCHARGE, DEFAULT_TEMP_LIMIT_APPLY_DISCHARGE)
-        self.solar_forecast_sensor = get_configured_solar_forecast_sensor(
-            self, "today"
-        )
-        self.solar_forecast_remaining_sensor = get_configured_solar_forecast_sensor(
-            self, "remaining"
-        )
         self.solar_production_sensor = self.config_entry.data.get(CONF_SOLAR_PRODUCTION_SENSOR, None)
-        self.solar_profile_mode = normalize_solar_profile_mode(
-            self.config_entry.data.get(CONF_SOLAR_PROFILE_MODE, DEFAULT_SOLAR_PROFILE_MODE)
-        )
         self.capacity_protection_enabled = self.config_entry.data.get(CONF_CAPACITY_PROTECTION_ENABLED, False)
         self.capacity_protection_excluded_devices = self.config_entry.data.get(
             CONF_CAPACITY_PROTECTION_EXCLUDED_DEVICES, False
@@ -2623,26 +2502,6 @@ class ChargeDischargeController:
             if self._slot_time_matches(slot, current_time):
                 return slot
         return None
-
-    def _is_grid_at_min_soc_discharge_window(self) -> bool:
-        """Return whether unmet demand belongs to a manual discharge window.
-
-        A disabled or charge-only timeslot must not restrict the Grid at Min SOC
-        accumulator. Only an enabled slot that explicitly allows discharge
-        changes the default full-day scope.
-        """
-        slots = self.config_entry.data.get("no_discharge_time_slots", [])
-        enabled_discharge_slots = [
-            slot
-            for slot in slots
-            if slot.get("enabled", True) and slot.get("allow_discharge", False)
-        ]
-        if not enabled_discharge_slots:
-            return True
-        return any(
-            self._get_active_slot(coordinator, "discharge") is not None
-            for coordinator in self.coordinators
-        )
 
     def _get_available_batteries(
         self,
@@ -5576,95 +5435,6 @@ class ChargeDischargeController:
         )
         return 0
 
-    def _check_solar_forecast_health(self):
-        """Raise one repair per run when the solar forecast stays unreadable.
-
-        Every consumer degrades quietly on its own (e.g. the solar-dependent
-        charge order simply sees no sun), so a dead forecast sensor would
-        otherwise never surface anywhere the user looks.
-
-        Only a sensor that IS configured can be broken; leaving it unset is a
-        deliberate choice. The delay is long enough to ride out a provider
-        outage or the midnight rollover gap.
-        """
-        issue_id = f"solar_forecast_unusable_{self.config_entry.entry_id}"
-
-        forecast = read_solar_forecast_kwh(self.hass, self)
-        usable = forecast is not None
-        remaining_sensor = get_configured_solar_forecast_sensor(self, "remaining")
-        today_sensor = get_configured_solar_forecast_sensor(self, "today")
-        configured = bool(remaining_sensor or today_sensor)
-
-        if usable or not configured:
-            self._solar_forecast_bad_since = None
-            if not self._solar_forecast_issue_cleared:
-                self._solar_forecast_issue_cleared = True
-                self._solar_forecast_issue_created = False
-                ir.async_delete_issue(self.hass, DOMAIN, issue_id)
-            return
-
-        mono = time.monotonic()
-        if self._solar_forecast_bad_since is None:
-            self._solar_forecast_bad_since = mono
-            return
-        if (
-            self._solar_forecast_issue_created
-            or mono - self._solar_forecast_bad_since < FORECAST_DATA_ISSUE_DELAY_S
-        ):
-            return
-
-        self._solar_forecast_issue_created = True
-        self._solar_forecast_issue_cleared = False
-        _LOGGER.warning(
-            "Solar forecast sensor %s unreadable for over %.0f minutes - charge delay, "
-            "grid-charge decisions and remaining-solar estimates are running blind",
-            remaining_sensor or today_sensor, FORECAST_DATA_ISSUE_DELAY_S / 60,
-        )
-        ir.async_create_issue(
-            self.hass,
-            DOMAIN,
-            issue_id,
-            is_fixable=False,
-            is_persistent=True,
-            issue_domain=DOMAIN,
-            severity=ir.IssueSeverity.WARNING,
-            translation_key="solar_forecast_unusable",
-            translation_placeholders={
-                "sensor": remaining_sensor or today_sensor,
-                "minutes": f"{FORECAST_DATA_ISSUE_DELAY_S / 60:.0f}",
-            },
-        )
-
-    def _check_solar_forecast_migration(self) -> None:
-        """Nudge legacy whole-day forecast users towards the remaining sensor.
-
-        The legacy sensor remains a supported fallback throughout the migration;
-        this Repair is informational and never changes the configured forecast or
-        affects control.  Always delete the stable issue id when it no longer
-        applies so a config-flow update resolves it immediately.
-        """
-        issue_id = f"solar_forecast_remaining_recommended_{self.config_entry.entry_id}"
-        legacy_sensor = get_configured_solar_forecast_sensor(self, "today")
-        remaining_sensor = get_configured_solar_forecast_sensor(self, "remaining")
-        if legacy_sensor and not remaining_sensor:
-            if not getattr(self, "_solar_forecast_migration_issue_created", False):
-                ir.async_create_issue(
-                    self.hass,
-                    DOMAIN,
-                    issue_id,
-                    is_fixable=False,
-                    is_persistent=True,
-                    issue_domain=DOMAIN,
-                    severity=ir.IssueSeverity.WARNING,
-                    translation_key="solar_forecast_remaining_recommended",
-                    translation_placeholders={"sensor": legacy_sensor},
-                )
-                self._solar_forecast_migration_issue_created = True
-            return
-
-        ir.async_delete_issue(self.hass, DOMAIN, issue_id)
-        self._solar_forecast_migration_issue_created = False
-
     def _check_missing_configured_sensors(self) -> None:
         """Name configured sensors whose entity does not exist (#419).
 
@@ -5683,8 +5453,6 @@ class ChargeDischargeController:
                     "consumption_sensor",
                     CONF_OFFGRID_POWER_SENSOR,
                     CONF_SOLAR_PRODUCTION_SENSOR,
-                    CONF_SOLAR_FORECAST_SENSOR,
-                    CONF_SOLAR_FORECAST_REMAINING_SENSOR,
                     _fork_const.CONF_PHYSICAL_GRID_SENSOR,  # FORK: grid view (docs/fork/02-architektur.md)
                     _fork_const.CONF_CAPACITY_PROTECTION_LIMIT_ENTITY,
                 )
@@ -6182,18 +5950,6 @@ class ChargeDischargeController:
         # ahead of the manual-mode / block early returns below.
         self._check_main_sensor_liveness(now)
 
-        # === HOUSEHOLD CONSUMPTION ACCUMULATION ===
-        # Run before manual mode check so samples are never lost
-        if self._consumption_tracker is not None:
-            self._consumption_tracker.handle_accumulator_daily_reset()
-            await self._consumption_tracker.accumulate_household_consumption()
-            # Exact full-day totals from the real power sensors (panel "Energía hoy")
-            self._consumption_tracker.handle_daily_energy_reset()
-            await self._consumption_tracker.accumulate_daily_solar_energy()
-            await self._consumption_tracker.accumulate_daily_home_energy()
-            await self._consumption_tracker.accumulate_daily_grid_energy()
-            self._consumption_tracker.maybe_save_accumulators()
-
         # === BALANCE MONITOR ===
         # Run before manual mode and PD control checks so readings are never gated
         # by deadband, stale sensor, or any other early return in the control loop.
@@ -6323,10 +6079,6 @@ class ChargeDischargeController:
             stale=is_stale, phys=physical, phys_new=physical_new,
             paced=getattr(self, "_timer_tick_paced", False),
         )
-
-        # Same cadence, different failure: a configured solar-forecast sensor that
-        # stops reading. Cheap state lookup, so no extra throttle.
-        self._check_solar_forecast_health()
 
         # Generic safety recalc on a silent sensor must re-evaluate structural state
         # (SOC/limits/blockers) but must NOT integrate the P term: the grid error is
@@ -6908,42 +6660,14 @@ class ChargeDischargeController:
             _LOGGER.debug("ChargeDischargeController: sensor_actual=%fW, previous_power=%fW, new_power=%fW (available: %d batteries)",
                          sensor_actual, self.previous_power, new_power, len(available_batteries))
 
-        # GRID-AT-MIN-SOC ACCUMULATOR: track grid import that the battery couldn't cover
-        # Conditions:
-        #   - All reachable batteries are at/below min_soc (system truly depleted for discharge)
-        #   - Within a discharge window (inside a timeslot, or no timeslots configured)
-        #   - Grid is importing (sensor_actual > 0)
-        discharge_available = self._get_available_batteries(
+        # Refresh the per-battery discharge re-entry latches (min-SOC and
+        # stopped-delivering, see _get_available_batteries) every cycle, also
+        # while charging. This evaluation used to run as part of the removed
+        # grid-at-min-SOC accumulator; keeping it keeps the latch timing as-is.
+        self._get_available_batteries(
             is_charging=False,
             include_operation_blocks=False,
         )
-        has_reachable = any(c.is_available for c in self.coordinators)
-        all_at_min_soc = (len(discharge_available) == 0) and has_reachable
-        if all_at_min_soc and sensor_actual > 0:
-            if self._is_grid_at_min_soc_discharge_window():
-                # Cycle cadence is now variable (event- and timer-driven), so integrate
-                # over the real elapsed time since the last accumulation instead of a
-                # fixed step. A gap (>10s) means the condition was inactive in between;
-                # treat it as a fresh start so we never count energy across the gap.
-                now_ts = dt_util.utcnow()
-                last_ts = self._grid_at_min_soc_last_ts
-                self._grid_at_min_soc_last_ts = now_ts
-                if last_ts is not None and (now_ts - last_ts).total_seconds() <= 10.0:
-                    dt_s = (now_ts - last_ts).total_seconds()
-                    # FORK: grid view (docs/fork/02-architektur.md), B5 - integrate the
-                    # real meter when configured (the gate above stays on the control value).
-                    grid_w_energy = ChargeDischargeController._grid_at_min_soc_power(self, sensor_actual)
-                    interval_kwh = grid_w_energy * dt_s / 3_600_000
-                    self._daily_grid_at_min_soc_kwh += interval_kwh
-                    if self._grid_at_min_soc_sensor:
-                        self._grid_at_min_soc_sensor.async_write_ha_state()
-                    _LOGGER.debug(
-                        "Grid-at-min-soc: +%.4f kWh (grid=%.0fW, dt=%.1fs), daily total=%.3f kWh",
-                        interval_kwh, grid_w_energy, dt_s, self._daily_grid_at_min_soc_kwh,
-                    )
-                    # Persist to Store periodically so reloads don't lose the day's accumulation
-                    if self._consumption_tracker is not None:
-                        await self._consumption_tracker.maybe_save_grid_at_min_soc_history()
 
         if not available_batteries:
             # NOTE: this path ends the cycle before the end-of-cycle PD state update,
@@ -7188,8 +6912,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 normalize an empty battery phase on existing batteries.
     v11 -> v12: distinguish MPPT-capable Venus A/D hardware from installations
                 that actually have panels connected; preserve existing behaviour.
-    v12 -> v16: only touched predictive-charging / price-feature keys, which
-                this fork no longer has. The steps were dropped; their stored
+    v12 -> v16: only touched keys of features this fork has removed. The steps were dropped; their stored
                 keys are simply ignored. The version still advances to 16.
     """
     if entry.version >= 16:
@@ -7713,56 +7436,6 @@ async def _async_migrate_legacy_active_balance(
         hass.config_entries.async_update_entry(entry, data=new_data)
 
 
-SERVICE_EXCLUDE_CONSUMPTION_DAYS = "exclude_consumption_days"
-ATTR_START_DATE = "start_date"
-ATTR_END_DATE = "end_date"
-
-EXCLUDE_CONSUMPTION_DAYS_SCHEMA = vol.Schema(
-    {
-        vol.Required(ATTR_START_DATE): cv.date,
-        vol.Optional(ATTR_END_DATE): cv.date,
-    }
-)
-
-
-def _async_register_services(hass: HomeAssistant) -> None:
-    """Register the domain-wide actions once, on the first entry setup."""
-    if hass.services.has_service(DOMAIN, SERVICE_EXCLUDE_CONSUMPTION_DAYS):
-        return
-
-    from .tracking.consumption_tracker import VACATION_RETENTION_DAYS
-
-    async def _async_exclude_consumption_days(call: ServiceCall) -> None:
-        """Keep unrepresentative days out of the learned consumption."""
-        start_date = call.data[ATTR_START_DATE]
-        end_date = call.data.get(ATTR_END_DATE, start_date)
-        if end_date < start_date:
-            raise ServiceValidationError(
-                translation_domain=DOMAIN,
-                translation_key="exclude_days_invalid_range",
-            )
-        today = dt_util.now().date()
-        if (today - end_date).days > VACATION_RETENTION_DAYS:
-            raise ServiceValidationError(
-                translation_domain=DOMAIN,
-                translation_key="exclude_days_too_old",
-                translation_placeholders={"days": str(VACATION_RETENTION_DAYS)},
-            )
-        for data in list(hass.data.get(DOMAIN, {}).values()):
-            controller = data.get("controller") if isinstance(data, dict) else None
-            tracker = getattr(controller, "_consumption_tracker", None)
-            if tracker is None:
-                continue
-            await tracker.async_exclude_dates(start_date, end_date)
-
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_EXCLUDE_CONSUMPTION_DAYS,
-        _async_exclude_consumption_days,
-        schema=EXCLUDE_CONSUMPTION_DAYS_SCHEMA,
-    )
-
-
 async def _setup_batteries_per_link(batteries, setup_battery):
     """Run ``setup_battery(index, config)`` for every battery, concurrently per link.
 
@@ -7831,15 +7504,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, opened: list) -> bool:
     """Set up the entry; every battery coordinator created is added to ``opened``."""
-    _async_register_services(hass)
     hass.data.setdefault(DOMAIN, {})
-
-    # Entries saved by early transition builds could contain both horizons.
-    # Remaining-today is the persisted contract now; leave untouched legacy-only
-    # entries alone, but clean the redundant whole-day value during setup.
-    normalized_forecast_data = normalize_solar_forecast_config(dict(entry.data))
-    if normalized_forecast_data != dict(entry.data):
-        hass.config_entries.async_update_entry(entry, data=normalized_forecast_data)
 
     # Register the sidebar dashboard panel (once per HA instance, non-blocking).
     await _async_register_frontend_panel(hass, entry)
@@ -8104,22 +7769,16 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, opened: li
     # Set up the charge/discharge controller BEFORE storing in hass.data
     # This allows the controller to register itself in hass.data[DOMAIN]["pid_controller"]
     controller = ChargeDischargeController(hass, coordinators, entry.data["consumption_sensor"], entry)
-    # This is advisory only and is evaluated at setup and after option updates,
-    # independently of grid-sensor health or the control loop.
-    controller._check_solar_forecast_migration()
     _check_ev_charger_type_notice(hass, entry)
 
-    from .tracking.consumption_tracker import ConsumptionTracker
-    consumption_tracker = ConsumptionTracker(hass, entry, controller)
-    controller._consumption_tracker = consumption_tracker
-    # Calculated sensors that need a short Recorder recovery query (currently
-    # the daily counter migration) must use the same entry-owned coordinator
-    # as profile and legacy backfills. Attach it before platform setup starts.
+    # Calculated sensors that need a short Recorder recovery query (the daily
+    # charge/discharge counter migration) share one entry-owned, cancellable
+    # coordinator. Attach it before platform setup starts.
+    from .tracking.backfill import RecorderBackfillCoordinator
+    recorder_coordinator = RecorderBackfillCoordinator(hass, entry)
+    controller._recorder_coordinator = recorder_coordinator
     for coordinator in coordinators:
-        coordinator._omnibattery_backfill_coordinator = (
-            consumption_tracker._backfill_coordinator
-        )
-    await consumption_tracker.load_vacation_state()
+        coordinator._omnibattery_backfill_coordinator = recorder_coordinator
 
     from .infra.external_loads import ExternalLoads
     controller._external_loads = ExternalLoads(hass, entry, controller)
@@ -8137,29 +7796,8 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, opened: li
     # discarded.
     await _async_migrate_legacy_active_balance(hass, entry, controller, coordinators)
 
-    # Restore daily consumption history from the tracker's own Store.
-    await consumption_tracker.load_consumption_history()
-
-    # If no history was restored, initialize with default values
-    if not controller._daily_consumption_history:
-        consumption_tracker.initialize_history_with_defaults()
-        await consumption_tracker.save_consumption_history()
-
-    # Restore the independent 15-minute profile after the legacy daily history
-    # is available.  A corrupt or incompatible profile is isolated and never
-    # prevents the integration from starting.
-    await consumption_tracker.load_consumption_profile()
-    await consumption_tracker.load_solar_profile()
-
-    # Restore household and solar accumulators from persistent storage
-    await consumption_tracker.load_accumulators()
-    await consumption_tracker.load_daily_energy()
-
     # Restore weekly charge completion state from previous session
     await controller._weekly_charge_mgr.load_state()
-    # Restore solar T_start if not already restored by weekly charge state (date-based check)
-    if controller._solar_t_start is None:
-        await consumption_tracker.load_solar_t_start()
 
     # Set up the control safety timer and store unsub callbacks for manual cancellation during unload.
     # Each unsub is registered twice: stored in hass.data so async_unload_entry can cancel
@@ -8355,45 +7993,11 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, opened: li
         _LOGGER.debug("Config entry updated, hot-reloading controller parameters")
         if controller:
             controller.update_pd_parameters()
-            controller._check_solar_forecast_migration()
-            tracker = getattr(controller, "_consumption_tracker", None)
-            reconcile_vacation = getattr(tracker, "async_reconcile_vacation_mode", None)
-            if callable(reconcile_vacation):
-                await reconcile_vacation()
-            profile = getattr(tracker, "consumption_profile", None)
-            if profile is not None and profile.invalidate_if_configuration_changed():
-                tracker.start_consumption_profile_backfill()
-            solar_profile = getattr(tracker, "solar_profile", None)
-            if solar_profile is not None:
-                solar_profile.refresh_mode(getattr(controller, "solar_profile_mode", None))
-                if solar_profile.invalidate_if_configuration_changed():
-                    tracker.start_solar_profile_backfill()
         # Keep the recovery copy in sync with the latest options.
         from .config_backup import async_save_config_backup
         await async_save_config_backup(hass)
 
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
-
-    # Schedule daily consumption capture at 23:55 local time every day
-    # This captures the day's battery discharge energy before the sensor resets at midnight local
-    # TODO(fork-cleanup): the only consumers (predictive charging, charge delay)
-    # are gone, so this gate is always False now. The consumption tracking it
-    # fed is removed in a later cleanup step together with this block.
-    needs_consumption_capture = False
-    if needs_consumption_capture:
-        entry.async_on_unload(
-            async_track_time_change(
-                hass, consumption_tracker.capture_daily_consumption, hour=23, minute=55, second=0
-            )
-        )
-        _LOGGER.info("Daily consumption capture scheduled at 23:55 local time")
-
-    # Schedule midnight reset for the grid-at-min-soc daily accumulator
-    entry.async_on_unload(
-        async_track_time_change(
-            hass, consumption_tracker.reset_daily_grid_at_min_soc, hour=0, minute=0, second=5
-        )
-    )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
@@ -8402,32 +8006,6 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, opened: li
     # Enabled switches; this second pass supplies their final (rename-safe) IDs
     # so runtime toggles immediately override the persisted panel fallback.
     await _async_register_frontend_panel(hass, entry)
-
-    # Replace default consumption data with real recorder data
-    # On reload HA is already running, so backfill immediately;
-    # on fresh boot, wait for homeassistant_started so the recorder is ready
-    needs_recorder_backfill = needs_consumption_capture or bool(
-        getattr(consumption_tracker, "_legacy_accumulator_rebuild_pending", False)
-    )
-    if needs_recorder_backfill:
-        # Only warn for entries that use history recovery.
-        from .tracking.recorder_health import async_setup_recorder_health
-
-        async_setup_recorder_health(hass, entry, controller)
-
-        if hass.state == CoreState.running:
-            await consumption_tracker.startup_backfill_consumption()
-            _LOGGER.info("Startup consumption backfill executed immediately (reload)")
-        else:
-            async def _on_homeassistant_started(_event):
-                await consumption_tracker.startup_backfill_consumption()
-
-            entry.async_on_unload(
-                hass.bus.async_listen(
-                    "homeassistant_started", _on_homeassistant_started
-                )
-            )
-            _LOGGER.info("Startup consumption backfill scheduled for after HA fully started")
 
     return True
 
@@ -8439,7 +8017,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if data:
         coordinators = data.get("coordinators", [])
         controller = data.get("controller")
-        tracker = getattr(controller, "_consumption_tracker", None)
+        recorder_coordinator = getattr(controller, "_recorder_coordinator", None)
 
         # Stop producers first. Set the guard synchronously before removing
         # trackers so a callback already queued by HA cannot create a new task
@@ -8468,10 +8046,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             stop_tasks = getattr(controller, "async_stop_background_tasks", None)
             if callable(stop_tasks):
                 await stop_tasks()
-        if tracker is not None:
-            stop_tracker = getattr(tracker, "async_stop_background_work", None)
-            if callable(stop_tracker):
-                await stop_tracker()
+        if recorder_coordinator is not None:
+            await recorder_coordinator.async_cancel()
 
         # Set shutdown flag on all coordinators to suppress expected errors.
         for coordinator in coordinators:
@@ -8537,24 +8113,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     "Error disconnecting %s: %r", coordinator.name, result
                 )
 
-        controller = data.get("controller")
-
-        async def _persist(label: str, step) -> None:
-            try:
-                await step()
-            except Exception:  # noqa: BLE001 - keep saving the rest
-                _LOGGER.exception("Error saving %s on unload", label)
-
-        # Persist all throttled accumulators (consumption history + grid-at-min-soc,
-        # daily solar/home/grid energy totals, household/solar accumulators) so a
-        # reload doesn't revert these TOTAL_INCREASING sensors to the last throttled
-        # (~5 min) save, which would step their values backwards and spam the log.
-        if controller and controller._consumption_tracker is not None:
-            await _persist(
-                "consumption tracker",
-                controller._consumption_tracker.async_save_all,
-            )
-
         if unload_ok:
             hass.data[DOMAIN].pop(entry.entry_id, None)
 
@@ -8565,7 +8123,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     ]
     if unload_ok and not remaining:
         _async_unregister_frontend_panel(hass)
-        hass.services.async_remove(DOMAIN, SERVICE_EXCLUDE_CONSUMPTION_DAYS)
 
     return unload_ok
 

@@ -1,6 +1,6 @@
 # Instala Omnibattery
 
-Instala la integración, conecta una batería compatible y elige el sensor de Home Assistant que mide el intercambio de red de tu casa. Puedes terminar primero una configuración básica y añadir más tarde previsiones y horarios.
+Instala la integración, conecta una batería compatible y elige el sensor de Home Assistant que mide el intercambio de red de tu casa. Puedes terminar primero una configuración básica y añadir más tarde sensores opcionales y horarios.
 
 ¿Ya usas **Marstek Venus Energy Manager**? Detente aquí y sigue [Actualizar desde Marstek VEM](upgrading-from-marstek-vem.md) para conservar tu configuración e historial.
 
@@ -29,7 +29,6 @@ La batería o su puente deben ser accesibles mediante la conexión local corresp
 
 Puedes dejar estos campos vacíos o desactivados durante la primera configuración y añadirlos después en **Ajustes → Dispositivos y servicios → Omnibattery → Configurar**:
 
-- **Previsión solar restante hoy** para los sensores de pronóstico solar
 - **Sensor de producción solar** cuando un inversor externo mide paneles que no alimentan las propias entradas solares de la batería
 - **Sensor de potencia aislada de la red** cuando un medidor independiente mide el circuito respaldado
 - **Protección de corriente trifásica** cuando hay sensores de corriente por fase; consulta [Protección de corriente trifásica](configuration/three-phase.md)

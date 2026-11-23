@@ -5,18 +5,6 @@ Start with what you can see in Home Assistant. **Integration Status** and its bl
 !!! note "Marstek app compatibility"
     You do not need to change anything in the Marstek app for Omnibattery to work, including its energy meter setting. Once Omnibattery is running, do not change the operating mode or a setting from the Marstek app: doing so breaks compatibility until you disable and re-enable the integration.
 
-## Forecast history is missing
-
-Omnibattery raises a **Sensors excluded from Recorder** warning in **Settings → System → Repairs** when Recorder excludes a sensor used to recover learned profiles:
-
-- The integration's **Home Consumption** power sensor (including renamed entities).
-- The configured **Solar Production** power sensor while solar profile learning is enabled.
-- Enabled excluded/additional-device power sensors, except devices configured without telemetry.
-
-Update Recorder's include/exclude rules so the listed entities are recorded, then restart Home Assistant to apply the Recorder configuration. The warning clears when those entities are included again; Omnibattery checks after startup and every five minutes. Recording new data does not restore samples that were never saved. Live learning continues, and existing stored profiles are retained.
-
-The check uses Recorder's effective filter, including domain and wildcard rules. It does not diagnose database failures, paused recording, retention gaps, or insufficient history. A newly included sensor with no history is not treated as excluded. The provider's forecast energy sensor is read live and does not need Recorder history for forecasting.
-
 ## Battery does nothing
 
 The battery may be idle by design when the grid is already near target. If household load changes and the battery still neither charges nor discharges, use this table.
@@ -105,13 +93,6 @@ For up to 65 seconds after the last reading, the frozen value is still treated a
 | Relay minimum power causes repeated starts | Minimum charge/discharge power and relay timing controls | Review the actuator settings in [follow home consumption](features/pd-controller.md) |
 
 **Expected result:** **PD Control Quality** becomes stable after the controller has observed enough normal operation.
-
-## Forecast or consumption profile falls back
-
-??? "Consumption source shows `legacy_daily`, or the solar profile falls back"
-    A consumption forecast source of `legacy_daily` is expected while the 28-day profile is still learning, or when the requested interval does not meet its coverage contract. Check **Expected Home Consumption Profile** and the integration diagnostics. Changing a source or an excluded-load adjustment keeps every learned day; a timezone change re-bins them by the offset between the two zones, and Recorder backfill rebuilds whatever is still missing in the background. A gap longer than five minutes is not interpolated.
-
-    A solar forecast that stays immature or falls back is also expected during the first days. Learning needs direct PV power from the configured external sensor or readable MPPT channels, at least seven closed quality days, recent coverage, and enough evidence in the requested future range; invalid, negative, and long-gap samples are excluded, and curtailment signals can exclude intervals. A source or capacity change starts a new generation. Check the diagnostics `solar_profile` section and `solar_timeline_fallback_reason`; the profile cannot repair a bad weather forecast or model curtailment it cannot observe.
 
 ## Weekly full charge or cell balancing did not finish
 

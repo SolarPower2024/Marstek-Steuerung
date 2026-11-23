@@ -1,9 +1,5 @@
 {
   "issues": {
-    "recorder_excluded_sensors": {
-      "title": "Sensors exclosos de Recorder",
-      "description": "Recorder exclou aquests sensors que Omnibattery utilitza per recuperar els perfils solars i de consum domèstic: {sensors}. Ajusta les regles include/exclude de Recorder per incloure’ls i reinicia Home Assistant per aplicar la configuració. L’avís desapareix automàticament quan estiguin inclosos. Les mostres històriques que falten no es poden recuperar; l’aprenentatge en directe i els perfils ja desats continuen funcionant."
-    },
     "excluded_device_ev_type": {
       "title": "Marca el teu carregador de VE entre els dispositius exclosos",
       "description": "El nou diagrama de fluxos d'energia (activa'l amb el botó de la capçalera de la targeta de flux) dibuixa els carregadors de VE al seu propi cable, al costat del cotxe. Omnibattery no pot saber quin dispositiu exclòs és el carregador, així que fins que el marquis la seva potència es mostra al cable dels altres dispositius exclosos (la unitat exterior) i el cable del VE queda buit. Obre Opcions → Dispositius exclosos i torna a desar els dispositius, marcant \"Carregador de VE\" al carregador (deixa-ho sense marcar als altres). Només afecta com es dibuixa el diagrama, no el control de la bateria. L'avís desapareix en desar els dispositius."
@@ -39,14 +35,6 @@
     "slow_main_sensor": {
       "title": "El sensor de potència de xarxa s'actualitza massa lentament",
       "description": "El sensor de xarxa configurat {sensor} s'actualitza aproximadament cada {observed_interval} segons. Els intervals de {warning_interval} segons o més són més lents del recomanat i poden reduir la qualitat de la regulació. Omnibattery segueix l'última lectura fins que supera els {stale_limit} segons d'antiguitat. Utilitza un sensor més ràpid si necessites un control en temps real més precís."
-    },
-    "solar_forecast_unusable": {
-      "title": "Previsió solar inutilitzable",
-      "description": "El sensor de previsió solar configurat {sensor} fa més de {minutes} minuts que no està disponible o no es pot llegir. Omnibattery continua funcionant, però tot allò que depèn de la previsió va a cegues: l'estimació de sol restant marca 0 kWh. Reviseu el sensor o la integració que el proporciona."
-    },
-    "solar_forecast_remaining_recommended": {
-      "title": "Utilitza una previsió solar restant",
-      "description": "{sensor} és una previsió solar heretada per a tot el dia. Omnibattery encara l'admet, però els errors de previsió ja produïts poden fer imprecises les decisions intradia. Configura a les opcions d'Omnibattery el sensor de previsió del proveïdor per a \"restant avui\" per calcular amb més precisió el sol restant."
     }
   },
   "config": {
@@ -57,13 +45,11 @@
       },
       "user": {
         "title": "Configura Omnibattery",
-        "description": "Selecciona el sensor que mesura la importació/exportació de la xarxa elèctrica. Opcionalment, configura el sensor de predicció solar per a funcions avançades.",
+        "description": "Selecciona el sensor que mesura la importació/exportació de la xarxa elèctrica.",
         "data": {
           "consumption_sensor": "Sensor de consum de la xarxa",
           "offgrid_power_sensor": "Sensor de potència off-grid (opcional)",
           "offgrid_meter_inverted": "Signe del mesurador off-grid invertit",
-          "solar_forecast_sensor": "Sensor de predicció solar del dia complet (heretat)",
-          "solar_forecast_remaining_sensor": "Sensor de predicció solar restant d'avui (recomanat)",
           "solar_production_sensor": "Sensor de producció solar (opcional)",
           "meter_inverted": "Signe del comptador invertit",
           "max_contracted_power": "Potència màxima contractada (W)",
@@ -73,8 +59,6 @@
           "consumption_sensor": "Sensor en temps real de potència importada (+) o exportada (-) a la xarxa. Es recomanen actualitzacions cada 1-2 segons. S'accepten sensors més lents, però les lectures retardades redueixen la qualitat de la regulació; l'última lectura se segueix durant un màxim de 65 segons.",
           "offgrid_power_sensor": "Mesurador W/kW independent per al circuit amb suport. Ha de ser diferent del sensor de xarxa normal. Configurar-lo exposa un interruptor de programari que selecciona aquesta font per al control i les estadístiques; no activa el port off-grid/EPS físic de la bateria.",
           "offgrid_meter_inverted": "Activa-ho quan el sensor off-grid utilitzi la convenció oposada: positiu = exportació i negatiu = consum. Només s'aplica mentre el mode de mesurador off-grid està actiu.",
-          "solar_forecast_sensor": "Sensor heretat que proporciona la predicció solar del dia complet. Les instal·lacions existents poden continuar utilitzant-lo durant la transició; per a configuracions noves es recomana Restant d'avui.",
-          "solar_forecast_remaining_sensor": "Sensor que proporciona la producció solar que encara s'espera avui en kWh. En desar-lo substitueix el sensor heretat del dia complet i mai es redueix amb la producció ja mesurada.",
           "solar_production_sensor": "Sensor de potència de producció fotovoltaica en temps real (W/kW) d'un inversor extern que no passa per les entrades MPPT de la bateria. S'utilitza per mostrar el node Solar al diagrama de flux del tauler. Deixa'l buit si els teus panells alimenten directament el MPPT de la bateria.",
           "meter_inverted": "Activa aquesta opció si el teu comptador utilitza el conveni oposat: positiu = exportació, negatiu = importació. La unitat (W/kW) es detecta automàticament.",
           "max_contracted_power": "Potència total contractada en watts. El sistema no superarà aquest límit en carregar per evitar que salti el comptador",
@@ -427,8 +411,6 @@
       "invalid_mac": "Això no sembla una adreça MAC. S'esperen sis parelles de dígits hexadecimals, per exemple dc:04:5a:14:6b:33.",
       "cannot_connect": "No es pot connectar a la bateria. Verifica l'adreça IP i que la bateria sigui accessible a la xarxa.",
       "no_battery": "Inverter reached, but it reports no battery. Check that the LUNA2000 is attached and the Modbus slave ID points at the inverter.",
-      "sensor_not_found": "El sensor de predicció solar no existeix. Verifica que el sensor estigui disponible.",
-      "invalid_unit": "El sensor de predicció solar ha de tenir com a unitat 'kWh' o 'Wh'.",
       "solar_production_sensor_not_found": "El sensor de producció solar no existeix. Verifica que el sensor estigui disponible.",
       "solar_production_invalid_unit": "El sensor de producció solar ha de tenir com a unitat 'W' o 'kW'.",
       "solar_production_sensor_circular": "Un sensor solar creat per OmniBattery no es pot reutilitzar com a entrada externa de producció solar.",
@@ -522,8 +504,6 @@
           "physical_grid_sensor": "Physical grid meter (optional)",
           "physical_grid_inverted": "Physical grid meter sign inverted",
           "capacity_protection_limit_entity": "Dynamic peak limit entity (optional)",
-          "solar_forecast_sensor": "Sensor de predicció solar del dia complet (heretat)",
-          "solar_forecast_remaining_sensor": "Sensor de predicció solar restant d'avui (recomanat)",
           "solar_production_sensor": "Sensor de producció solar (opcional)",
           "meter_inverted": "Signe del comptador invertit",
           "max_contracted_power": "Potència màxima contractada (W)",
@@ -536,8 +516,6 @@
           "physical_grid_sensor": "Real grid meter at the billing point. Used for peak shaving and contracted power. If empty, the control sensor above is used.",
           "physical_grid_inverted": "Enable if this meter uses the opposite sign convention: positive = export, negative = import.",
           "capacity_protection_limit_entity": "Sensor, number or input_number providing the peak limit in W. If empty or unreadable, the fixed peak limit is used.",
-          "solar_forecast_sensor": "Sensor heretat que proporciona la predicció solar del dia complet. Les instal·lacions existents poden continuar utilitzant-lo durant la transició; per a configuracions noves es recomana Restant d'avui.",
-          "solar_forecast_remaining_sensor": "Sensor que proporciona la producció solar que encara s'espera avui en kWh. En desar-lo substitueix el sensor heretat del dia complet i mai es redueix amb la producció ja mesurada.",
           "solar_production_sensor": "Sensor de potència de producció fotovoltaica en temps real (W/kW) d'un inversor extern que no passa per les entrades MPPT de la bateria. S'utilitza per mostrar el node Solar al diagrama de flux del tauler. Deixa'l buit si els teus panells alimenten directament el MPPT de la bateria.",
           "meter_inverted": "Activa aquesta opció si el teu comptador utilitza el conveni oposat: positiu = exportació, negatiu = importació. La unitat (W/kW) es detecta automàticament.",
           "max_contracted_power": "Potència total contractada en watts. El sistema no superarà aquest límit en carregar per evitar que salti el diferencial",
@@ -842,8 +820,6 @@
       "invalid_mac": "Això no sembla una adreça MAC. S'esperen sis parelles de dígits hexadecimals, per exemple dc:04:5a:14:6b:33.",
       "cannot_connect": "No es pot connectar a la bateria. Verifica l'adreça IP i que la bateria sigui accessible a la xarxa.",
       "no_battery": "Inverter reached, but it reports no battery. Check that the LUNA2000 is attached and the Modbus slave ID points at the inverter.",
-      "sensor_not_found": "El sensor de predicció solar no existeix. Verifica que el sensor estigui disponible.",
-      "invalid_unit": "El sensor de predicció solar ha de tenir com a unitat 'kWh' o 'Wh'.",
       "solar_production_sensor_not_found": "El sensor de producció solar no existeix. Verifica que el sensor estigui disponible.",
       "solar_production_invalid_unit": "El sensor de producció solar ha de tenir com a unitat 'W' o 'kW'.",
       "solar_production_sensor_circular": "Un sensor solar creat per OmniBattery no es pot reutilitzar com a entrada externa de producció solar.",
@@ -924,9 +900,6 @@
       },
       "system_power_limits": {
         "name": "Límits de Potència del Sistema"
-      },
-      "vacation_mode": {
-        "name": "Mode vacances"
       },
       "temp_charge_limit": {
         "name": "Límit de càrrega per temperatura"
@@ -1012,18 +985,6 @@
       "system_solar_power": {
         "name": "Potència Solar Total"
       },
-      "system_daily_solar_energy": {
-        "name": "Producció Solar Diària"
-      },
-      "system_daily_home_energy": {
-        "name": "Consum Diari de la Casa"
-      },
-      "expected_home_consumption_profile": {
-        "name": "Perfil de consum domèstic esperat"
-      },
-      "consumption_profile_capture": {
-        "name": "Captura del perfil de consum actual"
-      },
       "system_relay_guard": {
         "name": "Relay Guard",
         "state": {
@@ -1059,12 +1020,6 @@
       },
       "home_consumption": {
         "name": "Consum de la Casa"
-      },
-      "system_daily_grid_import_energy": {
-        "name": "Importació Diària de Xarxa"
-      },
-      "system_daily_grid_export_energy": {
-        "name": "Exportació Diària de Xarxa"
       },
       "non_responsive_batteries": {
         "name": "Bateries Sense Resposta"
@@ -1262,9 +1217,6 @@
       "system_daily_discharging_energy": {
         "name": "Energia de Descàrrega Diària del Sistema"
       },
-      "system_daily_grid_at_min_soc_energy": {
-        "name": "Xarxa al Mín. SOC"
-      },
       "system_alarm_status": {
         "name": "Estat d'Alarma del Sistema"
       },
@@ -1276,9 +1228,6 @@
       },
       "software_version": {
         "name": "Versió de Programari"
-      },
-      "daily_solar_energy": {
-        "name": "Energia solar diària"
       },
       "backup_function": {
         "name": "Funció de Reserva"
@@ -1542,30 +1491,8 @@
     }
   },
   "exceptions": {
-    "exclude_days_invalid_range": {
-      "message": "La data de fi no pot ser anterior a la d'inici."
-    },
-    "exclude_days_too_old": {
-      "message": "L'aprenentatge de consum només conserva els darrers {days} dies, així que ja no es pot excloure un dia més antic."
-    },
     "manual_control_required": {
       "message": "{battery} està sota control automàtic, així que Force Mode i els punts de consigna de càrrega/descàrrega es reescriuen a cada cicle de control. Activa el mode manual (per a tot el sistema o per a aquesta bateria) abans de donar-li ordres directament."
-    }
-  },
-  "services": {
-    "exclude_consumption_days": {
-      "name": "Exclou dies de consum",
-      "description": "Deixa fora del consum après dies locals sencers, per a un dia que no representa l'habitatge: una aturada del comptador, un esdeveniment puntual, una absència. Els comptadors físics i l'historial no es toquen; només l'aprenentatge ignora aquests dies. L'exclusió es desa, de manera que un backfill posterior del Recorder no els pot reincorporar.",
-      "fields": {
-        "start_date": {
-          "name": "Data d'inici",
-          "description": "Primer dia local que s'exclou."
-        },
-        "end_date": {
-          "name": "Data de fi",
-          "description": "Darrer dia local que s'exclou. Si s'omet, només s'exclou el dia d'inici."
-        }
-      }
     }
   }
 }

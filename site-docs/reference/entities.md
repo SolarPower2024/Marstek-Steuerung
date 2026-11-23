@@ -35,15 +35,14 @@ Per-battery entities normally use `<domain>.<battery-name>_<key>`, shown below a
 
 These entities belong to **Omnibattery System** rather than one battery.
 
-??? "Power, energy, and learning sensors"
+??? "Power and energy sensors"
 
     | Keys | When they appear |
     |---|---|
     | `system_soc`, `system_charge_power`, `system_discharge_power`, `system_battery_cell_power`, `system_total_energy`, `system_stored_energy` | Core system measurements |
-    | `home_consumption`, `system_daily_home_energy`, `system_daily_grid_import_energy`, `system_daily_grid_export_energy`, `system_daily_grid_at_min_soc_energy` | Grid meter and controller available |
+    | `home_consumption` | Grid meter and controller available |
     | `system_daily_charging_energy`, `system_daily_discharging_energy` | Core aggregate energy |
-    | `system_solar_power`, `system_daily_solar_energy` | Supported battery solar telemetry or configured solar source, as applicable |
-    | `expected_home_consumption_profile`, `consumption_profile_capture` | Consumption learning available |
+    | `system_solar_power` | A battery exposes independent PV telemetry (MPPT) |
 
 ??? "Control and diagnostic sensors"
 
@@ -66,7 +65,7 @@ These entities belong to **Omnibattery System** rather than one battery.
 
 ??? "System switches"
 
-    - Always available controller choices: `manual_mode`, `no_pd_mode`, `three_phase_protection`, `weekly_full_charge_enabled`, `vacation_mode`
+    - Always available controller choices: `manual_mode`, `no_pd_mode`, `three_phase_protection`, `weekly_full_charge_enabled`
     - Conditional features: `offgrid_mode`, `primary_feedforward`, `system_power_limits`, `temp_charge_limit`, `temp_charge_limit_discharge`, `capacity_protection`, `capacity_protection_excluded_devices`
     - Generated controls: `time_slot` for each configured time slot; `excluded_device_enabled`, `excluded_device_solar_surplus`, `excluded_device_dynamic_power_control`, and `excluded_device_cover_home` for each applicable excluded device
     - External automation compatibility: `automation_charging_active`
@@ -155,8 +154,6 @@ Battery entities depend on the driver. A missing entity usually means that the d
 
     **PD Control Quality** uses `stable`, `oscillating`, `sluggish`, `battery_limited`, `blocked`, or `collecting_data`. Its attributes expose tracking error, oscillation rate, metric age, active proportional–derivative (PD) settings, and profile.
 
-
-    **Expected Home Consumption Profile** exposes source, maturity, coverage, sample counts, and forecast data. **Vacation Mode** exposes its baseline and excluded learning periods.
 
 ## Control safety
 

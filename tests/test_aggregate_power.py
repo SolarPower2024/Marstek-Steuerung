@@ -12,9 +12,6 @@ from homeassistant.util import dt as dt_util
 from custom_components.omnibattery.sensors.aggregate_sensors import (
     MarstekVenusAggregateSensor,
 )
-from custom_components.omnibattery.tracking.consumption_tracker import (
-    HOME_CONSUMPTION_HOLD_S,
-)
 from tests.conftest import FakeCoordinator
 
 

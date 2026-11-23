@@ -7,11 +7,7 @@ from custom_components.omnibattery.config_flow import (
     MarstekVenusConfigFlow,
     OptionsFlowHandler,
 )
-from custom_components.omnibattery.const import (
-    CONF_SOLAR_FORECAST_REMAINING_SENSOR,
-    CONF_SOLAR_FORECAST_SENSOR,
-    CONF_SOLAR_PRODUCTION_SENSOR,
-)
+from custom_components.omnibattery.const import CONF_SOLAR_PRODUCTION_SENSOR
 
 
 def _hass_with_states(states: dict[str, object]) -> SimpleNamespace:
@@ -62,39 +58,6 @@ async def test_initial_flow_rejects_omnibattery_solar_output_as_input():
     assert result["errors"] == {
         CONF_SOLAR_PRODUCTION_SENSOR: "solar_production_sensor_circular"
     }
-
-
-async def test_initial_flow_validates_remaining_forecast_unit_separately():
-    flow = MarstekVenusConfigFlow()
-    flow.hass = _hass_with_states({"sensor.remaining": _state("W")})
-
-    result = await flow.async_step_user(
-        {
-            "consumption_sensor": "sensor.grid",
-            "max_contracted_power": 7000,
-            CONF_SOLAR_FORECAST_REMAINING_SENSOR: "sensor.remaining",
-        }
-    )
-
-    assert result["errors"] == {CONF_SOLAR_FORECAST_REMAINING_SENSOR: "invalid_unit"}
-
-
-async def test_initial_remaining_forecast_replaces_unreadable_legacy_candidate():
-    flow = MarstekVenusConfigFlow()
-    flow.hass = _hass_with_states({"sensor.remaining": _state("kWh")})
-
-    await flow.async_step_user(
-        {
-            "consumption_sensor": "sensor.grid",
-            "max_contracted_power": 7000,
-            # This legacy sensor no longer exists, but it will be discarded.
-            CONF_SOLAR_FORECAST_SENSOR: "sensor.old_today",
-            CONF_SOLAR_FORECAST_REMAINING_SENSOR: "sensor.remaining",
-        }
-    )
-
-    assert flow.config_data[CONF_SOLAR_FORECAST_REMAINING_SENSOR] == "sensor.remaining"
-    assert CONF_SOLAR_FORECAST_SENSOR not in flow.config_data
 
 
 async def test_options_flow_reports_production_sensor_unit_error_on_that_field():
@@ -163,102 +126,6 @@ async def test_options_flow_rejects_legacy_omnibattery_solar_output_as_input():
     assert result["errors"] == {
         CONF_SOLAR_PRODUCTION_SENSOR: "solar_production_sensor_circular"
     }
-
-
-async def test_options_merge_replaces_legacy_forecast_with_remaining():
-    entry = SimpleNamespace(
-        entry_id="test-entry",
-        data={CONF_SOLAR_FORECAST_SENSOR: "sensor.today"},
-        options={},
-    )
-    flow = OptionsFlowHandler(entry)
-    flow.handler = entry.entry_id
-    updated = {}
-
-    async def reload_entry(_entry_id):
-        return True
-
-    flow.hass = SimpleNamespace(
-        async_create_task=lambda coro, _name=None: asyncio.ensure_future(coro),
-        config_entries=SimpleNamespace(
-            async_get_known_entry=lambda _entry_id: entry,
-            async_update_entry=lambda _entry, data: updated.update(data),
-            async_reload=reload_entry,
-        )
-    )
-    flow.config_data = {CONF_SOLAR_FORECAST_REMAINING_SENSOR: "sensor.remaining"}
-    flow.async_create_entry = lambda **_kwargs: {}
-
-    await flow._save_and_finish()
-
-    assert updated[CONF_SOLAR_FORECAST_REMAINING_SENSOR] == "sensor.remaining"
-    assert CONF_SOLAR_FORECAST_SENSOR not in updated
-
-
-async def test_options_merge_can_change_remaining_forecast_back_to_today():
-    entry = SimpleNamespace(
-        entry_id="test-entry",
-        data={CONF_SOLAR_FORECAST_REMAINING_SENSOR: "sensor.remaining"},
-        options={},
-    )
-    flow = OptionsFlowHandler(entry)
-    flow.handler = entry.entry_id
-    updated = {}
-
-    async def reload_entry(_entry_id):
-        return True
-
-    flow.hass = SimpleNamespace(
-        async_create_task=lambda coro, _name=None: asyncio.ensure_future(coro),
-        config_entries=SimpleNamespace(
-            async_get_known_entry=lambda _entry_id: entry,
-            async_update_entry=lambda _entry, data: updated.update(data),
-            async_reload=reload_entry,
-        )
-    )
-    flow.config_data = {
-        CONF_SOLAR_FORECAST_SENSOR: "sensor.today",
-        CONF_SOLAR_FORECAST_REMAINING_SENSOR: None,
-    }
-    flow.async_create_entry = lambda **_kwargs: {}
-
-    await flow._save_and_finish()
-
-    assert updated[CONF_SOLAR_FORECAST_SENSOR] == "sensor.today"
-    assert CONF_SOLAR_FORECAST_REMAINING_SENSOR not in updated
-
-
-async def test_options_merge_can_clear_remaining_forecast():
-    entry = SimpleNamespace(
-        entry_id="test-entry",
-        data={CONF_SOLAR_FORECAST_REMAINING_SENSOR: "sensor.remaining"},
-        options={},
-    )
-    flow = OptionsFlowHandler(entry)
-    flow.handler = entry.entry_id
-    updated = {}
-
-    async def reload_entry(_entry_id):
-        return True
-
-    flow.hass = SimpleNamespace(
-        async_create_task=lambda coro, _name=None: asyncio.ensure_future(coro),
-        config_entries=SimpleNamespace(
-            async_get_known_entry=lambda _entry_id: entry,
-            async_update_entry=lambda _entry, data: updated.update(data),
-            async_reload=reload_entry,
-        )
-    )
-    flow.config_data = {
-        CONF_SOLAR_FORECAST_SENSOR: None,
-        CONF_SOLAR_FORECAST_REMAINING_SENSOR: None,
-    }
-    flow.async_create_entry = lambda **_kwargs: {}
-
-    await flow._save_and_finish()
-
-    assert CONF_SOLAR_FORECAST_SENSOR not in updated
-    assert CONF_SOLAR_FORECAST_REMAINING_SENSOR not in updated
 
 
 async def test_options_save_reloads_outside_the_flow():

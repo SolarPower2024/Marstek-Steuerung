@@ -8,7 +8,6 @@ connection credentials redacted.
 """
 from __future__ import annotations
 
-import math
 from dataclasses import asdict, is_dataclass
 from typing import Any
 
@@ -32,30 +31,6 @@ TO_REDACT = {
     "ip_address",
     "mac",
 }
-
-
-def _json_safe(value: object) -> object:
-    """Make best-effort diagnostics values JSON serialisable.
-
-    Diagnostics should remain useful while the controller is starting, being
-    reconfigured, or represented by a lightweight test double. In particular,
-    blocker records can contain datetimes and arbitrary detail values.
-    """
-    if value is None or isinstance(value, (bool, int, str)):
-        return value
-    if isinstance(value, float):
-        return value if math.isfinite(value) else None
-    if isinstance(value, dict):
-        return {str(key): _json_safe(item) for key, item in value.items()}
-    if isinstance(value, (list, tuple, set)):
-        return [_json_safe(item) for item in value]
-    isoformat = getattr(value, "isoformat", None)
-    if callable(isoformat):
-        try:
-            return isoformat()
-        except (TypeError, ValueError):
-            pass
-    return str(value)
 
 
 def _driver_info(coordinator) -> dict[str, Any]:
@@ -120,36 +95,6 @@ async def async_get_config_entry_diagnostics(
         if not getattr(coord, "battery_manual_mode_enabled", False)
     ]
 
-    consumption_profile = {}
-    solar_profile = {}
-    vacation = {}
-    recorder_backfill = {}
-    tracker = getattr(controller, "_consumption_tracker", None)
-    profile = getattr(tracker, "consumption_profile", None)
-    if profile is not None:
-        try:
-            consumption_profile = _json_safe(profile.diagnostics())
-        except Exception as exc:  # noqa: BLE001
-            consumption_profile = {"error": str(exc)}
-    backfill_info = getattr(tracker, "backfill_diagnostics", None)
-    if callable(backfill_info):
-        try:
-            recorder_backfill = _json_safe(backfill_info())
-        except Exception as exc:  # noqa: BLE001
-            recorder_backfill = {"error": str(exc)}
-    vacation_info = getattr(tracker, "vacation_diagnostics", None)
-    if callable(vacation_info):
-        try:
-            vacation = _json_safe(vacation_info())
-        except Exception as exc:  # noqa: BLE001
-            vacation = {"error": str(exc)}
-    solar_tracker = getattr(tracker, "solar_profile", None)
-    if solar_tracker is not None:
-        try:
-            solar_profile = _json_safe(solar_tracker.diagnostics())
-        except Exception as exc:  # noqa: BLE001
-            solar_profile = {"error": str(exc)}
-
     return {
         "entry": {
             "title": entry.title,
@@ -162,10 +107,6 @@ async def async_get_config_entry_diagnostics(
             "manual_batteries": manual_batteries,
             "automatic_batteries": automatic_batteries,
         },
-        "consumption_profile": consumption_profile,
-        "recorder_backfill": recorder_backfill,
-        "vacation_learning": vacation,
-        "solar_profile": solar_profile,
         "phase_protection": async_redact_data(
             controller._phase_power_limiter.diagnostics(), TO_REDACT
         )

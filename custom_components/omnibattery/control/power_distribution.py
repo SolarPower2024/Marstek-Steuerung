@@ -75,8 +75,7 @@ class PowerDistribution:
     ) -> list:
         """Return batteries in the order they should be brought in.
 
-        Charging follows the day's outlook (see ``control/charge_order.py``):
-        which battery has to *start* first, which is not the same question as
+        Charging follows ``control/charge_order.py``: which battery has to *start* first, which is not the same question as
         who gets how many watts.
 
         Discharging keeps the fullest-first ladder, with a nominated primary

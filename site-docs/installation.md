@@ -1,6 +1,6 @@
 # Install Omnibattery
 
-Install the integration, connect a supported battery and choose the Home Assistant sensor that measures your home's grid exchange. You can finish a basic setup first and add forecasts and schedules later.
+Install the integration, connect a supported battery and choose the Home Assistant sensor that measures your home's grid exchange. You can finish a basic setup first and add optional sensors and schedules later.
 
 Already using **Marstek Venus Energy Manager**? Stop here and follow [Upgrading from Marstek VEM](upgrading-from-marstek-vem.md) to preserve your configuration and history.
 
@@ -29,7 +29,6 @@ The battery or its bridge must be reachable over the relevant local connection. 
 
 You can leave these fields empty or disabled during the first setup and add them later through **Settings → Devices & services → Omnibattery → Configure**:
 
-- **Solar forecast remaining today** for the solar forecast sensors
 - **Solar production sensor** when an external inverter measures panels that do not feed the battery's own solar inputs
 - **Off-grid power sensor** when a separate meter measures the backed-up circuit
 - **Three-phase current protection** when phase-current sensors are available; see [Three-phase current protection](configuration/three-phase.md)

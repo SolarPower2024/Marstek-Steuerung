@@ -6,7 +6,7 @@ Omnibattery conecta baterías domésticas compatibles a Home Assistant para que 
 
 ## ¿Es Omnibattery para mí?
 
-**Úsalo si** ya tienes una batería compatible y un sensor de Home Assistant que mide la potencia importada de la red o exportada a ella. Es especialmente útil si quieres un único lugar para coordinar baterías, previsiones solares y cargas domésticas.
+**Úsalo si** ya tienes una batería compatible y un sensor de Home Assistant que mide la potencia importada de la red o exportada a ella. Es especialmente útil si quieres un único lugar para coordinar baterías, producción solar y cargas domésticas.
 
 **No lo necesitas si** el control del propio fabricante ya cubre tus necesidades, o si solo quieres ver datos de la batería sin que Home Assistant ajuste su potencia.
 
@@ -29,7 +29,7 @@ Omnibattery puede coordinar marcas compatibles en la misma instalación. Consult
 
 -   :material-white-balance-sunny: **Aprovechar mejor la energía solar**
 
-    Combina producción en directo, capacidad de la batería y previsiones para decidir cuándo almacenar energía.
+    Almacena el excedente solar en el momento y lo reparte entre las baterías según el hueco que le queda a cada una.
 
 -   :material-clock-outline: **Funcionar según tu horario**
 

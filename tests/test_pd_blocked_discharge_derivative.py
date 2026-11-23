@@ -46,7 +46,6 @@ def test_blocked_discharge_does_not_wind_derivative_into_grid_charge():
             [battery] if is_charging else []
         ),
         _set_battery_power=_record,
-        _is_grid_at_min_soc_discharge_window=lambda: False,
         min_charge_power=400,
         min_discharge_power=0,
     )
