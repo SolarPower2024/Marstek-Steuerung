@@ -138,6 +138,7 @@ from .const import (
     PD_QUALITY_RESTART_SETTLE_S,
     HIGH_SOC_CHARGE_TAPER_FLOOR,
     HIGH_SOC_CHARGE_TAPER_GRACE_S,
+    NORMAL_BALANCE_TAPER_CELL_VOLTAGE,
     IDLE_RUNAWAY_POWER_W,
     IDLE_RUNAWAY_GRACE_S,
     DISCHARGE_MIN_SOC_REENTRY_MARGIN,
@@ -755,7 +756,8 @@ class ChargeDischargeController:
         self._charge_engage_started: dict[MarstekVenusDataUpdateCoordinator, datetime] = {}
         self._discharge_engage_started: dict[MarstekVenusDataUpdateCoordinator, datetime] = {}
         # Top-of-charge taper grace: the time a battery was first seen charging
-        # at SOC >= HIGH_SOC_CHARGE_TAPER_FLOOR without clearing the 10%-of-
+        # at SOC >= HIGH_SOC_CHARGE_TAPER_FLOOR (or with its top cell in the
+        # taper zone) without clearing the 10%-of-
         # commanded delivery bar. See _check_non_delivery.
         self._high_soc_taper_started: dict[MarstekVenusDataUpdateCoordinator, datetime] = {}
         # Idle ramp-down grace: the time the commanded direction flipped from a
@@ -4158,18 +4160,28 @@ class ChargeDischargeController:
             # Bounded by HIGH_SOC_CHARGE_TAPER_GRACE_S: a battery that gets
             # physically stuck in this band rather than tapering to completion
             # still surfaces as a fault, just later.
+            #
+            # A BMS that tapers on cell voltage starts earlier than that, so the
+            # top cell in the taper zone opens the same grace, as it arms
+            # tick_bms_cutoff(). The zone's entry voltage is the gate, not the
+            # top voltage: the cell relaxes as the current falls.
             current_soc = coordinator.data.get("battery_soc", 0) if coordinator.data else 0
-            if current_soc >= HIGH_SOC_CHARGE_TAPER_FLOOR:
+            vmax = control_vmax(coordinator)
+            in_taper_zone = (
+                vmax is not None and vmax >= NORMAL_BALANCE_TAPER_CELL_VOLTAGE
+            )
+            if current_soc >= HIGH_SOC_CHARGE_TAPER_FLOOR or in_taper_zone:
                 now = dt_util.utcnow()
                 taper_started = self._high_soc_taper_started.setdefault(coordinator, now)
                 taper_elapsed_s = (now - taper_started).total_seconds()
                 if taper_elapsed_s < HIGH_SOC_CHARGE_TAPER_GRACE_S:
                     _LOGGER.debug(
                         "[%s] Low charge power (%.0fW of %.0fW commanded) at "
-                        "SOC %.1f%% — top-of-charge taper (%.0fs of %ds "
-                        "grace), not a fault",
+                        "SOC %.1f%%, top cell %s V — top-of-charge taper "
+                        "(%.0fs of %ds grace), not a fault",
                         coordinator.name, delivered_power, commanded_power,
-                        current_soc, taper_elapsed_s, HIGH_SOC_CHARGE_TAPER_GRACE_S,
+                        current_soc, vmax, taper_elapsed_s,
+                        HIGH_SOC_CHARGE_TAPER_GRACE_S,
                     )
                     self._non_responsive.clear(coordinator)
                     return

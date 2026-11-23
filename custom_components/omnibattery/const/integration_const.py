@@ -418,7 +418,8 @@ PD_QUALITY_RESTART_SETTLE_S = float(DISCHARGE_ENGAGE_GRACE_S)
 # Standby. That gap was recorded as non-delivery and drove wake nudges
 # (RS485 re-assert) despite SOC genuinely still rising. Matches
 # tick_bms_cutoff's own taper-zone gate so both treat the same SOC band as
-# "possibly tapering".
+# "possibly tapering": this SOC, or below it the top cell in the taper zone
+# (NORMAL_BALANCE_TAPER_CELL_VOLTAGE), for a BMS that tapers on cell voltage.
 HIGH_SOC_CHARGE_TAPER_FLOOR = 99  # %: at/above this, judge charge non-delivery as a possible taper first
 
 # Bound on the exemption above: a battery that gets physically stuck in the
