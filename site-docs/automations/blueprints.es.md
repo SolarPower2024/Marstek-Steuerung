@@ -101,20 +101,6 @@ El objetivo de red es la importación total, no la potencia de carga: la baterí
 
 Envía el título, ID y mensaje de la notificación escapando HTML de forma segura.
 
-## Descartar notificaciones de carga predictiva
-
-[Importar blueprint](https://raw.githubusercontent.com/ffunes/Omnibattery/main/blueprints/dismiss_predictive_charging_notifications_blueprint.yaml)
-
-- **Finalidad:** descarta automáticamente notificaciones persistentes sobre carga predictiva desde red, incluidas evaluaciones, inicios de franjas de precio y reevaluaciones nocturnas.
-- **Requiere:** ninguna entidad ni helper adicional.
-- **Controla:** nada en Omnibattery; solo descarta notificaciones persistentes coincidentes.
-- **Compatible con:** cualquier instalación que use carga predictiva.
-- **No hace:** tocar alarmas de batería, mensajes de equilibrio de celdas o notificaciones de modo manual; solo se descartan notificaciones de carga predictiva.
-
-La notificación puede ser visible brevemente antes de que Home Assistant ejecute la automatización. Desactiva la automatización en cualquier momento para volver a recibir notificaciones de carga predictiva.
-
-Para evitarlas directamente en el origen, desactiva el interruptor **Notificaciones de Carga Predictiva**; consulta [Carga predictiva](../configuration/predictive-charging/index.md).
-
 ## Reserva de descarga según previsión solar
 
 [Importar blueprint](https://raw.githubusercontent.com/ffunes/Omnibattery/main/blueprints/solar_forecast_reserve_discharge_blueprint.yaml)

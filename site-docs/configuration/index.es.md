@@ -33,11 +33,8 @@ flowchart TD
     E -- No --> G{¿Mantener una carga grande fuera de la batería?}
     F --> G
     G -- Sí --> H[Añadir un dispositivo excluido]
-    G -- No --> I{¿Comprar energía en los periodos baratos elegidos?}
-    H --> I
-    I -- Sí --> J[Configurar carga predictiva]
-    I -- No --> K[Terminar]
-    J --> K
+    G -- No --> K[Terminar]
+    H --> K
 ```
 
 ![Abre el menú de configuración de Omnibattery](../assets/screenshots/configuration/reconfigure-omnibattery.png){ width="650" style="display: block; margin: 0 auto;"}
@@ -58,6 +55,6 @@ Para cambiar el sensor, la conexión de la batería, la definición de una franj
 | Un interruptor en directo cambia el comportamiento, pero no el formulario | Los controles en tiempo de ejecución y los campos de configuración tienen finalidades distintas | Usa **Configurar** para las definiciones; usa las entidades del panel para el funcionamiento temporal |
 
 ??? "Detalles avanzados"
-    El asistente inicial sigue una secuencia para validar dependencias: sensores y protección de fase opcional, baterías, franjas horarias, dispositivos excluidos y, por último, carga predictiva. El menú **Configurar** permite después volver directamente a esas secciones.
+    El asistente inicial sigue una secuencia para validar dependencias: sensores y protección de fase opcional, baterías, franjas horarias y dispositivos excluidos. El menú **Configurar** permite después volver directamente a esas secciones.
 
-    Las ramas opcionales son independientes. Las franjas horarias controlan cuándo se permite una dirección; la carga predictiva decide si comprar energía de red; los dispositivos excluidos cambian qué cargas debe cubrir la batería. Activar una no requiere las demás, salvo que su propia página lo indique.
+    Las ramas opcionales son independientes. Las franjas horarias controlan cuándo se permite una dirección; los dispositivos excluidos cambian qué cargas debe cubrir la batería. Activar una no requiere las demás, salvo que su propia página lo indique.

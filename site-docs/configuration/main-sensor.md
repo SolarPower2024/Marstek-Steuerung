@@ -31,7 +31,7 @@ The dashboard energy-flow diagram uses the grid sensor and available battery and
 
 Configuring a backup-circuit meter creates **Off-grid Meter Mode**. Turn it on to use that meter for control and grid statistics, and turn it off to return to the main meter. This software switch does not enable the battery's physical backup output (EPS).
 
-A remaining-today solar forecast becomes available to predictive charging and solar charge delay. External solar production adds the Solar node to the energy-flow diagram when the panels are connected to a separate inverter.
+A remaining-today solar forecast feeds the solar forecast sensors. External solar production adds the Solar node to the energy-flow diagram when the panels are connected to a separate inverter.
 
 ## If it does not work
 
@@ -41,7 +41,7 @@ A remaining-today solar forecast becomes available to predictive charging and so
 | Control reacts late or overshoots changing loads | The grid sensor publishes too slowly | Check the entity history and shorten its update interval where the meter supports it |
 | **Off-grid Meter Mode** is missing | No separate backup-circuit meter was saved | Configure **Off-grid power sensor (optional)** and make sure it differs from the main sensor |
 | The Solar node is missing | Omnibattery has no external solar-production source | Configure **Solar production sensor (optional)** only for solar that is not measured through battery maximum power point tracking (MPPT) inputs |
-| Predictive charging ignores the forecast | A whole-day value was selected as remaining energy, or the sensor unit is wrong | Prefer the remaining-today forecast and confirm it reports `Wh` or `kWh` |
+| The solar forecast sensors ignore the forecast | A whole-day value was selected as remaining energy, or the sensor unit is wrong | Prefer the remaining-today forecast and confirm it reports `Wh` or `kWh` |
 | **Home Consumption** briefly holds or becomes `unknown` during a direction change | Grid, battery, and solar readings describe different instants | Check that the sources update promptly and then wait for coherent readings |
 
 ??? "Advanced details"
@@ -57,7 +57,7 @@ A remaining-today solar forecast becomes available to predictive charging and so
 
     **Contracted-power protection**
 
-    The setup value defaults to 7,000 W and accepts 1,000–20,000 W. It caps battery charging in normal control, positive targets, hourly net balance, and predictive grid charging. During a predictive charging slot, Omnibattery first stops charging if import reaches the ceiling; after telemetry settles, it may discharge the confirmed excess. [Capacity protection (peak shaving)](../features/peak-shaving.md) is a separate reserve strategy.
+    The setup value defaults to 7,000 W and accepts 1,000–20,000 W. It caps battery charging in normal control and positive targets. [Capacity protection (peak shaving)](../features/peak-shaving.md) is a separate reserve strategy.
 
     **Solar sources**
 
@@ -71,7 +71,7 @@ A remaining-today solar forecast becomes available to predictive charging and so
     home consumption = grid power + battery alternating current (AC) power + solar power
     ```
 
-    The value feeds a 7-day consumption history used by predictive charging and solar charge delay. It accumulates over the local day, resets at midnight, and survives Home Assistant restarts. Battery charging power cancels the grid energy used to charge it.
+    The value feeds a 7-day consumption history used for the [consumption estimate](../features/consumption-estimate.md). It accumulates over the local day, resets at midnight, and survives Home Assistant restarts. Battery charging power cancels the grid energy used to charge it.
 
     Because the sources update independently, a direction change can briefly create an impossible balance. **Home Consumption** keeps its last coherent value for up to 15 seconds, then reports `unknown` if the inputs still disagree. Its physical daily-energy accumulator breaks that interval instead of adding a false zero. External-load exclusions used for control do not alter this physical dashboard total.
 

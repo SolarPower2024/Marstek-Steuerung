@@ -20,9 +20,8 @@ somebody deliberately set, and it is the quantity all three guards act on:
 Three things this module is careful about, each of which was a real defect:
 
 1. The guards measure against ``compute_active_target()``, never against 0.
-   ``curtailment_predischarge`` sets a negative override on purpose to build
-   headroom before a negative-price window; guards anchored at 0 veto it
-   outright under sun and trim it to house load at night.
+   A deliberately negative target (e.g. a negative grid setpoint) would
+   otherwise be vetoed outright under sun and trimmed to house load at night.
 2. ``uncovered_load_w`` gives up as soon as *any* configured battery is
    unreadable. A silent battery still delivers -- the hardware holds its last
    command -- so its output stays inside the meter reading while its term drops

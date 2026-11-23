@@ -403,8 +403,7 @@ class MarstekVenusDataUpdateCoordinator(DataUpdateCoordinator):
         self.backup_offgrid_threshold = backup_offgrid_threshold
         # User-set nominal capacity (kWh) for drivers that don't report it
         # (has_nominal_capacity=False). Injected into data as
-        # battery_total_energy each poll so stored_energy / predictive / pricing
-        # math work. Set from battery_config after construction; 0 = not yet set.
+        # battery_total_energy each poll so stored_energy / cycle math works. Set from battery_config after construction; 0 = not yet set.
         self.battery_capacity_kwh = 0.0
         # Per-battery manual-control ownership and software setpoints for drivers
         # without force_mode / set_*_power registers. The
@@ -1386,7 +1385,7 @@ class MarstekVenusDataUpdateCoordinator(DataUpdateCoordinator):
 
         # Drivers without a hardware nominal-capacity value
         # need the configured value surfaced as battery_total_energy so stored
-        # energy, cycle, predictive charging and pricing math work uniformly.
+        # energy and cycle math work uniformly.
         # ``getattr`` keeps third-party driver capabilities from before this
         # field compatible: they are assumed to report capacity.
         if (

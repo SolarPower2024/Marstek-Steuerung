@@ -22,7 +22,6 @@ Home Assistant may preserve an older entity ID or add a suffix. Fresh system ent
 | **PD Control Quality** | `sensor.omnibattery_system_pd_control_quality` | Grid-tracking quality |
 | **Active Batteries** | `sensor.omnibattery_active_batteries` | Batteries currently participating |
 | **Non-Responsive Batteries** | `sensor.omnibattery_non_responsive_batteries` | Batteries temporarily removed from control |
-| **Predictive Charging Active** | `binary_sensor.omnibattery_predictive_charging_active` | Predictive plan and charging state |
 | **Allow Charge / Allow Discharge** | `switch.*_battery_allow_charge`, `switch.*_battery_allow_discharge` | Per-battery participation |
 | **Manual Battery Control** | `switch.*_battery_manual_mode` | Manual ownership of one battery |
 
@@ -45,39 +44,30 @@ These entities belong to **Omnibattery System** rather than one battery.
     | `system_daily_charging_energy`, `system_daily_discharging_energy` | Core aggregate energy |
     | `system_solar_power`, `system_daily_solar_energy` | Supported battery solar telemetry or configured solar source, as applicable |
     | `expected_home_consumption_profile`, `consumption_profile_capture` | Consumption learning available |
-    | `balance_neto` | Hourly net balance configured |
 
 ??? "Control and diagnostic sensors"
 
     | Keys | When they appear |
     |---|---|
-    | `integration_status`, `active_batteries`, `non_responsive_batteries`, `discharge_window`, `three_phase_protection_status`, `system_pd_control_quality`, `daily_operation_timeline` | Controller available |
-    | `predictive_charging_active` | Predictive charging has been configured |
-    | `curtailment_status`, `surplus_price_hold_status`, `discharge_reserve_status`, `high_price_discharge_status` | Relevant Dynamic Pricing feature available |
+    | `integration_status`, `active_batteries`, `non_responsive_batteries`, `discharge_window`, `three_phase_protection_status`, `system_pd_control_quality` | Controller available |
     | `capacity_protection_active` | Capacity protection configured |
     | `weekly_full_charge` | Weekly full charge enabled |
-    | `charge_delay_status` | Charge delay configured |
     | `system_alarm_status` | At least one battery exposes alarm registers |
 
 ??? "System numbers"
 
-    Feature controls appear only when that feature or pricing mode is configured.
+    Feature controls appear only when that feature is configured.
 
     - PD control: `pd_controller_kp`, `pd_controller_kd`, `pd_controller_deadband`, `pd_controller_max_power_change`, `pd_controller_direction_hysteresis`, `pd_min_charge_power`, `pd_min_discharge_power`, `pd_relay_cooldown`, `pd_min_cycle_interval`, `pd_target_grid_power`, `no_pd_command_delay`
     - Fleet limits: `system_max_charge_power`, `system_max_discharge_power`, `max_contracted_power`
     - Capacity protection: `capacity_protection_limit`, `capacity_protection_soc_threshold`
-    - Charge delay: `delay_safety_margin_min`, `charge_delay_balance_deadband_kwh`, `delay_soc_setpoint`
     - Temperature: `temp_charge_limit_c`, `temp_charge_limit_band_c`, `temp_charge_limit_floor_pct`
-    - Predictive charging: `predictive_safety_margin_kwh`, `predictive_min_soc_floor`
-    - Dynamic Pricing: `max_price_threshold`, `discharge_price_threshold`, `min_arbitrage_margin`, `round_trip_efficiency`, `negative_injection_threshold`, `predischarge_reserve_soc`, `surplus_hold_min_saving`, `discharge_reserve_min_saving`
-    - Hourly net balance: `hourly_balance_target_net_wh`, `hourly_balance_max_offset_w`, `hourly_balance_deadband_wh`, `hourly_balance_hysteresis_w`
     - Excluded load: `excluded_device_exclusion_pct`, one per compatible configured device
 
 ??? "System switches"
 
     - Always available controller choices: `manual_mode`, `no_pd_mode`, `three_phase_protection`, `weekly_full_charge_enabled`, `vacation_mode`
-    - Conditional features: `offgrid_mode`, `primary_feedforward`, `system_power_limits`, `predictive_charging`, `predictive_charging_notifications`, `min_soc_floor_enabled`, `charge_delay`, `delay_soc_setpoint_enabled`, `weekly_full_charge_delay`, `temp_charge_limit`, `temp_charge_limit_discharge`, `capacity_protection`, `capacity_protection_excluded_devices`, `hourly_balance`
-    - Pricing controls: `price_discharge_control`, `smart_predischarge`, `negative_price_charging`, `surplus_price_hold`, `discharge_reserve`
+    - Conditional features: `offgrid_mode`, `primary_feedforward`, `system_power_limits`, `temp_charge_limit`, `temp_charge_limit_discharge`, `capacity_protection`, `capacity_protection_excluded_devices`
     - Generated controls: `time_slot` for each configured time slot; `excluded_device_enabled`, `excluded_device_solar_surplus`, `excluded_device_dynamic_power_control`, and `excluded_device_cover_home` for each applicable excluded device
     - External automation compatibility: `automation_charging_active`
 
@@ -89,8 +79,6 @@ These entities belong to **Omnibattery System** rather than one battery.
     | `weekly_full_charge_day` | Controller available |
     | `battery_phase` | Per battery, for phase assignment |
     | `primary_battery`, `charge_priority` | More than one battery configured |
-    | `high_price_sale` | Dynamic Pricing predictive mode |
-    | `reevaluate_dynamic_pricing` | Dynamic Pricing or Time Slot predictive mode |
 
 ## Battery devices
 
@@ -149,7 +137,7 @@ Battery entities depend on the driver. A missing entity usually means that the d
 
 ??? "Integration Status states and blockers"
 
-    **Integration Status** reports the highest-priority active condition. Its states cover predictive charging, weekly full charge, charge delay, price controls, electric-vehicle pauses, cell-balance hold, capacity protection, hourly net balance, backup mode, manual time-slot control, closed charging or discharging windows, normal charging or discharging, standby, manual mode, and initialization.
+    **Integration Status** reports the highest-priority active condition. Its states cover weekly full charge, electric-vehicle pauses, cell-balance hold, capacity protection, backup mode, manual time-slot control, closed charging or discharging windows, normal charging or discharging, standby, manual mode, and initialization.
 
     | Attribute | Meaning |
     |---|---|
@@ -161,32 +149,12 @@ Battery entities depend on the driver. A missing entity usually means that the d
     | `balance_hold_batteries` | Batteries held by cell-balance protection |
     | `backup_cooldown_batteries` | Batteries held after backup output activity |
     | `ev_chargers_active`, `ev_pause_until` | Active charger exclusions and pauses |
-    | `hourly_balance_status`, `hourly_balance_offset_w`, `hourly_balance_net_kwh` | Net-balance controller state |
     | `temperature_charge_limit` | Current thermal-limit decision |
-
-??? "Predictive Charging Active attributes"
-
-    Common attributes include `charging_needed`, `reason`, `price_data_status`, forecast and consumption values, selected price slots, target energy, and current progress.
-
-    Dynamic Pricing can also expose `chronological_planning_active`, `energy_horizon_end`, `overnight_consumption_kwh`, `earliest_projected_depletion`, `deadline_shortfall_kwh`, `cheaper_to_import_kwh`, `cheapest_rejected_slot`, `energy_deadlines`, `slot_deadlines`, and `chronological_plan_reason`. The diagnostics also expose `round_trip_efficiency_used` and `round_trip_efficiency_source` (`configured`, `measured` or `default`). They describe planning intent; live battery, grid, and safety limits remain authoritative.
-
-??? "High-Price Sale Status attributes"
-
-    These attributes appear when the corresponding Dynamic Pricing policy has a plan. See [Dynamic Pricing](../configuration/predictive-charging/dynamic-pricing.md) for the decision rules.
-
-    | Attribute | Meaning |
-    |---|---|
-    | `trigger_1_budget_kwh` | Battery energy that **High-Price Sale** (*Surplus only* or above) may sell after preserving the forecast need before sunrise and the safety margin |
-    | `refill_price` | Export-price reference for solar refilling the battery tomorrow |
-    | `trigger_1_reason` | Why surplus export is active or inactive |
-    | `surplus_export_enabled` | Whether **High-Price Sale** is set to *Surplus only* or above |
-    | `surplus_kwh` | Energy assigned to surplus export in that price period |
 
 ??? "Other diagnostic attributes"
 
     **PD Control Quality** uses `stable`, `oscillating`, `sluggish`, `battery_limited`, `blocked`, or `collecting_data`. Its attributes expose tracking error, oscillation rate, metric age, active proportional–derivative (PD) settings, and profile.
 
-    **Daily Operation Timeline** exposes bounded local-day `series`, `operations`, and `sources` data. See the [daily operation timeline](../features/daily-operation-timeline.md).
 
     **Expected Home Consumption Profile** exposes source, maturity, coverage, sample counts, and forecast data. **Vacation Mode** exposes its baseline and excluded learning periods.
 

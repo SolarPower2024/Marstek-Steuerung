@@ -33,7 +33,7 @@ El control proporcional–derivativo (PD) ajusta la potencia de la batería seg�
 | **Oscillating** | La importación y la exportación se alternan repetidamente fuera de la banda muerta | Sigue la fila sobre oscilación de abajo |
 | **Sluggish** | Un error sostenido se corrige demasiado despacio | Sigue la fila sobre respuesta lenta de abajo |
 | **Battery limited** | La batería está llena, vacía o en un límite de potencia | Comprueba los límites de batería; el ajuste no puede añadir capacidad |
-| **Blocked** | Una programación, retraso de carga, regla de precio o carga excluida impide la acción necesaria | Busca la regla activa antes de ajustar |
+| **Blocked** | Una programación o carga excluida impide la acción necesaria | Busca la regla activa antes de ajustar |
 | **Collecting data** | La métrica se está calentando o no ha recibido datos de control utilizables recientemente | Espera a que se reanude el control automático normal |
 | **Disabled** | Está activo el seguimiento directo No-PD | Usa sus controles en lugar del ajuste PD |
 
@@ -49,7 +49,7 @@ Después de cambiar un ajuste, deja que la métrica de calidad refleje el nuevo 
 | Aparecen picos grandes de importación/exportación tras cambios de carga | El inversor aún está acelerando, o la primera corrección es demasiado brusca | Pueden esperarse picos breves mientras la potencia medida se estabiliza; si se repite el sobreimpulso, elige un perfil más suave y después reduce **PD Max Power Change** |
 | La batería hace clic al entrar y salir de reposo | La demanda oscila alrededor del borde de la banda muerta | Aumenta gradualmente **PD Relay Cooldown**; solo afecta a transiciones de activo a reposo |
 | Un medidor rápido provoca muchas escrituras en la batería | Los ciclos de control llegan más rápido de lo que el puente puede manejar | Aumenta **PD Min Cycle Interval**; en modo de seguimiento directo, aumenta **No-PD Command Delay** |
-| La calidad sigue en **Battery limited** o **Blocked** | El controlador no puede aplicar la dirección requerida | Comprueba el estado de carga, los límites de potencia de batería, franjas horarias, retraso de carga, reglas de precios y cargas excluidas |
+| La calidad sigue en **Battery limited** o **Blocked** | El controlador no puede aplicar la dirección requerida | Comprueba el estado de carga, los límites de potencia de batería, franjas horarias y cargas excluidas |
 
 ??? "Detalles avanzados"
     ### Ley de control y cadencia

@@ -31,7 +31,7 @@ El diagrama de flujo de energía del tablero utiliza el sensor de red y los dato
 
 La configuración de un medidor de circuito de respaldo crea un **Modo de medidor fuera de la red**. Actívelo para usar ese medidor para control y estadísticas de la red, y apáguelo para regresar al medidor principal. Este interruptor de software no habilita la salida de respaldo física (EPS) de la batería.
 
-Un pronóstico solar del resto del día estará disponible para predecir la carga y el retraso de la carga solar. La producción solar externa añade el nodo solar al diagrama de flujo de energía cuando los paneles están conectados a un inversor independiente.
+Un pronóstico solar del resto del día alimenta los sensores de pronóstico solar. La producción solar externa añade el nodo solar al diagrama de flujo de energía cuando los paneles están conectados a un inversor independiente.
 
 ## Si no funciona
 
@@ -41,7 +41,7 @@ Un pronóstico solar del resto del día estará disponible para predecir la carg
 | El control reacciona tarde o sobrepasa las cargas cambiantes | El sensor de red publica demasiado lento | Verificar el historial de la entidad y acortar su intervalo de actualización cuando el medidor lo admita |
 | **Falta el modo de medidor fuera de la red** | No se guardó ningún medidor de circuito de respaldo separado | Configure el **Sensor de energía fuera de la red (opcional)** y asegúrese de que sea diferente del sensor principal |
 | Falta el nodo solar | Omnibattery no tiene fuente externa de producción solar | Configurar **Sensor de producción solar (opcional)** solo para energía solar que no se mide a través de entradas de seguimiento del punto de máxima potencia (MPPT) de la batería |
-| La carga predictiva ignora el pronóstico | Se seleccionó un valor de todo el día como energía restante o la unidad del sensor está equivocada | Prefiera el pronóstico restante de hoy y confírmelo en los informes `Wh` o `kWh` |
+| Los sensores de pronóstico solar ignoran el pronóstico | Se seleccionó un valor de todo el día como energía restante o la unidad del sensor está equivocada | Prefiera el pronóstico restante de hoy y confírmelo en los informes `Wh` o `kWh` |
 | **Consumo en el hogar** se mantiene brevemente o se convierte en `unknown` durante un cambio de dirección | Las lecturas de red, batería y energía solar describen diferentes instantes | Comprobar que las fuentes se actualizan puntualmente y luego esperar lecturas coherentes |
 
 ??? "Detalles avanzados"
@@ -57,7 +57,7 @@ Un pronóstico solar del resto del día estará disponible para predecir la carg
 
     **Protección de potencia contratada**
 
-    El valor de configuración predeterminado es 7000 W y acepta entre 1000 y 20 000 W. Limita la carga de la batería en control normal, objetivos positivos, saldo neto por hora y carga de red predictiva. Durante un intervalo de carga predictiva, Omnibattery primero deja de cargar si la importación alcanza el límite; una vez que la telemetría se estabilice, puede descargar el exceso confirmado. [Protección de capacidad (reducción de picos)](../features/peak-shaving.md) es una estrategia de reserva separada.
+    El valor de configuración predeterminado es 7000 W y acepta entre 1000 y 20 000 W. Limita la carga de la batería en control normal y objetivos positivos. [Protección de capacidad (reducción de picos)](../features/peak-shaving.md) es una estrategia de reserva separada.
 
     **Fuentes solares**
 
@@ -71,7 +71,7 @@ Un pronóstico solar del resto del día estará disponible para predecir la carg
     home consumption = grid power + battery alternating current (AC) power + solar power
     ```
 
-    El valor alimenta un historial de consumo de 7 días utilizado por la carga predictiva y el retraso de la carga solar. Se acumula durante el día local, se reinicia a medianoche y sobrevive a los reinicios de Home Assistant. La energía de carga de la batería anula la energía de la red utilizada para cargarla.
+    El valor alimenta un historial de consumo de 7 días utilizado para la [estimación de consumo](../features/consumption-estimate.md). Se acumula durante el día local, se reinicia a medianoche y sobrevive a los reinicios de Home Assistant. La energía de carga de la batería anula la energía de la red utilizada para cargarla.
 
     Debido a que las fuentes se actualizan de forma independiente, un cambio de dirección puede crear brevemente un equilibrio imposible. **Consumo doméstico** mantiene su último valor coherente durante hasta 15 segundos y luego informa `unknown` si las entradas aún no están de acuerdo. Su acumulador físico de energía diaria rompe ese intervalo en lugar de añadir un falso cero. Las exclusiones de carga externa utilizadas para el control no alteran el total de este panel físico.
 

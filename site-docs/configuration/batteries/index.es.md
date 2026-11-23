@@ -59,5 +59,4 @@ El mínimo del 2% es deliberado y no se puede reducir. Cerca del tope, el SOC qu
     Configuración relacionada:
 
     - [Franjas horarias](../time-slots.md) controla cuándo las baterías pueden cargar o descargar.
-    - [Carga predictiva](../predictive-charging/index.md) puede programar la carga desde la red.
     - [Gestión de varias baterías](../../features/multi-battery.md) explica el reparto de potencia y el control manual.

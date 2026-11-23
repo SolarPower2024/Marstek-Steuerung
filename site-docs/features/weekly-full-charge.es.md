@@ -6,13 +6,12 @@ Una carga completa semanal proporciona a una batería de litio-ferrofosfato (LFP
 
 **Úsalo si** tu batería rara vez llega al 100%, o quieres una comprobación de equilibrio regular sin iniciar tú una carga completa.
 
-**No lo necesitas si** la batería ya llega al 100% regularmente. Una carga completa también puede comprar energía de la red, así que elige el día y el comportamiento de retraso solar adecuados para tu tarifa.
+**No lo necesitas si** la batería ya llega al 100% regularmente. El ciclo carga solo con energía solar y el control normal, así que elige un día con buena producción solar.
 
 ## Antes de empezar
 
 - Omnibattery debe poder cargar la batería automáticamente.
 - Mantén activada **Reducción de tensión de carga al 100%** para cada batería compatible si quieres una lectura de equilibrio de celdas estabilizada.
-- Si está activado **Retraso de carga**, decide si el ciclo semanal puede comenzar inmediatamente o debe esperar a la solar prevista.
 - Una batería en **Control manual de batería** queda excluida hasta que se reanude el control automático.
 
 ## Cómo activarlo
@@ -20,27 +19,22 @@ Una carga completa semanal proporciona a una batería de litio-ferrofosfato (LFP
 1. Abre el panel lateral de Omnibattery y selecciona **Control**.
 2. En **Carga completa semanal**, activa **Carga completa semanal**.
 3. Elige **Día de carga completa semanal**.
-4. Si usas **Retraso de carga**, activa **Retrasar carga completa semanal** para esperar al sol; déjalo desactivado para iniciar el ciclo semanal sin ese retraso.
 
-![Configura el día de carga completa semanal y el retraso solar](../assets/screenshots/configuration/advanced-weekly-full-charge-config.png){ width="650" style="display: block; margin: 0 auto;"}
+![Configura el día de carga completa semanal](../assets/screenshots/configuration/advanced-weekly-full-charge-config.png){ width="650" style="display: block; margin: 0 auto;"}
 
 ## Qué verás
 
 **Carga completa semanal** informa `idle`, `charging` o `complete`. El día elegido, Omnibattery eleva temporalmente el objetivo de carga al 100% para las baterías bajo control automático. Solo marca el ciclo como completo después de considerar llenas todas las baterías participantes; entonces restaura cada límite configurado.
 
-Con [carga predictiva](../configuration/predictive-charging/index.md), la energía restante necesaria para el objetivo semanal entra en el plan. Omnibattery puede comprar esa energía durante el periodo de carga configurado cuando la solar prevista no la cubra. Sin carga predictiva, el ciclo depende de la solar disponible y puede no completarse en un día nublado.
+El día seleccionado el ciclo depende de la solar disponible y del control normal, por lo que puede no completarse en un día nublado; no compra energía de la red para terminar.
 
 El atributo `batteries` del sensor muestra el SOC en directo y la evidencia de finalización de cada batería. En baterías compatibles, **Delta de celdas**, **Estado de equilibrio** y **Última lectura de equilibrio** se actualizan tras la medición en la parte alta de carga. Consulta [¿Está sana mi batería?](cell-balance-monitor.md) para interpretar el resultado.
-
-!!! important "Comportamiento del retraso solar"
-    **Retrasar carga completa semanal** está desactivado de forma predeterminada. Por ello el ciclo semanal evita **Retraso de carga** y puede comenzar el día seleccionado. Activa el interruptor si prefieres que espere a que el retraso solar libere la carga.
 
 ## Si no funciona
 
 | Síntoma | Causa probable | Qué comprobar |
 |---|---|---|
 | El estado permanece `idle` | Hoy no es el día seleccionado o la función está desactivada | **Carga completa semanal** y **Día de carga completa semanal** |
-| El ciclo espera en lugar de cargar | El ciclo semanal respeta el retraso solar | **Retrasar carga completa semanal** y **Retraso de carga** |
 | Una batería no participa | El control manual por batería la controla, o sus datos no están disponibles | **Control manual de batería** y disponibilidad de la batería |
 | El ciclo sigue `charging` cerca de lleno | El sistema de gestión de batería (BMS) no ha confirmado que todas las baterías participantes estén llenas | Los detalles por batería en **Carga completa semanal**; deja que termine el proceso de carga superior |
 | El ciclo termina pero no aparece resultado de equilibrio | La batería no expone ambos extremos de tensión de celda, o no pudo terminar la medición diagnóstica en reposo | Si existe **Delta de celdas** y si ha cambiado **Última lectura de equilibrio** |

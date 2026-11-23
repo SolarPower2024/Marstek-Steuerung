@@ -33,11 +33,8 @@ flowchart TD
     E -- No --> G{Keep a large load off the battery?}
     F --> G
     G -- Yes --> H[Add an excluded device]
-    G -- No --> I{Buy energy in chosen cheap periods?}
-    H --> I
-    I -- Yes --> J[Configure predictive charging]
-    I -- No --> K[Finish]
-    J --> K
+    G -- No --> K[Finish]
+    H --> K
 ```
 
 ![Open the Omnibattery configuration menu](../assets/screenshots/configuration/reconfigure-omnibattery.png){ width="650" style="display: block; margin: 0 auto;"}
@@ -58,6 +55,6 @@ To change the sensor, battery connection, schedule definition, or device definit
 | A live switch changes behavior but the setup form does not change | Runtime controls and setup fields serve different purposes | Use **Configure** for definitions; use dashboard entities for temporary operation |
 
 ??? "Advanced details"
-    The initial wizard follows one sequence so it can validate dependencies: sensors and optional phase protection, batteries, time slots, excluded devices, then predictive charging. The **Configure** menu later lets you revisit those sections directly.
+    The initial wizard follows one sequence so it can validate dependencies: sensors and optional phase protection, batteries, time slots and excluded devices. The **Configure** menu later lets you revisit those sections directly.
 
-    Optional branches are independent. Time slots control when a direction is permitted; predictive charging decides whether to buy grid energy; excluded devices change which loads the battery should cover. Enabling one does not require the others unless its own page says so.
+    Optional branches are independent. Time slots control when a direction is permitted; excluded devices change which loads the battery should cover. Enabling one does not require the others unless its own page says so.

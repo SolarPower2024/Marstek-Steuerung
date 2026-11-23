@@ -59,7 +59,7 @@ When the protection switch is on, each battery's **Physical Battery Phase** sele
 
     Battery commands use positive watts for charge and negative watts for discharge. Current budgets are converted with a nominal 230 V and 0.90 power factor, then rounded down in 5 W steps. Normal battery selection and proportional allocation run first. Power rejected by a phase cap may move to healthy phases with available battery capacity, following the normal state of charge (SOC) and energy priority.
 
-    The envelope applies to proportional–derivative (PD) control, direct tracking, predictive grid charging, automatic time-slot control, active balancing, and the final shared automatic-command guard. The accepted total is fed back to the controller to prevent windup.
+    The envelope applies to proportional–derivative (PD) control, direct tracking, automatic time-slot control, active balancing, and the final shared automatic-command guard. The accepted total is fed back to the controller to prevent windup.
 
     A current reading older than 65 seconds is stale. If a configured phase has no valid reading, new charging on that phase is capped at 0 W. A previously measured safe discharge may be held because stopping it would hand the household load back to the grid and could increase phase current. Healthy phases continue. A phase with no configured sensor-and-limit pair has no phase cap. An **Unassigned** battery also remains outside the envelope.
 

@@ -59,7 +59,7 @@ Cuando el interruptor de protección está activado, el selector **Fase de bater
 
     Los comandos de batería utilizan vatios positivos para carga y vatios negativos para descarga. Los presupuestos actuales se convierten con un factor de potencia nominal de 230 V y 0,90 y luego se redondean hacia abajo en pasos de 5 W. La selección normal de batería y la asignación proporcional se ejecutan primero. La energía rechazada por un límite de fase puede pasar a fases saludables con capacidad de batería disponible, siguiendo el estado normal de carga (SOC) y la prioridad energética.
 
-    La envolvente se aplica al control proporcional-derivativo (PD), el seguimiento directo, la carga predictiva de la red, el control automático de intervalos de tiempo, el equilibrio activo y la protección final de comando automático compartido. El total aceptado se devuelve al controlador para evitar la liquidación.
+    La envolvente se aplica al control proporcional-derivativo (PD), el seguimiento directo, el control automático de intervalos de tiempo, el equilibrio activo y la protección final de comando automático compartido. El total aceptado se devuelve al controlador para evitar la liquidación.
 
     Una lectura actual de más de 65 segundos está obsoleta. Si una fase configurada no tiene una lectura válida, la nueva carga en esa fase tiene un límite de 0 W. Se puede mantener una descarga segura medida previamente porque detenerla devolvería la carga doméstica a la red y podría aumentar la corriente de la fase. Las fases saludables continúan. Una fase sin un par de sensor y límite configurado no tiene límite de fase. Una batería **No asignada** también permanece fuera del sobre.
 

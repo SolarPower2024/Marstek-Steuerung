@@ -135,7 +135,7 @@ See [troubleshooting](../troubleshooting.md) for symptom-led checks.
 
     ## Power distribution
 
-    Once active batteries are selected, the total power calculated by the [PD controller](pd-controller.md) is distributed among them proportionally, respecting each battery's individual power and SOC limits. The same selection and distribution logic applies whenever the integration requests power from the fleet, not only during normal grid-following control — this includes solar charging and predictive/grid charging.
+    Once active batteries are selected, the total power calculated by the [PD controller](pd-controller.md) is distributed among them proportionally, respecting each battery's individual power and SOC limits. The same selection and distribution logic applies whenever the integration requests power from the fleet, not only during normal grid-following control — this includes solar charging.
 
     Optional system-wide caps can also be configured in **Advanced PD controller** after enabling **Enable system power limits**:
 
@@ -173,7 +173,7 @@ See [troubleshooting](../troubleshooting.md) for symptom-led checks.
 
     Charge and discharge permissions are resolved through a runtime blocker registry. Blockers can be system-wide or scoped to one battery. The controller checks this registry before deadband and stale-sensor early returns, so an active command is stopped as soon as a blocker appears.
 
-    Global blockers include solar charge delay, time-slot charge/discharge rules, price-based discharge control, and EV charger no-telemetry pauses. Per-battery blockers include the `Allow Charge` and `Allow Discharge` switches, maximum SOC, minimum SOC, and charge hysteresis. Other availability checks such as backup/off-grid exclusion and non-responsive exclusion remain separate from the blocker registry.
+    Global blockers include time-slot charge/discharge rules and EV charger no-telemetry pauses. Per-battery blockers include the `Allow Charge` and `Allow Discharge` switches, maximum SOC, minimum SOC, and charge hysteresis. Other availability checks such as backup/off-grid exclusion and non-responsive exclusion remain separate from the blocker registry.
 
     The top-level `charge_blocked` and `discharge_blocked` attributes report the effective system state: they become `true` when a global blocker is active or when every known battery is blocked in that direction. Per-battery details remain visible in `battery_charge_blockers` and `battery_discharge_blockers`.
 

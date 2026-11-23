@@ -17,7 +17,6 @@ Choose the behavior that matches your goal:
 | Let the battery cover household demand while solar and grid supply the large device | **Cover Home**, together with Solar Surplus |
 | Coordinate with a wallbox that changes its own power from the grid meter | **Dynamic Power Control**, together with Solar Surplus |
 | Manage a charger that reports charging state but no watts | **EV charger without power telemetry** |
-| Keep predictive charging from promising the same solar to both battery and EV | **Expected remaining demand** and, when needed, its presence entity |
 
 ## Before you start
 
@@ -46,8 +45,6 @@ Choose the behavior that matches your goal:
 
 A state-only EV charger pauses battery charge and discharge when charging first appears. After the pause, the battery may charge from solar surplus but remains blocked from discharging for the EV until charging ends.
 
-If the device has expected remaining demand configured, predictive charging subtracts that claim from the solar available to the battery. A presence entity releases the claim when the EV or device is absent. The [configuration page](../configuration/excluded-devices.md) contains the accepted units and presence rules.
-
 ## If it does not work
 
 | Symptom | Likely cause | What to check |
@@ -57,7 +54,6 @@ If the device has expected remaining demand configured, predictive charging subt
 | Battery and wallbox compete for changing solar | Dynamic Power Control is off or its activity signal is wrong | Turn on **Dynamic Power Control** and verify the configured activity entity changes before or with demand |
 | The battery never charges while the flexible load is active | The wallbox keeps requesting priority, or no genuine export remains | Check device power, activity state, external solar production, and grid export |
 | A state-only charger does not pause the battery | Its activity entity does not report a recognized active state | Check **Device active / EV charging sensor** in the device setup |
-| Predictive charging skips cheap energy and the battery stays low | Solar promised to the device is not reserved | Configure **Expected remaining demand (kWh)** and a presence entity if the demand persists after disconnection |
 
 ??? "Advanced details"
     **Load correction**

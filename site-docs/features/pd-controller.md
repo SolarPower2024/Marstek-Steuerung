@@ -33,7 +33,7 @@ The proportional–derivative (PD) controller adjusts battery power as household
 | **Oscillating** | Import and export repeatedly alternate outside the deadband | Follow the hunting row below |
 | **Sluggish** | A sustained error closes too slowly | Follow the slow-response row below |
 | **Battery limited** | The battery is full, empty, or at a power limit | Check battery limits; tuning cannot add capacity |
-| **Blocked** | A schedule, charge delay, price rule, or excluded load prevents the needed action | Find the active rule before tuning |
+| **Blocked** | A schedule or excluded load prevents the needed action | Find the active rule before tuning |
 | **Collecting data** | The metric is warming up or has not received usable control data recently | Wait for normal automatic control to resume |
 | **Disabled** | No-PD direct tracking is active | Use its controls instead of PD tuning |
 
@@ -49,7 +49,7 @@ After changing a setting, allow the quality metric to reflect the new behavior b
 | Large import/export spikes appear after load changes | The inverter is still ramping, or the first correction is too abrupt | Brief spikes can be expected while measured power catches up; for repeated overshoot, choose a smoother profile, then reduce **PD Max Power Change** |
 | The battery clicks when entering and leaving idle | Demand hovers around the deadband edge | Increase **PD Relay Cooldown** gradually; it affects active-to-idle transitions only |
 | A fast meter causes frequent battery writes | Control cycles arrive faster than the bridge can handle | Increase **PD Min Cycle Interval**; in direct-tracking mode, increase **No-PD Command Delay** instead |
-| Quality remains **Battery limited** or **Blocked** | The controller cannot apply the required direction | Check state of charge, battery power limits, time slots, charge delay, pricing rules, and excluded loads |
+| Quality remains **Battery limited** or **Blocked** | The controller cannot apply the required direction | Check state of charge, battery power limits, time slots, and excluded loads |
 
 ??? "Advanced details"
     ### Control law and cadence

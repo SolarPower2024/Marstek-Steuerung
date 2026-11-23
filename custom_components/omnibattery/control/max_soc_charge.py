@@ -970,14 +970,12 @@ class MaxSocChargeManager:
                 charge_power,
                 discharge_power,
                 ignore_charge_blockers={
-                    "charge_delay",
                     "time_slot_charge",
                     "max_soc",
                     "charge_hysteresis",
                 },
                 ignore_discharge_blockers={
                     "time_slot_discharge",
-                    "price_discharge",
                     "min_soc",
                 },
             )

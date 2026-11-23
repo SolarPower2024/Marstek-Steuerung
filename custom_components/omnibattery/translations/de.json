@@ -30,23 +30,19 @@
     },
     "dead_main_sensor": {
       "title": "Netzleistungssensor sendet keine Werte mehr",
-      "description": "Der konfigurierte Netzsensor {sensor} hat seit {minutes} Minuten keinen Messwert mehr veröffentlicht. Ohne ihn kann Omnibattery nicht regeln und hat die automatische Regelung daher angehalten: jede automatisch geregelte Batterie steht auf 0W (der letzte Befehl war {power}W) und das vorausschauende Laden aus dem Netz ist pausiert. Der manuelle Modus und manuelle Zeitfenster bleiben unverändert. Die automatische Regelung setzt von selbst wieder ein, sobald {sensor} wieder einen gültigen Messwert veröffentlicht. Beachte: ein auf einem gültigen Wert eingefrorener Sensor sieht in Home Assistant völlig gesund aus. Prüfe, ob {sensor} noch aktualisiert wird und ob sich die dahinterliegende Integration oder Bridge aufgehängt hat."
+      "description": "Der konfigurierte Netzsensor {sensor} hat seit {minutes} Minuten keinen Messwert mehr veröffentlicht. Ohne ihn kann Omnibattery nicht regeln und hat die automatische Regelung daher angehalten: jede automatisch geregelte Batterie steht auf 0W (der letzte Befehl war {power}W). Der manuelle Modus und manuelle Zeitfenster bleiben unverändert. Die automatische Regelung setzt von selbst wieder ein, sobald {sensor} wieder einen gültigen Messwert veröffentlicht. Beachte: ein auf einem gültigen Wert eingefrorener Sensor sieht in Home Assistant völlig gesund aus. Prüfe, ob {sensor} noch aktualisiert wird und ob sich die dahinterliegende Integration oder Bridge aufgehängt hat."
     },
     "dead_main_sensor_since_start": {
       "title": "Netzleistungssensor sendet seit dem Neustart keine Werte",
-      "description": "Der konfigurierte Netzsensor {sensor} hat in den {minutes} Minuten seit dem Start von Home Assistant keinen gültigen Messwert veröffentlicht. Ohne ihn kann Omnibattery nicht regeln. Wenn Home Assistant nicht sauber heruntergefahren wurde, kann eine Batterie noch ihren letzten Befehl von vor dem Neustart ausführen. Omnibattery hat die automatische Regelung daher angehalten: jede automatisch geregelte Batterie steht auf 0W und das vorausschauende Laden aus dem Netz ist pausiert. Der manuelle Modus und manuelle Zeitfenster bleiben unverändert. Die automatische Regelung startet von selbst, sobald {sensor} einen gültigen Messwert veröffentlicht. Prüfe, ob {sensor} existiert und aktualisiert wird und ob die dahinterliegende Integration oder das Gerät nach dem Neustart wieder läuft."
+      "description": "Der konfigurierte Netzsensor {sensor} hat in den {minutes} Minuten seit dem Start von Home Assistant keinen gültigen Messwert veröffentlicht. Ohne ihn kann Omnibattery nicht regeln. Wenn Home Assistant nicht sauber heruntergefahren wurde, kann eine Batterie noch ihren letzten Befehl von vor dem Neustart ausführen. Omnibattery hat die automatische Regelung daher angehalten: jede automatisch geregelte Batterie steht auf 0W. Der manuelle Modus und manuelle Zeitfenster bleiben unverändert. Die automatische Regelung startet von selbst, sobald {sensor} einen gültigen Messwert veröffentlicht. Prüfe, ob {sensor} existiert und aktualisiert wird und ob die dahinterliegende Integration oder das Gerät nach dem Neustart wieder läuft."
     },
     "slow_main_sensor": {
       "title": "Der Netzleistungssensor aktualisiert zu langsam",
       "description": "Der konfigurierte Netzsensor {sensor} aktualisiert ungefähr alle {observed_interval} Sekunden. Intervalle von {warning_interval} Sekunden oder mehr sind langsamer als empfohlen und können die Regelqualität verringern. Omnibattery folgt dem letzten Messwert, bis er älter als {stale_limit} Sekunden ist. Verwenden Sie einen schnelleren Sensor, wenn Sie eine präzisere Echtzeitregelung benötigen."
     },
-    "price_data_unusable": {
-      "title": "Preisdaten unbrauchbar",
-      "description": "Omnibattery konnte über {minutes} Minuten lang keine nutzbaren Preisslots aus {sensor} lesen (Status: {status}). Preisgesteuertes Laden ist dadurch inaktiv: die Planung nach dynamischen Preisen und die preisgesteuerte Freigabe der Ladeverzögerung fallen auf ihr Verhalten ohne Preise zurück. Prüfen Sie, ob der Sensor verfügbar ist und sein Preisattribut eine Liste von Einträgen enthält; ein Template-Sensor muss ISO-8601-Zeitstempel liefern, da ein gerendertes Python-datetime nicht zurück in eine Liste umgewandelt werden kann."
-    },
     "solar_forecast_unusable": {
       "title": "Solarprognose unbrauchbar",
-      "description": "Der konfigurierte Solarprognose-Sensor {sensor} ist seit über {minutes} Minuten nicht verfügbar oder nicht lesbar. Omnibattery läuft weiter, aber alles, was auf der Prognose beruht, arbeitet blind: die Ladeverzögerung gibt für den Rest des Tages frei, Entscheidungen zum Netzladen gehen von gar keiner Sonne aus und buchen womöglich unnötige Netzslots, und die Restsonnen-Schätzung liest 0 kWh. Prüfen Sie den Sensor oder die Integration, die ihn liefert."
+      "description": "Der konfigurierte Solarprognose-Sensor {sensor} ist seit über {minutes} Minuten nicht verfügbar oder nicht lesbar. Omnibattery läuft weiter, aber alles, was auf der Prognose beruht, arbeitet blind: die Restsonnen-Schätzung liest 0 kWh. Prüfen Sie den Sensor oder die Integration, die ihn liefert."
     },
     "solar_forecast_remaining_recommended": {
       "title": "Verbleibende Solarprognose verwenden",
@@ -108,7 +104,9 @@
       "phase_assignments": {
         "title": "Phasenzuordnung Batterie {battery_num}",
         "description": "Wählen Sie die physische Phase, an die {battery_name} angeschlossen ist, oder Nicht zugewiesen, wenn keine geschützte Phase verwendet wird.",
-        "data": {"battery_phase": "Physische Batteriephase"}
+        "data": {
+          "battery_phase": "Physische Batteriephase"
+        }
       },
       "batteries": {
         "title": "Anzahl der Batterien",
@@ -279,9 +277,7 @@
           "dynamic_power_control": "Gerät hat dynamische Leistungsregelung",
           "cover_home_when_active": "Hausverbrauch decken, während das Gerät aktiv ist",
           "ev_charger_no_telemetry": "EV-Ladestation ohne Leistungstelemetrie",
-          "is_ev_charger": "E-Auto-Ladegerät (nur Flussdiagramm)",
-          "remaining_demand_sensor": "Erwarteter Restbedarf (kWh)",
-          "remaining_demand_presence_sensor": "Anwesenheits-Entität für den Restbedarf (optional)"
+          "is_ev_charger": "E-Auto-Ladegerät (nur Flussdiagramm)"
         },
         "data_description": {
           "power_sensor": "Numerischer Leistungssensor (W) des Geräts. Für EV-Ladestationen ohne Leistungstelemetrie optional; bestehende Konfigurationen mit dem Statussensor in diesem Feld bleiben kompatibel.",
@@ -291,9 +287,7 @@
           "dynamic_power_control": "Für Geräte aktivieren, die ihren Bedarf über den Netzzähler automatisch regeln. Mit Aktivitätssensor gibt Omnibattery Vorrang, bevor Leistung erscheint; andernfalls reagiert es auf den Leistungssensor. Danach wird nur der tatsächlich verbleibende Überschuss genutzt.",
           "cover_home_when_active": "Erfordert Solarüberschuss und einen Solarleistungssensor. Die Batterie darf den eigenen Hausverbrauch decken, während dieses Gerät aktiv ist; nur der Netzanteil des Geräts bleibt ausgeschlossen.",
           "ev_charger_no_telemetry": "✓ AKTIVIERT = Nutzt den Sensor Gerät aktiv / EV-Ladestatus statt numerischer Telemetrie. Bestehende Konfigurationen mit diesem Sensor im Leistungsfeld funktionieren weiter. Bei erkanntem Laden pausiert die Batterie 5 Minuten; danach lädt sie nur mit Solarüberschuss und entlädt nie für das EV.",
-          "is_ev_charger": "Aktivieren, wenn dieses Gerät ein Ladegerät für Elektrofahrzeuge ist. Wird nur vom animierten Energieflussdiagramm verwendet, um das Gerät auf der Leitung des E-Auto-Ladegeräts statt auf der Leitung der ausgeschlossenen Geräte darzustellen. Ändert nicht, wie die Batterie das Gerät steuert.",
-          "remaining_demand_sensor": "Optional. Sensor mit der Energie (kWh), die dieses Gerät heute noch verbrauchen will, zum Beispiel sensor.evcc_[ladepunkt]_charge_remaining_energy. Die vorausschauende Ladung reserviert dann diesen Anteil der verbleibenden Solarprognose für das Gerät, statt anzunehmen, dass die Batterie ihn erhält. Wird nur verwendet, wenn 'Verbrauch ist im Hausverbrauchssensor enthalten' aktiviert ist. Geräte mit 'EV-Ladestation ohne Leistungstelemetrie' werden übersprungen: Ihre Energie steckt bereits in der Verbrauchsprognose, eine Reservierung würde sie doppelt zählen.",
-          "remaining_demand_presence_sensor": "Den erwarteten Restbedarf nur zählen, solange diese Entität das Gerät als anwesend meldet: on, true, home, connected, plugged oder present. Leer lassen heißt immer zählen. Auf die Connected-Entität der Wallbox richten, wenn die Quelle weiter einen Bedarf meldet, obwohl nichts angesteckt ist: evcc meldet die Energie bis zum SOC-Ziel des Fahrzeugs, unabhängig davon, ob ein Auto angesteckt ist, und für ein abwesendes Auto reservierte Sonne fehlt der Batterie ohne Nutzen. Eine nicht verfügbare oder unbekannte Entität gilt als abwesend, damit ein defekter Sensor das Reservieren beendet, statt für ein womöglich abwesendes Gerät zu reservieren."
+          "is_ev_charger": "Aktivieren, wenn dieses Gerät ein Ladegerät für Elektrofahrzeuge ist. Wird nur vom animierten Energieflussdiagramm verwendet, um das Gerät auf der Leitung des E-Auto-Ladegeräts statt auf der Leitung der ausgeschlossenen Geräte darzustellen. Ändert nicht, wie die Batterie das Gerät steuert."
         }
       },
       "add_more_excluded_devices": {
@@ -301,79 +295,6 @@
         "description": "Sie haben derzeit {current_devices} ausgeschlossene(s) Gerät(e). Sie können insgesamt bis zu {max_devices} Geräte hinzufügen.",
         "data": {
           "add_more": "Weiteres ausgeschlossenes Gerät hinzufügen"
-        }
-      },
-      "predictive_charging": {
-        "title": "Prädiktive Netzladung",
-        "description": "Möchten Sie intelligentes Netzladen aktivieren? Diese Funktion ermöglicht das Laden der Batterien aus dem Netz während der Niedrigtarifzeiten, wenn die Solarprognose für heute unzureichend ist.",
-        "data": {
-          "configure_predictive_charging": "Prädiktive Ladung konfigurieren"
-        }
-      },
-      "predictive_charging_config": {
-        "title": "Konfiguration der prädiktiven Ladung",
-        "description": "Konfigurieren Sie, wann und wie die Batterien aus dem Netz basierend auf der Solarprognose geladen werden sollen. Sie können bis zu 3 Ladefenster einrichten — füllen Sie nur Fenster 1 für ein einzelnes Fenster aus oder fügen Sie bei Bedarf Fenster 2 und 3 hinzu.",
-        "data": {
-          "start_time": "Fenster 1 — Startzeit (Niedrigtarif)",
-          "end_time": "Fenster 1 — Endzeit (Niedrigtarif)",
-          "days": "Fenster 1 — Wochentage",
-          "start_time_2": "Fenster 2 — Startzeit (optional)",
-          "end_time_2": "Fenster 2 — Endzeit (optional)",
-          "days_2": "Fenster 2 — Wochentage",
-          "start_time_3": "Fenster 3 — Startzeit (optional)",
-          "end_time_3": "Fenster 3 — Endzeit (optional)",
-          "days_3": "Fenster 3 — Wochentage",
-          "solar_forecast_sensor": "Solarprognose-Sensor (kWh)"
-        },
-        "data_description": {
-          "start_time": "Startzeit des Ladefensters (z.B. 01:00, Niedrigtarif)",
-          "end_time": "Endzeit des Ladefensters (z.B. 06:00)",
-          "days": "Tage, an denen Netzladung erlaubt ist",
-          "solar_forecast_sensor": "Sensor, der die Solarproduktionsprognose in kWh liefert (z.B. Solcast). Mit Solaranlage: konfigurieren — das System lädt nur dann aus dem Netz, wenn die Solarprognose unzureichend ist. Ohne Solaranlage: leer lassen — das System lädt, wenn die Batterieenergie für den Tag nicht ausreicht. Nicht erforderlich, wenn dieser Sensor bereits im ersten Schritt konfiguriert wurde — er wird automatisch verwendet."
-        }
-      },
-      "predictive_charging_mode": {
-        "title": "Lademodus auswählen",
-        "description": "Wählen Sie den Modus für die prädiktive Netzladung. Zeitfenster verwendet ein festes nächtliches Ladefenster; Dynamischer Preis wählt automatisch die günstigsten Stunden basierend auf Echtzeit-Strompreisen.",
-        "data": {
-          "predictive_charging_mode": "Lademodus"
-        },
-        "data_description": {
-          "predictive_charging_mode": "Zeitfenster: Laden während eines festen Niedrigtarifzeitfensters. Dynamischer Preis: Tägliche Auswahl der günstigsten Stunden basierend auf Nordpool/ENTSO-e Preisen. Echtzeit-Preis: Sofortige Aktivierung der Ladung wenn der Preis unter den Schwellenwert fällt."
-        }
-      },
-      "dynamic_pricing_config": {
-        "title": "Konfiguration dynamischer Preisladung",
-        "description": "Konfigurieren Sie dynamische Preisladung. Das System liest stündliche Strompreise und wählt automatisch die günstigsten Stunden zum Laden aus.",
-        "data": {
-          "price_integration_type": "Preisintegration",
-          "price_sensor": "Preissensor",
-          "export_price_sensor": "Sensor für Einspeise-/Exportpreise (optional)",
-          "export_price_integration_type": "Integration für den Exportpreis (optional)",
-          "zonneplan_export_bonus_enabled": "Zonneplan-Einspeisebonus anwenden",
-          "solar_forecast_sensor": "Solarprognose-Sensor (kWh)"
-        },
-        "data_description": {
-          "price_integration_type": "Wählen Sie die Heimautomatisierungsintegration, die Strompreisdaten liefert",
-          "price_sensor": "Sensor, der stündliche Strompreise enthält (z.B. sensor.nordpool_kwh_de_eur_3_10_025)",
-          "export_price_sensor": "Sensor, der die Einspeisevergütung liefert. Leer lassen, um die Importpreiskurve zu verwenden — das ist korrekt, wenn die Einspeisung zum Importpreis vergütet wird (Net Metering).",
-          "export_price_integration_type": "Attributaufbau des Exportpreis-Sensors. Leer lassen, um die Import-Integration zu übernehmen. Tibber steht hier nicht zur Verfügung: Es ist dienstbasiert und sein Cache gehört zur Importkurve.",
-          "zonneplan_export_bonus_enabled": "Addiert den Zonneplan-Sonnenbonus zum Einspeisepreis von Solarstrom inkl. Steuern: der Bonus sind 0,02 €/kWh auf den Preis ohne Steuern, danach +10 %. Gilt nur zwischen Sonnenaufgang und Sonnenuntergang und nur, wenn dieser Preis plus 0,02 € positiv ist. Einspeisung aus dem Akku wird nie mit dem Bonus bewertet. Hat keine Wirkung, wenn die tatsächlich verwendete Exportpreisintegration nicht Zonneplan ist.",
-          "solar_forecast_sensor": "Sensor, der die Solarproduktionsprognose in kWh liefert (z.B. Solcast). Mit Solaranlage: konfigurieren — das System lädt nur dann aus dem Netz, wenn die Solarprognose unzureichend ist. Ohne Solaranlage: leer lassen — das System lädt, wenn die Batterieenergie für den Tag nicht ausreicht. Nicht erforderlich, wenn dieser Sensor bereits im ersten Schritt konfiguriert wurde — er wird automatisch verwendet."
-        }
-      },
-      "realtime_price_config": {
-        "title": "Prädiktives Laden — Echtzeit-Preis",
-        "description": "Preissensor und Schwellenwert konfigurieren. Das System liest den aktuellen Preis alle paar Sekunden und startet oder stoppt das Netzladen sofort — ohne tägliche Planung.",
-        "data": {
-          "price_sensor": "Strompreissensor",
-          "average_price_sensor": "Tagesdurchschnittspreis-Sensor (optional)",
-          "solar_forecast_sensor": "Solarprognose-Sensor (kWh)"
-        },
-        "data_description": {
-          "price_sensor": "Sensor, dessen Zustand der aktuelle Strompreis ist. Jeder Sensor, der den aktuellen Periodenpreis als Zustand anzeigt, funktioniert.",
-          "average_price_sensor": "Wenn angegeben, wird dieser Wert als Schwellenwert anstelle des fixen Wertes verwendet. Leer lassen für den fixen Schwellenwert.",
-          "solar_forecast_sensor": "Sensor, der die Solarproduktionsprognose in kWh liefert. Nicht erforderlich, wenn dieser Sensor bereits im ersten Schritt konfiguriert wurde — er wird automatisch verwendet."
         }
       },
       "weekly_full_charge": {
@@ -391,29 +312,6 @@
         },
         "data_description": {
           "weekly_full_charge_day": "Tag, an dem die Batterien unabhängig vom konfigurierten maximalen SOC auf 100% geladen werden. Dies hilft beim Ausgleich der Batteriezellen."
-        }
-      },
-      "charge_delay": {
-        "title": "Solarladungsverzögerung",
-        "description": "Solarladungsverzögerung aktivieren? Diese Funktion verzögert das Laden der Batterien, bis die Solarenergiebilanz anzeigt, dass es nötig ist, und exportiert überschüssige Solarenergie ins Netz in der Zwischenzeit.",
-        "data": {
-          "configure_charge_delay": "Ladungsverzögerung konfigurieren"
-        }
-      },
-      "charge_delay_config": {
-        "title": "Konfiguration der Ladungsverzögerung",
-        "description": "Konfigurieren Sie den Sicherheitspuffer und den Solarprognose-Sensor für die Ladungsverzögerung.",
-        "data": {
-          "delay_safety_margin_h": "Sicherheitspuffer (Stunden)",
-          "delay_soc_setpoint_enabled": "Mindest-SOC vor Verzögerung aktivieren",
-          "delay_soc_setpoint": "Mindest-SOC (%)",
-          "solar_forecast_sensor": "Solarprognose-Sensor"
-        },
-        "data_description": {
-          "delay_safety_margin_h": "Stunden vor Sonnenuntergang, bis zu denen die Ladung abgeschlossen sein muss. Höhere Werte entsperren das Laden früher.",
-          "delay_soc_setpoint_enabled": "Wenn aktiviert, lädt die Batterie frei bis zum konfigurierten SOC; darüber wird die Solarladungsverzögerung aktiviert.",
-          "delay_soc_setpoint": "SOC, den die Batterie erreichen muss, bevor die Solarladungsverzögerung greift. Mindestwert: 12 % (Mindest-Entlade-SOC der Venus-Batterien).",
-          "solar_forecast_sensor": "Sensor, der die Solarproduktionsprognose in kWh liefert (z.B. Solcast). Nicht erforderlich, wenn dieser Sensor bereits im ersten Schritt konfiguriert wurde — er wird automatisch verwendet."
         }
       },
       "temp_charge_limit": {
@@ -495,29 +393,6 @@
           "system_max_discharge_power": "Optionales Limit fuer die kombinierte Entladeleistung aller aktiven Batterien. 0 = deaktiviert; Limits pro Batterie gelten weiterhin."
         }
       },
-      "hourly_balance": {
-        "title": "Stündliche Netzbalance",
-        "description": "Stündliche Netzbalance-Steuerung aktivieren? Diese Funktion erfasst Netzimport/-export pro Stunde und passt den Batterie-Sollwert automatisch an, um eine Ziel-Energiebalance zu erreichen.\n\n⚠️ **Diese Funktion ist nur in Spanien sinnvoll**, im Rahmen der stündlichen Überschussvergütung (Königliches Dekret 244/2019), bei der Netzüberschuss stundenweise abgerechnet wird. In Märkten mit Einspeisevergütung oder jährlichem Netzausgleich bietet sie keinen Nutzen und kann zu Einnahmeverlusten bei der Einspeisung und unnötigen Batteriezyklen führen.\n\nErkanntes Home-Assistant-Land: **{country}**.",
-        "data": {
-          "configure_hourly_balance": "Stündliche Netto-Balance konfigurieren"
-        }
-      },
-      "hourly_balance_config": {
-        "title": "Konfiguration der stündlichen Balance",
-        "description": "Konfiguriere die Ziel-Energiebalance und Steuerparameter. Das System passt die Batterieleistung an, um jede Stunde die Ziel-Wh-Balance zu erreichen.",
-        "data": {
-          "hourly_balance_target_net_wh": "Ziel-Netto-Balance (kWh)",
-          "hourly_balance_max_offset_w": "Maximaler Versatz (W)",
-          "hourly_balance_deadband_wh": "Toleranz Nettobilanz (kWh)",
-          "hourly_balance_hysteresis_w": "Hysterese des Versatzes (W)"
-        },
-        "data_description": {
-          "hourly_balance_target_net_wh": "Ziel-Netto-Energiebalance pro Stunde. 0 = Netto-Null (Standard). Positiv = Import erlauben, negativ = Export-Ziel.",
-          "hourly_balance_max_offset_w": "Maximaler Leistungsversatz des Reglers. Der Schieberegler ist auf die kombinierte Entladeleistung aller Batterien begrenzt.",
-          "hourly_balance_deadband_wh": "Toleranzband um den Zielwert. Keine Korrektur, wenn die Nettobilanz innerhalb von ±N kWh liegt. 0 = exakte Korrektur.",
-          "hourly_balance_hysteresis_w": "Minimale Änderung des Versatzes, bevor eine neue Korrektur angewendet wird. Verhindert Mikro-Anpassungen jeden Zyklus. 0 = immer anwenden. Standard: 15 W."
-        }
-      },
       "reconfigure_battery": {
         "title": "Batterie {battery_num} neu konfigurieren — Verbindung (Marstek)",
         "description": "Verbindungsdaten für Batterie {battery_num} aktualisieren. Leistungslimits, SOC-Limits und alle anderen Einstellungen bleiben erhalten.",
@@ -567,18 +442,11 @@
       "phase_limit_must_be_positive": "Die Sicherungsgröße der Phase muss ein endlicher positiver Wert in Ampere sein.",
       "phase_sensor_and_limit_required": "Geben Sie sowohl den Phasenstromsensor als auch die Sicherungsgröße an oder lassen Sie beide Felder leer.",
       "battery_phase_required": "Wählen Sie die physische Phase dieser Batterie aus.",
-      "incomplete_window": "Jedes zusätzliche Ladefenster benötigt eine Start- und eine Endzeit. Füllen Sie beide aus oder lassen Sie beide leer, um es zu überspringen.",
       "overlapping_slots": "Dieses Zeitfenster überschneidet sich mit einem bestehenden für dieselbe Batterie. Passen Sie Zeiten, Tage oder die Batterie an.",
       "midnight_crossing": "Die Startzeit muss vor der Endzeit liegen. Für Nachtperioden erstellen Sie zwei separate Zeitfenster (z.B. 22:00-23:59 und 00:00-06:00).",
       "slot_does_nothing": "Das Zeitfenster muss mindestens eine Richtung erlauben (Laden oder Entladen).",
       "manual_requires_power": "Manueller Modus benötigt aktivierte Leistungssteuerung.",
       "manual_requires_single_direction": "Der manuelle Modus erzwingt eine einzige Richtung: aktiviere entweder Laden erlauben oder Entladen erlauben, nicht beides.",
-      "no_price_data": "Der ausgewählte Sensor ist keine unterstützte Preisquelle. Nord Pool: Wähle eine Entität der offiziellen Integration oder einen HACS-Sensor mit `raw_today`. PVPC benötigt `price_00h` … `price_23h`, CKW eine `prices`-Liste, EPEX eine `data`-Liste und ENTSO-e eine `prices_today`-Liste.",
-      "tibber_unavailable": "Die Tibber-Integration ist nicht installiert oder ihr Dienst `tibber.get_prices` ist nicht verfügbar. Installiere und konfiguriere zuerst Tibber.",
-      "energyzero_unavailable": "Die EnergyZero-Integration ist nicht installiert oder ihr Dienst `energyzero.get_energy_prices` ist nicht verfügbar. Installiere und konfiguriere zuerst EnergyZero.",
-      "export_tibber_unsupported": "Tibber cannot be used for the export price curve: it is service-based and its price cache belongs to the import curve. Choose a sensor-based provider instead.",
-      "export_type_required": "Select the export price integration explicitly. The import curve is service-based, so its type cannot be reused for a sensor.",
-      "discharge_below_charge": "Die Entlade-Preisuntergrenze darf nicht unter dem maximalen (Lade-)Preis liegen. Setze sie gleich oder höher oder lass sie leer, um den Ladeschwellenwert wiederzuverwenden.",
       "host_or_serial_required": "Gib entweder eine IP-Adresse (TCP) oder einen seriellen Port-Pfad (Modbus RTU) ein.",
       "missing_power_sensor": "Wähle einen Geräte-Leistungssensor oder aktiviere EV-Ladestation ohne Telemetrie und wähle einen Aktivitätssensor.",
       "missing_activity_sensor": "Wähle für die dynamische Leistungsregelung oder eine EV-Ladestation ohne Telemetrie einen Sensor Gerät aktiv / EV-Ladestatus."
@@ -626,7 +494,9 @@
       "phase_assignments": {
         "title": "Phasenzuordnung Batterie {battery_num}",
         "description": "Wählen Sie die physische Phase, an die {battery_name} angeschlossen ist, oder Nicht zugewiesen, wenn keine geschützte Phase verwendet wird.",
-        "data": {"battery_phase": "Physische Batteriephase"}
+        "data": {
+          "battery_phase": "Physische Batteriephase"
+        }
       },
       "init": {
         "title": "Omnibattery neu konfigurieren",
@@ -636,13 +506,10 @@
           "batteries": "Batterien",
           "time_slots": "Zeitfenster",
           "excluded_devices": "Ausgeschlossene Geräte",
-          "predictive_charging": "Prädiktive Ladung",
           "weekly_full_charge": "Wöchentliche Vollladung",
-          "charge_delay": "Solarladungsverzögerung",
           "temp_charge_limit": "Temperaturbasierte Ladebegrenzung",
           "capacity_protection": "Kapazitätsschutz",
-          "pd_advanced": "PD-Regler (erweitert)",
-          "hourly_balance": "Stündliche Netzbalance"
+          "pd_advanced": "PD-Regler (erweitert)"
         }
       },
       "sensors": {
@@ -854,9 +721,7 @@
           "dynamic_power_control": "Gerät hat dynamische Leistungsregelung",
           "cover_home_when_active": "Hausverbrauch decken, während das Gerät aktiv ist",
           "ev_charger_no_telemetry": "EV-Ladestation ohne Leistungstelemetrie",
-          "is_ev_charger": "E-Auto-Ladegerät (nur Flussdiagramm)",
-          "remaining_demand_sensor": "Erwarteter Restbedarf (kWh)",
-          "remaining_demand_presence_sensor": "Anwesenheits-Entität für den Restbedarf (optional)"
+          "is_ev_charger": "E-Auto-Ladegerät (nur Flussdiagramm)"
         },
         "data_description": {
           "power_sensor": "Numerischer Leistungssensor (W) des Geräts. Für EV-Ladestationen ohne Leistungstelemetrie optional; bestehende Konfigurationen mit dem Statussensor in diesem Feld bleiben kompatibel.",
@@ -866,9 +731,7 @@
           "dynamic_power_control": "Für Geräte aktivieren, die ihren Bedarf über den Netzzähler automatisch regeln. Mit Aktivitätssensor gibt Omnibattery Vorrang, bevor Leistung erscheint; andernfalls reagiert es auf den Leistungssensor. Danach wird nur der tatsächlich verbleibende Überschuss genutzt.",
           "cover_home_when_active": "Erfordert Solarüberschuss und einen Solarleistungssensor. Die Batterie darf den eigenen Hausverbrauch decken, während dieses Gerät aktiv ist; nur der Netzanteil des Geräts bleibt ausgeschlossen.",
           "ev_charger_no_telemetry": "✓ AKTIVIERT = Nutzt den Sensor Gerät aktiv / EV-Ladestatus statt numerischer Telemetrie. Bestehende Konfigurationen mit diesem Sensor im Leistungsfeld funktionieren weiter. Bei erkanntem Laden pausiert die Batterie 5 Minuten; danach lädt sie nur mit Solarüberschuss und entlädt nie für das EV.",
-          "is_ev_charger": "Aktivieren, wenn dieses Gerät ein Ladegerät für Elektrofahrzeuge ist. Wird nur vom animierten Energieflussdiagramm verwendet, um das Gerät auf der Leitung des E-Auto-Ladegeräts statt auf der Leitung der ausgeschlossenen Geräte darzustellen. Ändert nicht, wie die Batterie das Gerät steuert.",
-          "remaining_demand_sensor": "Optional. Sensor mit der Energie (kWh), die dieses Gerät heute noch verbrauchen will, zum Beispiel sensor.evcc_[ladepunkt]_charge_remaining_energy. Die vorausschauende Ladung reserviert dann diesen Anteil der verbleibenden Solarprognose für das Gerät, statt anzunehmen, dass die Batterie ihn erhält. Wird nur verwendet, wenn 'Verbrauch ist im Hausverbrauchssensor enthalten' aktiviert ist. Geräte mit 'EV-Ladestation ohne Leistungstelemetrie' werden übersprungen: Ihre Energie steckt bereits in der Verbrauchsprognose, eine Reservierung würde sie doppelt zählen.",
-          "remaining_demand_presence_sensor": "Den erwarteten Restbedarf nur zählen, solange diese Entität das Gerät als anwesend meldet: on, true, home, connected, plugged oder present. Leer lassen heißt immer zählen. Auf die Connected-Entität der Wallbox richten, wenn die Quelle weiter einen Bedarf meldet, obwohl nichts angesteckt ist: evcc meldet die Energie bis zum SOC-Ziel des Fahrzeugs, unabhängig davon, ob ein Auto angesteckt ist, und für ein abwesendes Auto reservierte Sonne fehlt der Batterie ohne Nutzen. Eine nicht verfügbare oder unbekannte Entität gilt als abwesend, damit ein defekter Sensor das Reservieren beendet, statt für ein womöglich abwesendes Gerät zu reservieren."
+          "is_ev_charger": "Aktivieren, wenn dieses Gerät ein Ladegerät für Elektrofahrzeuge ist. Wird nur vom animierten Energieflussdiagramm verwendet, um das Gerät auf der Leitung des E-Auto-Ladegeräts statt auf der Leitung der ausgeschlossenen Geräte darzustellen. Ändert nicht, wie die Batterie das Gerät steuert."
         }
       },
       "add_more_excluded_devices": {
@@ -876,79 +739,6 @@
         "description": "Sie haben {current_devices} konfigurierte(s) Gerät(e). Sie können insgesamt bis zu {max_devices} hinzufügen.",
         "data": {
           "add_more": "Weiteres spezielles Gerät hinzufügen"
-        }
-      },
-      "predictive_charging": {
-        "title": "Prädiktive Netzladung",
-        "description": "Möchten Sie intelligentes Netzladen aktivieren? Diese Funktion ermöglicht das Laden der Batterien aus dem Netz während der Niedrigtarifzeiten, wenn die Solarprognose für heute unzureichend ist.",
-        "data": {
-          "configure_predictive_charging": "Prädiktive Ladung konfigurieren"
-        }
-      },
-      "predictive_charging_config": {
-        "title": "Konfiguration der prädiktiven Ladung",
-        "description": "Konfigurieren Sie, wann und wie die Batterien aus dem Netz basierend auf der Solarprognose geladen werden sollen. Sie können bis zu 3 Ladefenster einrichten — füllen Sie nur Fenster 1 für ein einzelnes Fenster aus oder fügen Sie bei Bedarf Fenster 2 und 3 hinzu.",
-        "data": {
-          "start_time": "Fenster 1 — Startzeit (Niedrigtarif)",
-          "end_time": "Fenster 1 — Endzeit (Niedrigtarif)",
-          "days": "Fenster 1 — Wochentage",
-          "start_time_2": "Fenster 2 — Startzeit (optional)",
-          "end_time_2": "Fenster 2 — Endzeit (optional)",
-          "days_2": "Fenster 2 — Wochentage",
-          "start_time_3": "Fenster 3 — Startzeit (optional)",
-          "end_time_3": "Fenster 3 — Endzeit (optional)",
-          "days_3": "Fenster 3 — Wochentage",
-          "solar_forecast_sensor": "Solarprognose-Sensor (kWh)"
-        },
-        "data_description": {
-          "start_time": "Startzeit des Ladefensters (z.B. 01:00, Niedrigtarif)",
-          "end_time": "Endzeit des Ladefensters (z.B. 06:00)",
-          "days": "Tage, an denen Netzladung erlaubt ist",
-          "solar_forecast_sensor": "Sensor, der die Solarproduktionsprognose in kWh liefert (z.B. Solcast). Mit Solaranlage: konfigurieren — das System lädt nur dann aus dem Netz, wenn die Solarprognose unzureichend ist. Ohne Solaranlage: leer lassen — das System lädt, wenn die Batterieenergie für den Tag nicht ausreicht. Nicht erforderlich, wenn dieser Sensor bereits im ersten Schritt konfiguriert wurde — er wird automatisch verwendet."
-        }
-      },
-      "predictive_charging_mode": {
-        "title": "Lademodus auswählen",
-        "description": "Wählen Sie den Modus für die prädiktive Netzladung. Zeitfenster verwendet ein festes nächtliches Ladefenster; Dynamischer Preis wählt automatisch die günstigsten Stunden basierend auf Echtzeit-Strompreisen.",
-        "data": {
-          "predictive_charging_mode": "Lademodus"
-        },
-        "data_description": {
-          "predictive_charging_mode": "Zeitfenster: Laden während eines festen Niedrigtarifzeitfensters. Dynamischer Preis: Tägliche Auswahl der günstigsten Stunden basierend auf Nordpool/ENTSO-e Preisen. Echtzeit-Preis: Sofortige Aktivierung der Ladung wenn der Preis unter den Schwellenwert fällt."
-        }
-      },
-      "dynamic_pricing_config": {
-        "title": "Konfiguration dynamischer Preisladung",
-        "description": "Konfigurieren Sie dynamische Preisladung. Das System liest stündliche Strompreise und wählt automatisch die günstigsten Stunden zum Laden aus.",
-        "data": {
-          "price_integration_type": "Preisintegration",
-          "price_sensor": "Preissensor",
-          "export_price_sensor": "Sensor für Einspeise-/Exportpreise (optional)",
-          "export_price_integration_type": "Integration für den Exportpreis (optional)",
-          "zonneplan_export_bonus_enabled": "Zonneplan-Einspeisebonus anwenden",
-          "solar_forecast_sensor": "Solarprognose-Sensor (kWh)"
-        },
-        "data_description": {
-          "price_integration_type": "Wählen Sie die Heimautomatisierungsintegration, die Strompreisdaten liefert",
-          "price_sensor": "Sensor, der stündliche Strompreise enthält (z.B. sensor.nordpool_kwh_de_eur_3_10_025)",
-          "export_price_sensor": "Sensor, der die Einspeisevergütung liefert. Leer lassen, um die Importpreiskurve zu verwenden — das ist korrekt, wenn die Einspeisung zum Importpreis vergütet wird (Net Metering).",
-          "export_price_integration_type": "Attributaufbau des Exportpreis-Sensors. Leer lassen, um die Import-Integration zu übernehmen. Tibber steht hier nicht zur Verfügung: Es ist dienstbasiert und sein Cache gehört zur Importkurve.",
-          "zonneplan_export_bonus_enabled": "Addiert den Zonneplan-Sonnenbonus zum Einspeisepreis von Solarstrom inkl. Steuern: der Bonus sind 0,02 €/kWh auf den Preis ohne Steuern, danach +10 %. Gilt nur zwischen Sonnenaufgang und Sonnenuntergang und nur, wenn dieser Preis plus 0,02 € positiv ist. Einspeisung aus dem Akku wird nie mit dem Bonus bewertet. Hat keine Wirkung, wenn die tatsächlich verwendete Exportpreisintegration nicht Zonneplan ist.",
-          "solar_forecast_sensor": "Sensor, der die Solarproduktionsprognose in kWh liefert (z.B. Solcast). Mit Solaranlage: konfigurieren — das System lädt nur dann aus dem Netz, wenn die Solarprognose unzureichend ist. Ohne Solaranlage: leer lassen — das System lädt, wenn die Batterieenergie für den Tag nicht ausreicht. Nicht erforderlich, wenn dieser Sensor bereits im ersten Schritt konfiguriert wurde — er wird automatisch verwendet."
-        }
-      },
-      "realtime_price_config": {
-        "title": "Prädiktives Laden — Echtzeit-Preis",
-        "description": "Preissensor und Schwellenwert konfigurieren. Das System liest den aktuellen Preis alle paar Sekunden und startet oder stoppt das Netzladen sofort — ohne tägliche Planung.",
-        "data": {
-          "price_sensor": "Strompreissensor",
-          "average_price_sensor": "Tagesdurchschnittspreis-Sensor (optional)",
-          "solar_forecast_sensor": "Solarprognose-Sensor (kWh)"
-        },
-        "data_description": {
-          "price_sensor": "Sensor, dessen Zustand der aktuelle Strompreis ist. Jeder Sensor, der den aktuellen Periodenpreis als Zustand anzeigt, funktioniert.",
-          "average_price_sensor": "Wenn angegeben, wird dieser Wert als Schwellenwert anstelle des fixen Wertes verwendet. Leer lassen für den fixen Schwellenwert.",
-          "solar_forecast_sensor": "Sensor, der die Solarproduktionsprognose in kWh liefert. Nicht erforderlich, wenn dieser Sensor bereits im ersten Schritt konfiguriert wurde — er wird automatisch verwendet."
         }
       },
       "weekly_full_charge": {
@@ -966,29 +756,6 @@
         },
         "data_description": {
           "weekly_full_charge_day": "Tag, an dem die Batterien unabhängig vom konfigurierten maximalen SOC auf 100% geladen werden. Dies hilft beim Ausgleich der Batteriezellen."
-        }
-      },
-      "charge_delay": {
-        "title": "Solarladungsverzögerung",
-        "description": "Solarladungsverzögerung aktivieren? Diese Funktion verzögert das Laden der Batterien, bis die Solarenergiebilanz anzeigt, dass es nötig ist, und exportiert überschüssige Solarenergie ins Netz in der Zwischenzeit.",
-        "data": {
-          "configure_charge_delay": "Ladungsverzögerung konfigurieren"
-        }
-      },
-      "charge_delay_config": {
-        "title": "Konfiguration der Ladungsverzögerung",
-        "description": "Konfigurieren Sie den Sicherheitspuffer und den Solarprognose-Sensor für die Ladungsverzögerung.",
-        "data": {
-          "delay_safety_margin_h": "Sicherheitspuffer (Stunden)",
-          "delay_soc_setpoint_enabled": "Mindest-SOC vor Verzögerung aktivieren",
-          "delay_soc_setpoint": "Mindest-SOC (%)",
-          "solar_forecast_sensor": "Solarprognose-Sensor"
-        },
-        "data_description": {
-          "delay_safety_margin_h": "Stunden vor Sonnenuntergang, bis zu denen die Ladung abgeschlossen sein muss. Höhere Werte entsperren das Laden früher.",
-          "delay_soc_setpoint_enabled": "Wenn aktiviert, lädt die Batterie frei bis zum konfigurierten SOC; darüber wird die Solarladungsverzögerung aktiviert.",
-          "delay_soc_setpoint": "SOC, den die Batterie erreichen muss, bevor die Solarladungsverzögerung greift. Mindestwert: 12 % (Mindest-Entlade-SOC der Venus-Batterien).",
-          "solar_forecast_sensor": "Sensor, der die Solarproduktionsprognose in kWh liefert (z.B. Solcast). Nicht erforderlich, wenn dieser Sensor bereits im ersten Schritt konfiguriert wurde — er wird automatisch verwendet."
         }
       },
       "temp_charge_limit": {
@@ -1069,29 +836,6 @@
           "system_max_charge_power": "Optionales Limit fuer die kombinierte Ladeleistung aller aktiven Batterien. 0 = deaktiviert; Limits pro Batterie gelten weiterhin.",
           "system_max_discharge_power": "Optionales Limit fuer die kombinierte Entladeleistung aller aktiven Batterien. 0 = deaktiviert; Limits pro Batterie gelten weiterhin."
         }
-      },
-      "hourly_balance": {
-        "title": "Stündliche Netzbalance",
-        "description": "Stündliche Netzbalance-Steuerung aktivieren? Diese Funktion erfasst Netzimport/-export pro Stunde und passt den Batterie-Sollwert automatisch an, um eine Ziel-Energiebalance zu erreichen.\n\n⚠️ **Diese Funktion ist nur in Spanien sinnvoll**, im Rahmen der stündlichen Überschussvergütung (Königliches Dekret 244/2019), bei der Netzüberschuss stundenweise abgerechnet wird. In Märkten mit Einspeisevergütung oder jährlichem Netzausgleich bietet sie keinen Nutzen und kann zu Einnahmeverlusten bei der Einspeisung und unnötigen Batteriezyklen führen.\n\nErkanntes Home-Assistant-Land: **{country}**.",
-        "data": {
-          "configure_hourly_balance": "Stündliche Netto-Balance konfigurieren"
-        }
-      },
-      "hourly_balance_config": {
-        "title": "Konfiguration der stündlichen Balance",
-        "description": "Konfiguriere die Ziel-Energiebalance und Steuerparameter. Das System passt die Batterieleistung an, um jede Stunde die Ziel-Wh-Balance zu erreichen.",
-        "data": {
-          "hourly_balance_target_net_wh": "Ziel-Netto-Balance (kWh)",
-          "hourly_balance_max_offset_w": "Maximaler Versatz (W)",
-          "hourly_balance_deadband_wh": "Toleranz Nettobilanz (kWh)",
-          "hourly_balance_hysteresis_w": "Hysterese des Versatzes (W)"
-        },
-        "data_description": {
-          "hourly_balance_target_net_wh": "Ziel-Netto-Energiebalance pro Stunde. 0 = Netto-Null (Standard). Positiv = Import erlauben, negativ = Export-Ziel.",
-          "hourly_balance_max_offset_w": "Maximaler Leistungsversatz des Reglers. Der Schieberegler ist auf die kombinierte Entladeleistung aller Batterien begrenzt.",
-          "hourly_balance_deadband_wh": "Toleranzband um den Zielwert. Keine Korrektur, wenn die Nettobilanz innerhalb von ±N kWh liegt. 0 = exakte Korrektur.",
-          "hourly_balance_hysteresis_w": "Minimale Änderung des Versatzes, bevor eine neue Korrektur angewendet wird. Verhindert Mikro-Anpassungen jeden Zyklus. 0 = immer anwenden. Standard: 15 W."
-        }
       }
     },
     "error": {
@@ -1113,18 +857,11 @@
       "phase_limit_must_be_positive": "Die Sicherungsgröße der Phase muss ein endlicher positiver Wert in Ampere sein.",
       "phase_sensor_and_limit_required": "Geben Sie sowohl den Phasenstromsensor als auch die Sicherungsgröße an oder lassen Sie beide Felder leer.",
       "battery_phase_required": "Wählen Sie die physische Phase dieser Batterie aus.",
-      "incomplete_window": "Jedes zusätzliche Ladefenster benötigt eine Start- und eine Endzeit. Füllen Sie beide aus oder lassen Sie beide leer, um es zu überspringen.",
       "overlapping_slots": "Dieses Zeitfenster überschneidet sich mit einem bestehenden für dieselbe Batterie. Passen Sie Zeiten, Tage oder die Batterie an.",
       "midnight_crossing": "Die Startzeit muss vor der Endzeit liegen. Für Nachtperioden erstellen Sie zwei separate Zeitfenster (z.B. 22:00-23:59 und 00:00-06:00).",
       "slot_does_nothing": "Das Zeitfenster muss mindestens eine Richtung erlauben (Laden oder Entladen).",
       "manual_requires_power": "Manueller Modus benötigt aktivierte Leistungssteuerung.",
       "manual_requires_single_direction": "Der manuelle Modus erzwingt eine einzige Richtung: aktiviere entweder Laden erlauben oder Entladen erlauben, nicht beides.",
-      "no_price_data": "Der ausgewählte Sensor ist keine unterstützte Preisquelle. Nord Pool: Wähle eine Entität der offiziellen Integration oder einen HACS-Sensor mit `raw_today`. PVPC benötigt `price_00h` … `price_23h`, CKW eine `prices`-Liste, EPEX eine `data`-Liste und ENTSO-e eine `prices_today`-Liste.",
-      "tibber_unavailable": "Die Tibber-Integration ist nicht installiert oder ihr Dienst `tibber.get_prices` ist nicht verfügbar. Installiere und konfiguriere zuerst Tibber.",
-      "energyzero_unavailable": "Die EnergyZero-Integration ist nicht installiert oder ihr Dienst `energyzero.get_energy_prices` ist nicht verfügbar. Installiere und konfiguriere zuerst EnergyZero.",
-      "export_tibber_unsupported": "Tibber cannot be used for the export price curve: it is service-based and its price cache belongs to the import curve. Choose a sensor-based provider instead.",
-      "export_type_required": "Select the export price integration explicitly. The import curve is service-based, so its type cannot be reused for a sensor.",
-      "discharge_below_charge": "Die Entlade-Preisuntergrenze darf nicht unter dem maximalen (Lade-)Preis liegen. Setze sie gleich oder höher oder lass sie leer, um den Ladeschwellenwert wiederzuverwenden.",
       "host_or_serial_required": "Gib entweder eine IP-Adresse (TCP) oder einen seriellen Port-Pfad (Modbus RTU) ein.",
       "missing_power_sensor": "Wähle einen Geräte-Leistungssensor oder aktiviere EV-Ladestation ohne Telemetrie und wähle einen Aktivitätssensor.",
       "missing_activity_sensor": "Wähle für die dynamische Leistungsregelung oder eine EV-Ladestation ohne Telemetrie einen Sensor Gerät aktiv / EV-Ladestatus."
@@ -1132,7 +869,12 @@
   },
   "selector": {
     "battery_phase": {
-      "options": {"unassigned": "Nicht zugewiesen", "l1": "L1", "l2": "L2", "l3": "L3"}
+      "options": {
+        "unassigned": "Nicht zugewiesen",
+        "l1": "L1",
+        "l2": "L2",
+        "l3": "L3"
+      }
     },
     "weekday": {
       "options": {
@@ -1155,37 +897,10 @@
       "options": {
         "all": "Alle Batterien"
       }
-    },
-    "predictive_charging_mode": {
-      "options": {
-        "time_slot": "Zeitfenster",
-        "dynamic_pricing": "Dynamischer Preis",
-        "realtime_price": "Echtzeit-Preis (sofortiger Schwellenwert)"
-      }
-    },
-      "price_integration_type": {
-      "options": {
-        "nordpool": "Nordpool",
-        "pvpc": "PVPC (Spanien – ESIOS REE)",
-        "ckw": "CKW (Schweiz)",
-        "epex": "EPEX Spot (z. B. aWATTar)",
-        "entsoe": "ENTSO-e (Transparency-Plattform)",
-        "zonneplan": "Zonneplan",
-        "frank_energie": "Frank Energie",
-        "energyzero": "EnergyZero",
-        "tibber": "Tibber (dienstbasiert)",
-        "be_electricity_prices": "BE Electricity Prices (Belgien, Endpreis)"
-      }
     }
   },
   "entity": {
     "switch": {
-      "surplus_price_hold": {
-        "name": "Preisbremse Solarüberschuss"
-      },
-      "discharge_reserve": {
-        "name": "Entladereserve"
-      },
       "primary_feedforward": {
         "name": "Tatsächlichen Bedarf vorsteuern"
       },
@@ -1207,41 +922,17 @@
       "offgrid_mode": {
         "name": "Off-Grid-Zählermodus"
       },
-      "min_soc_floor_enabled": {
-        "name": "Garantierter Mindest-SOC"
-      },
-      "max_price_threshold_enabled": {
-        "name": "Manuelle Lade-Preisobergrenze"
-      },
-      "discharge_price_threshold_enabled": {
-        "name": "Manuelle Entlade-Preisuntergrenze"
-      },
       "system_power_limits": {
         "name": "System-Leistungsgrenzen"
       },
-      "predictive_charging": {
-        "name": "Prädiktives Laden"
-      },
-      "predictive_charging_notifications": {
-        "name": "Benachrichtigungen Prädiktives Laden"
-      },
       "vacation_mode": {
         "name": "Urlaubsmodus"
-      },
-      "charge_delay": {
-        "name": "Ladeverzögerung"
-      },
-      "delay_soc_setpoint_enabled": {
-        "name": "Verzögerungs-Ziel-SOC Aktiv"
       },
       "temp_charge_limit": {
         "name": "Temperaturbasierte Ladebegrenzung"
       },
       "temp_charge_limit_discharge": {
         "name": "Temperatur-Entladegrenze"
-      },
-      "weekly_full_charge_delay": {
-        "name": "Wöchentliche Vollladung verzögern"
       },
       "capacity_protection": {
         "name": "Spitzenlastkappung"
@@ -1285,20 +976,8 @@
       "time_slot": {
         "name": "Zeitfenster {slot_number}"
       },
-      "hourly_balance": {
-        "name": "Netto-Balance"
-      },
       "weekly_full_charge_enabled": {
         "name": "Wöchentliche Vollladung"
-      },
-      "price_discharge_control": {
-        "name": "Preisbasierte Entladung"
-      },
-      "smart_predischarge": {
-        "name": "Intelligente Vorentladung / Anti-Abregelung"
-      },
-      "negative_price_charging": {
-        "name": "Opportunistisches Laden bei negativen Preisen"
       }
     },
     "time": {
@@ -1344,9 +1023,6 @@
       },
       "consumption_profile_capture": {
         "name": "Aktuelle Verbrauchsprofilerfassung"
-      },
-      "daily_operation_timeline": {
-        "name": "Tägliche Betriebslinie"
       },
       "system_relay_guard": {
         "name": "Relais-Schutz",
@@ -1398,22 +1074,11 @@
         "state": {
           "initializing": "Initialisierung",
           "manual": "Manueller Modus",
-          "grid_charging": "Laden aus dem Netz",
           "weekly_full_charge": "Wöchentliche Volladung",
-          "charge_delayed": "Ladung verzögert",
-          "surplus_price_hold": "Überschuss Einspeisen (Günstigeres Zeitfenster Folgt)",
-          "price_reserve_hold": "Ladung für Teurere Stunden Halten",
-          "waiting_for_solar": "Warten auf Solar",
-          "charging_to_setpoint": "Laden bis Sollwert",
           "capacity_protection": "Kapazitätsschutz",
           "peak_shaving": "Spitzenlastkappung",
           "capacity_conserving": "Kapazität Schonen",
           "capacity_protection_charging": "Kapazitätsschutz - Laden",
-          "price_discharge_blocked": "Entladung durch Preis blockiert",
-          "hourly_balance_import": "Stundensaldo - Import",
-          "hourly_balance_export": "Stundensaldo - Export",
-          "hourly_balance_capped": "Stundensaldo - Begrenzt",
-          "hourly_balance_blocked": "Stundensaldo - Blockiert",
           "cell_balance_hold": "Zellbalance-Haltephase",
           "ev_charger_pause": "EV-Ladepause",
           "ev_discharge_blocked": "EV-Entladung Blockiert",
@@ -1433,29 +1098,6 @@
           "disabled": "Deaktiviert",
           "charging": "Lädt auf 100%",
           "complete": "Abgeschlossen"
-        }
-      },
-      "charge_delay_status": {
-        "name": "Ladeverzögerung",
-        "state": {
-          "idle": "Bereit",
-          "disabled": "Deaktiviert",
-          "waiting_for_solar": "Warte auf Solar",
-          "delayed": "Verzögert",
-          "charging_allowed": "Laden erlaubt",
-          "skipped_full_charge_day": "Übersprungen – Vollladetag",
-          "charging_to_setpoint": "Laden bis Sollwert"
-        }
-      },
-      "high_price_discharge_status": {
-        "name": "Status Verkauf bei Hochpreis",
-        "state": {
-          "disabled": "Deaktiviert",
-          "invalid_configuration": "Ungültige Konfiguration",
-          "no_data": "Keine Daten",
-          "blocked": "Blockiert",
-          "waiting": "Wartend",
-          "active": "Aktiv"
         }
       },
       "battery_soc": {
@@ -1704,34 +1346,11 @@
       },
       "delta_avg_4w": {
         "name": "Balance - Delta-Durchschnitt (4 Messungen)"
-      },
-      "balance_neto": {
-        "name": "Nettobilanz",
-        "state": {
-          "idle": "Inaktiv",
-          "out_of_slot": "Außerhalb des Zeitfensters",
-          "capped": "Begrenzt",
-          "compensating_import": "Import-Kompensation",
-          "compensating_export": "Export-Kompensation",
-          "compensation_stopped": "Kompensation Gestoppt"
-        }
       }
     },
     "binary_sensor": {
       "capacity_protection_active": {
         "name": "Spitzenlastkappung Aktiv"
-      },
-      "predictive_charging_active": {
-        "name": "Prädiktives Laden Aktiv"
-      },
-      "curtailment_status": {
-        "name": "Status der intelligenten Vorentladung"
-      },
-      "surplus_price_hold_status": {
-        "name": "Status Preisbremse Solarüberschuss"
-      },
-      "discharge_reserve_status": {
-        "name": "Status Entladereserve"
       },
       "wifi_status": {
         "name": "WLAN-Status"
@@ -1791,14 +1410,6 @@
           "automatic": "Automatisch (vollste zuerst)"
         }
       },
-      "high_price_sale": {
-        "name": "Verkauf bei Hochpreis",
-        "state": {
-          "off": "Aus",
-          "surplus": "Nur Überschuss",
-          "surplus_arbitrage": "Überschuss + Arbitrage (späterer Rückkauf)"
-        }
-      },
       "pd_tuning_profile": {
         "name": "PD-Tuning-Profil",
         "state": {
@@ -1812,12 +1423,6 @@
       }
     },
     "number": {
-      "surplus_hold_min_saving": {
-        "name": "Mindestersparnis Überschussbremse"
-      },
-      "discharge_reserve_min_saving": {
-        "name": "Mindestersparnis Entladereserve"
-      },
       "excluded_device_exclusion_pct": {
         "name": "{device} – Ausschluss %"
       },
@@ -1902,15 +1507,6 @@
       "capacity_protection_soc_threshold": {
         "name": "Spitzenlastkappung SOC-Schwelle"
       },
-      "delay_safety_margin_min": {
-        "name": "Ladungsverzögerung – Puffer"
-      },
-      "charge_delay_balance_deadband_kwh": {
-        "name": "Ladungsverzögerung – Bilanz-Totband"
-      },
-      "delay_soc_setpoint": {
-        "name": "Ladungsverzögerung – SOC-Schwellwert"
-      },
       "temp_charge_limit_c": {
         "name": "Temperatur-Ladegrenze"
       },
@@ -1935,52 +1531,13 @@
       "charge_hysteresis_percent": {
         "name": "Ladehysterese Prozent"
       },
-      "predictive_safety_margin_kwh": {
-        "name": "Sicherheitspuffer Solarprognose"
-      },
-      "negative_injection_threshold": {
-        "name": "Schwellenwert für negative Einspeisung"
-      },
-      "predischarge_reserve_soc": {
-        "name": "SOC-Reserve für Vorentladung"
-      },
-      "predictive_min_soc_floor": {
-        "name": "Garantierter Mindest-SOC"
-      },
-      "hourly_balance_target_net_wh": {
-        "name": "Ziel stündliche Balance"
-      },
-      "hourly_balance_max_offset_w": {
-        "name": "Max. Offset stündliche Balance"
-      },
-      "hourly_balance_deadband_wh": {
-        "name": "Totband stündliche Balance"
-      },
-      "hourly_balance_hysteresis_w": {
-        "name": "Hysterese stündliche Balance"
-      },
       "min_soc": {
         "name": "Minimaler SOC"
-      },
-      "max_price_threshold": {
-        "name": "Maximaler Preis (Laden)"
-      },
-      "discharge_price_threshold": {
-        "name": "Entlade-Preisuntergrenze"
-      },
-      "min_arbitrage_margin": {
-        "name": "Minimale Arbitragemarge"
-      },
-      "round_trip_efficiency": {
-        "name": "Round-Trip-Wirkungsgrad"
       }
     },
     "button": {
       "reset_device": {
         "name": "Gerät zurücksetzen"
-      },
-      "reevaluate_dynamic_pricing": {
-        "name": "Prädiktives Laden neu bewerten"
       }
     }
   },

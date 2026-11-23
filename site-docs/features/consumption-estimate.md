@@ -1,10 +1,10 @@
 # Learn your household consumption
 
-Make the most of solar by letting Omnibattery learn how much energy your home uses and when it uses it. The estimate is automatic; it helps predictive charging and [Solar Charge Delay](solar-charge-delay.md) decide whether stored energy and expected solar can cover demand.
+Make the most of solar by letting Omnibattery learn how much energy your home uses and when it uses it. The estimate is automatic; it shows your household's normal daily total and time-of-day pattern.
 
 ## Do I need it?
 
-**Use it if** you use predictive charging or Solar Charge Delay and want those features to account for your household's normal routine.
+**Use it if** you want to see how much energy your home normally uses and when.
 
 **You do not need to manage it** when your recent consumption is representative. Intervene only for holidays, meter outages, or unusual days that should not influence future forecasts.
 
@@ -35,9 +35,7 @@ Vacation Mode pauses only learning. Physical energy counters, the real-consumpti
 - **Current Consumption Profile Capture** shows how much of today's demand has been captured so far.
 - **Vacation Mode** reports the fixed vacation baseline while learning is paused.
 
-The integration learns both a daily total and a time-of-day pattern. A mature pattern lets Dynamic Pricing reserve energy before an early demand peak while leaving later demand through the next sunrise flexible by price. Solar Charge Delay uses the same remaining-demand forecast, so demand already observed today is not counted twice.
-
-See the [daily operation timeline](daily-operation-timeline.md) to compare learned consumption with the battery actions planned for today.
+The integration learns both a daily total and a time-of-day pattern. A mature pattern replaces the fallback estimate with your household's own rhythm.
 
 ## If it does not work
 
@@ -87,7 +85,7 @@ See the [daily operation timeline](daily-operation-timeline.md) to compare learn
     Expected consumption = 37.4 / 7 = 5.34 kWh
     ```
 
-    The running full-day value is also exposed as `household_consumption_full_day_kwh` on `binary_sensor.marstek_venus_system_predictive_charging_active` and is persisted across same-day restarts. Its attributes include the daily history and counts of real and fallback entries. In Dynamic Pricing mode, `energy_horizon_end` identifies the local sunrise boundary and `overnight_consumption_kwh` reports forecast demand between midnight and that boundary.
+    The running full-day value is persisted across same-day restarts.
 
     **Grid at Min SOC** (`sensor.marstek_venus_system_daily_grid_at_min_soc_energy`) resets at local midnight and reports grid energy imported while every battery was at its minimum state of charge (SOC) during a discharge window. It is diagnostic only and is not added to the estimate because derived household consumption already includes that demand.
 

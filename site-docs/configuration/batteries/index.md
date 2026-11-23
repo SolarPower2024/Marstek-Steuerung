@@ -59,5 +59,4 @@ The minimum of 2% is deliberate and cannot be lowered. Near the top, the SOC a b
     Related configuration:
 
     - [Time slots](../time-slots.md) control when batteries may charge or discharge.
-    - [Predictive charging](../predictive-charging/index.md) can schedule grid charging.
     - [Multi-battery management](../../features/multi-battery.md) explains power sharing and manual ownership.

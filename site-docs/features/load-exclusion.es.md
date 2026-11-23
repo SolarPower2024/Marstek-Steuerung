@@ -17,7 +17,6 @@ Elige el comportamiento que coincide con tu objetivo:
 | Dejar que la batería cubra la demanda de casa mientras el sol y la red suministran la carga grande | **Cover Home**, junto con Solar Surplus |
 | Coordinar con una wallbox que cambia su propia potencia según el contador de red | **Dynamic Power Control**, junto con Solar Surplus |
 | Gestionar un cargador que informa del estado de carga pero no de vatios | **EV charger without power telemetry** |
-| Evitar que la carga predictiva prometa el mismo sol a la batería y al VE | **Expected remaining demand** y, cuando sea necesario, su entidad de presencia |
 
 ## Antes de empezar
 
@@ -46,8 +45,6 @@ Elige el comportamiento que coincide con tu objetivo:
 
 Un cargador de VE solo con estado pausa la carga y descarga de batería cuando aparece la carga. Tras la pausa, la batería puede cargar con excedente solar, pero permanece bloqueada para descargar hacia el VE hasta que termine la carga.
 
-Si el dispositivo tiene configurada demanda restante prevista, la carga predictiva resta esa demanda del sol disponible para la batería. Una entidad de presencia libera la reserva cuando el VE o dispositivo está ausente. La [página de configuración](../configuration/excluded-devices.md) contiene las unidades aceptadas y las reglas de presencia.
-
 ## Si no funciona
 
 | Síntoma | Causa probable | Qué comprobar |
@@ -57,7 +54,6 @@ Si el dispositivo tiene configurada demanda restante prevista, la carga predicti
 | Batería y wallbox compiten por un sol cambiante | Dynamic Power Control está desactivado o su señal de actividad es incorrecta | Activa **Dynamic Power Control** y verifica que la entidad de actividad configurada cambie antes o junto con la demanda |
 | La batería nunca carga mientras está activa la carga flexible | La wallbox sigue pidiendo prioridad o no queda exportación real | Comprueba potencia de dispositivo, estado de actividad, producción solar externa y exportación de red |
 | Un cargador solo con estado no pausa la batería | Su entidad de actividad no informa de un estado activo reconocido | Comprueba **Device active / EV charging sensor** en la configuración del dispositivo |
-| La carga predictiva omite energía barata y la batería queda baja | El sol prometido al dispositivo no está reservado | Configura **Expected remaining demand (kWh)** y una entidad de presencia si la demanda persiste tras desconectar |
 
 ??? "Detalles avanzados"
     **Corrección de carga**

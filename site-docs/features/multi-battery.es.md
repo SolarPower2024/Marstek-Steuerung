@@ -135,7 +135,7 @@ Consulta [solución de problemas](../troubleshooting.md) para comprobaciones por
 
     ## Reparto de potencia
 
-    Tras seleccionar las baterías activas, la potencia total calculada por el [controlador PD](pd-controller.md) se reparte entre ellas proporcionalmente, respetando los límites individuales de potencia y SOC. La misma lógica de selección y reparto se aplica siempre que la integración solicita potencia a la flota, no solo durante el control normal de seguimiento de red; incluye carga solar y carga predictiva/desdela red.
+    Tras seleccionar las baterías activas, la potencia total calculada por el [controlador PD](pd-controller.md) se reparte entre ellas proporcionalmente, respetando los límites individuales de potencia y SOC. La misma lógica de selección y reparto se aplica siempre que la integración solicita potencia a la flota, no solo durante el control normal de seguimiento de red; incluye la carga solar.
 
     También se pueden configurar topes globales opcionales en **Advanced PD controller** después de activar **Enable system power limits**:
 
@@ -173,7 +173,7 @@ Consulta [solución de problemas](../troubleshooting.md) para comprobaciones por
 
     Los permisos de carga y descarga se resuelven mediante un registro de bloqueadores en tiempo de ejecución. Los bloqueadores pueden ser globales o aplicarse a una batería. El controlador consulta este registro antes de retornos tempranos por banda muerta y sensor obsoleto, de modo que una orden activa se detiene en cuanto aparece un bloqueador.
 
-    Los bloqueadores globales incluyen retraso de carga solar, reglas de carga/descarga de franjas horarias, control de descarga basado en precios y pausas de cargador VE sin telemetría. Los bloqueadores por batería incluyen los interruptores `Allow Charge` y `Allow Discharge`, SOC máximo, SOC mínimo e histéresis de carga. Otras comprobaciones de disponibilidad como la exclusión por respaldo/fuera de red y por falta de respuesta siguen separadas del registro.
+    Los bloqueadores globales incluyen reglas de carga/descarga de franjas horarias y pausas de cargador VE sin telemetría. Los bloqueadores por batería incluyen los interruptores `Allow Charge` y `Allow Discharge`, SOC máximo, SOC mínimo e histéresis de carga. Otras comprobaciones de disponibilidad como la exclusión por respaldo/fuera de red y por falta de respuesta siguen separadas del registro.
 
     Los atributos de nivel superior `charge_blocked` y `discharge_blocked` informan del estado efectivo del sistema: pasan a `true` cuando hay un bloqueador global activo o cuando todas las baterías conocidas están bloqueadas en esa dirección. Los detalles por batería siguen visibles en `battery_charge_blockers` y `battery_discharge_blockers`.
 

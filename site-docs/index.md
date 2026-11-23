@@ -2,11 +2,11 @@
 
 # Use your home battery to reduce grid costs
 
-Omnibattery connects compatible home batteries to Home Assistant so they can follow household demand, store available solar energy and charge when your schedule or electricity price makes it worthwhile.
+Omnibattery connects compatible home batteries to Home Assistant so they can follow household demand, store available solar energy and follow the schedule you set.
 
 ## Is Omnibattery for me?
 
-**Use it if** you already have a supported battery and a Home Assistant sensor that measures power imported from or exported to the grid. It is especially useful when you want one place to coordinate batteries, solar forecasts, electricity prices and household loads.
+**Use it if** you already have a supported battery and a Home Assistant sensor that measures power imported from or exported to the grid. It is especially useful when you want one place to coordinate batteries, solar forecasts and household loads.
 
 **You do not need it if** the manufacturer's own control already meets your needs, or if you only want to view battery data without Home Assistant adjusting battery power.
 
@@ -31,9 +31,9 @@ Omnibattery can coordinate supported brands in the same installation. Check the 
 
     Combine live production, battery capacity and forecasts to decide when energy should be stored.
 
--   :material-currency-eur: **Charge when grid energy makes sense**
+-   :material-clock-outline: **Run on your schedule**
 
-    Use time windows or electricity prices to buy only the energy your home is expected to need.
+    Use time slots to decide when each battery may charge or discharge, and with which limits.
 
 -   :material-battery-sync: **Coordinate several batteries**
 
@@ -60,16 +60,13 @@ The sidebar panel is installed with the integration; it does not require another
 
     The integration can coordinate up to ten batteries. It uses state-of-charge priorities, energy hysteresis and efficiency-aware sharing while applying per-battery and system power limits. See [Multi-battery management](features/multi-battery.md).
 
-    The dashboard's **Overview** tab includes an animated state-of-charge ring, a Grid↔Home↔Battery↔Solar flow diagram, diagnostics, history charts and a measured/projected daily timeline. **Batteries** shows each unit's power, state of charge, health, cells, daily energy, optional maximum power point tracking (MPPT) inputs, firmware and controls.
+    The dashboard's **Overview** tab includes an animated state-of-charge ring, a Grid↔Home↔Battery↔Solar flow diagram, diagnostics and history charts. **Batteries** shows each unit's power, state of charge, health, cells, daily energy, optional maximum power point tracking (MPPT) inputs, firmware and controls.
 
     Optional energy features include:
 
-    - [Predictive charging](configuration/predictive-charging/index.md) using time slots, dynamic pricing or real-time prices, including Tibber; its demand estimate uses a seven-day rolling history of household consumption
     - [Time slots](configuration/time-slots.md) for independent charge and discharge windows, each with its own state-of-charge and power settings
     - [Capacity protection (peak shaving)](features/peak-shaving.md) to reserve energy for demand above a configured threshold
     - [Weekly full charge](features/weekly-full-charge.md), which can charge to 100% for balancing, and a [cell balance monitor](features/cell-balance-monitor.md) that records cell-voltage spread and protects the open-circuit rest period
-    - [Solar charge delay](features/solar-charge-delay.md) when expected production can fill the battery later
-    - [Hourly net balance](features/hourly-net-balance.md), which adjusts the PD target toward a configurable hourly grid-energy result and can use an external balance sensor
     - [Load exclusion](features/load-exclusion.md) for electric vehicle chargers and other large loads, with an individual exclusion setting from 0–100%
     - Proactive Home Assistant fault and alarm notifications when a battery driver provides that telemetry; **System Alarm Status** summarizes the fleet as `OK`, `Warning` or `Fault`
 

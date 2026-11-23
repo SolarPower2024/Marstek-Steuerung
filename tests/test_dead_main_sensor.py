@@ -529,16 +529,6 @@ def test_a_meter_that_never_reported_is_announced_as_such(caplog):
     assert "command was" not in warning
 
 
-def test_a_dead_meter_releases_a_predictive_grid_charge():
-    """Its import ceiling is regulated on the meter, so it cannot run blind."""
-    ctrl, writes, cleared = _fallback_ctrl(grid_charging_active=True)
-    assert _fallback(ctrl) is True
-
-    assert cleared == ["dead_meter"]
-    assert ctrl.grid_charging_active is False
-    assert writes == [("a", 0, 0), ("b", 0, 0)]
-
-
 def test_recovery_hands_the_cycle_back(caplog):
     ctrl, writes, _ = _fallback_ctrl()
     _fallback(ctrl)
@@ -728,31 +718,3 @@ def test_global_manual_mode_keeps_the_cycle(issues):
     assert ctrl._dead_meter_fallback_engaged is False
     assert ctrl.previous_power == -1200.0
 
-
-def test_predictive_dispatch_does_not_run_on_a_dead_meter(issues):
-    t0 = NOW
-    state_holder = {"state": _meter(900, t0)}
-    pd_calls, writes, handler_calls, cleared = [], [], [], []
-    ctrl = _cycle_ctrl(state_holder, pd_calls, writes)
-    ctrl._last_valid_meter_publication = t0
-    ctrl.predictive_charging_enabled = True
-    ctrl.predictive_charging_mode = "time_slot"
-    ctrl.grid_charging_active = True
-
-    async def _handler():
-        handler_calls.append("time_slot")
-
-    def _clear(reason):
-        cleared.append(reason)
-        ctrl.grid_charging_active = False
-
-    ctrl._handle_time_slot_predictive_charging = _handler
-    ctrl._clear_predictive_runtime = _clear
-
-    asyncio.run(
-        ctrl._run_control_cycle(now=t0 + timedelta(seconds=MAIN_SENSOR_DEAD_S + 5))
-    )
-
-    assert handler_calls == []
-    assert cleared == ["dead_meter"]
-    assert writes == [(0, 0)]

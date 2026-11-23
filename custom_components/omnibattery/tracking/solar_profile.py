@@ -27,7 +27,6 @@ from ..const import (
     DOMAIN,
     normalize_solar_profile_mode,
 )
-from ..pricing.solar_timeline import PROGRESS_BIN_COUNT
 from ..drivers.base import has_connected_mppt_pv
 from .consumption_profile import (
     INTERVAL_COUNT,
@@ -41,6 +40,9 @@ from .consumption_profile import (
     split_sample_across_bins,
 )
 from .backfill import BackfillToken, RecorderBackfillCoordinator, local_day_bounds
+
+# Quarter-hour bins per day (was pricing/solar_timeline.PROGRESS_BIN_COUNT).
+PROGRESS_BIN_COUNT = 96
 
 _LOGGER = logging.getLogger(__name__)
 

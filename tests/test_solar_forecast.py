@@ -5,7 +5,6 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from custom_components.omnibattery.pricing.engine import PricingManager
 from custom_components.omnibattery.const import CONF_SOLAR_FORECAST_REMAINING_SENSOR
 from custom_components.omnibattery.solar_forecast import (
     SolarForecastInput,
@@ -44,24 +43,6 @@ def test_remaining_forecast_wins_and_is_normalized_from_wh():
     assert forecast.kwh == pytest.approx(1.81)
     assert forecast.source == "remaining"
     assert controller.solar_forecast_source == "remaining"
-
-
-def test_remaining_forecast_is_not_reduced_by_production():
-    """20.52 today - 12.34 produced is legacy-only; remaining stays 1.81."""
-    states = {
-        "sensor.today": _state(20.52),
-        "sensor.remaining": _state(1.81),
-    }
-    controller = SimpleNamespace(
-        solar_forecast_sensor="sensor.today",
-        solar_forecast_remaining_sensor="sensor.remaining",
-        _daily_solar_energy_kwh=12.34,
-        _solar_t_start=8.0,
-        _consumption_tracker=SimpleNamespace(),
-    )
-    hass = SimpleNamespace(states=SimpleNamespace(get=states.get))
-
-    assert PricingManager(hass, controller)._remaining_solar_today_kwh(14.0) == pytest.approx(1.81)
 
 
 def test_legacy_today_forecast_uses_dated_future_periods_not_actual_production():

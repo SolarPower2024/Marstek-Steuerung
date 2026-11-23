@@ -7,8 +7,6 @@ Start with what you can see in Home Assistant. **Integration Status** and its bl
 
 ## Forecast history is missing
 
-The check runs for entries with predictive charging configured (even when temporarily switched off), Charge Delay enabled, or a pending accumulator rebuild. Older entries that use none of these do not receive this warning.
-
 Omnibattery raises a **Sensors excluded from Recorder** warning in **Settings → System → Repairs** when Recorder excludes a sensor used to recover learned profiles:
 
 - The integration's **Home Consumption** power sensor (including renamed entities).
@@ -39,12 +37,10 @@ The battery may be idle by design when the grid is already near target. If house
 |---|---|---|
 | Maximum SOC or charge hysteresis reached | `battery_charge_blockers`, charging cutoff/target SOC, and **Charge Hysteresis** | Lower the target only if intentional; otherwise wait for SOC to fall |
 | Charging is disabled for this battery | **Allow Charge** | Turn it on |
-| Charge Delay is waiting for solar | **Charge Delay** and **Charge Delay Status** | Review [solar charge delay](features/solar-charge-delay.md) |
 | A time slot blocks charging | **Discharge Window**, time-slot switches, and `charge_blockers` | Review [time slots](configuration/time-slots.md) |
-| Predictive charging found no deficit | **Predictive Charging Active**, its reason, forecast, and consumption estimate | This is expected; review [predictive charging](configuration/predictive-charging/index.md) |
 | Temperature or battery protection limits charging | **Integration Status**, temperature status, battery alarm, and fault entities | Review [temperature charge limit](features/temperature-charge-limit.md) and the battery manual |
 
-**Expected result:** the blocker disappears and charge power rises when surplus solar, a manual request, or an eligible predictive period requires charging.
+**Expected result:** the blocker disappears and charge power rises when surplus solar or a manual request requires charging.
 
 ## Battery does not discharge
 
@@ -53,11 +49,10 @@ The battery may be idle by design when the grid is already near target. If house
 | Minimum SOC reached | `battery_discharge_blockers` and the battery minimum SOC | Wait for charging or adjust the limit deliberately |
 | Discharging is disabled | **Allow Discharge** | Turn it on |
 | Current time slot blocks discharge | **Discharge Window** and time-slot switches | Review [time slots](configuration/time-slots.md) |
-| Price or reserve control is holding energy | **Integration Status**, **Price-Based Discharge**, **Discharge Reserve**, and related statuses | Review [Dynamic Pricing](configuration/predictive-charging/dynamic-pricing.md) |
 | Capacity protection or excluded-load logic owns the response | **Capacity Protection**, active excluded devices, and blockers | Review [capacity protection](features/peak-shaving.md) and [load exclusion](features/load-exclusion.md) |
 | Battery is unavailable or excluded | **Non-Responsive Batteries** and Home Assistant **Repairs** | Follow [Entities are unavailable](#entities-are-unavailable) |
 
-**Expected result:** discharge resumes when household demand exists and no safety, schedule, price, or participation rule blocks it.
+**Expected result:** discharge resumes when household demand exists and no safety, schedule, or participation rule blocks it.
 
 ## Imports or exports more than expected
 
@@ -87,7 +82,7 @@ The battery may be idle by design when the grid is already near target. If house
 ## Grid meter is unavailable or frozen
 
 !!! warning "A silent meter stops automatic control after 5 minutes"
-    When the grid sensor becomes `unavailable` or `unknown`, or stops updating, the control loop no longer follows the house load, and a battery can continue at its last requested power, for example 2000W of discharge. After 5 minutes without a valid reading, Omnibattery raises a Home Assistant Repair and sets every battery under automatic control to 0W. Manual mode and manual time slots are left as they are, and predictive grid charging is paused. Automatic control resumes by itself as soon as the sensor publishes a valid reading again.
+    When the grid sensor becomes `unavailable` or `unknown`, or stops updating, the control loop no longer follows the house load, and a battery can continue at its last requested power, for example 2000W of discharge. After 5 minutes without a valid reading, Omnibattery raises a Home Assistant Repair and sets every battery under automatic control to 0W. Manual mode and manual time slots are left as they are. Automatic control resumes by itself as soon as the sensor publishes a valid reading again.
 
     The same applies when the sensor never reports after a Home Assistant restart. After a crash or a power cut, a battery can still be running its last command from before the restart; the 5 minutes then count from when Home Assistant has finished starting.
 
@@ -111,17 +106,7 @@ For up to 65 seconds after the last reading, the frozen value is still treated a
 
 **Expected result:** **PD Control Quality** becomes stable after the controller has observed enough normal operation.
 
-## Did not charge overnight
-
-| Likely cause | What to check | Action |
-|---|---|---|
-| No energy deficit was forecast | **Predictive Charging Active** reason and target energy | No action is needed if stored energy and forecast solar cover demand |
-| Price or forecast data is missing | `price_data_status`, solar forecast, and source entity availability | Restore the source described by your [predictive mode](configuration/predictive-charging/index.md) |
-| No eligible period exists before demand | `chronological_plan_reason`, deadlines, selected slots, and time-slot switches | Adjust the schedule or price ceiling |
-| Charge power or free capacity is insufficient | `deadline_shortfall_kwh`, battery SOC, charge limit, and target SOC | Increase an intentional limit or accept the reported shortfall |
-| Another feature owned charging | `charge_blockers`, manual mode, charge delay, or time-slot state | Remove the conflicting rule |
-
-**Expected result:** the diagnostic sensor either shows a feasible grid-charge plan or clearly reports why charging is unnecessary or physically impossible. See [Dynamic Pricing](configuration/predictive-charging/dynamic-pricing.md) or [Time Slot mode](configuration/predictive-charging/time-slot.md).
+## Forecast or consumption profile falls back
 
 ??? "Consumption source shows `legacy_daily`, or the solar profile falls back"
     A consumption forecast source of `legacy_daily` is expected while the 28-day profile is still learning, or when the requested interval does not meet its coverage contract. Check **Expected Home Consumption Profile** and the integration diagnostics. Changing a source or an excluded-load adjustment keeps every learned day; a timezone change re-bins them by the offset between the two zones, and Recorder backfill rebuilds whatever is still missing in the background. A gap longer than five minutes is not interpolated.
@@ -133,7 +118,7 @@ For up to 65 seconds after the last reading, the frozen value is still treated a
 | Likely cause | What to check | Action |
 |---|---|---|
 | Wrong day or feature disabled | **Weekly Full Charge** and **Weekly Full Charge Day** | Enable and schedule [weekly full charge](features/weekly-full-charge.md) |
-| Charging is delayed or blocked | Weekly charge status, `charge_blockers`, and manual ownership | Remove the blocker or disable the configured delay for that run |
+| Charging is delayed or blocked | Weekly charge status, `charge_blockers`, and manual ownership | Remove the blocker or fix the blocking rule |
 | Battery management system stopped at the top | SOC, cell voltage, charge power, alarm, and fault entities | Let the integration apply its supported taper; inspect persistent faults |
 | Required cell telemetry is missing | Max/min cell voltage and balance entities | Check compatibility in [cell balance monitor](features/cell-balance-monitor.md) |
 | Blueprint owns the battery | **Manual Battery Control** and automation trace | Review the [active balancing blueprint](automations/blueprints.md) |

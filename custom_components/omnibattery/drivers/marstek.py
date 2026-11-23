@@ -424,8 +424,8 @@ class MarstekModbusDriver(BatteryDriver):
         # Minimum operating power = the *setpoint* register floor (0 on every
         # Marstek model). NOT max_charge_power's min (800 W on v2/v3): that is
         # only the lowest ceiling the user may configure, not a power the
-        # hardware refuses to deliver, and reading it as a floor pinned
-        # predictive charging at 800 W of grid import.
+        # hardware refuses to deliver, and reading it as a floor would pin
+        # every charge command at 800 W.
         hw_charge_floor = int(number_defs.get("set_charge_power", {}).get("min", 0))
         hw_discharge_floor = int(number_defs.get("set_discharge_power", {}).get("min", 0))
 

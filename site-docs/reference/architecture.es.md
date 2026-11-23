@@ -11,8 +11,8 @@ Una entrada de configuración también crea un `ChargeDischargeController` para 
 ```mermaid
 flowchart TD
     GRID[Home Assistant grid sensor] --> CTRL[ChargeDischargeController]
-    PRICE[PricingManager and feature managers] --> CTRL
-    TRACK[Consumption and solar tracking] --> PRICE
+    FEAT[Feature managers] --> CTRL
+    TRACK[Consumption and solar tracking] --> FEAT
 
     CTRL --> GUARDS[residual_load.apply_guards]
     GUARDS --> PD[PD calculation and controller safeguards]
@@ -140,15 +140,9 @@ Un controlador escoge la cadencia de cada `ReadGroup`. Durante un cambio real de
 | `residual_load.py` | `residual_demand_w()`, `apply_guards()`, `guards_pending()` | Reconstruye carga sin cubrir y aplica la canalización compartida de protecciones. |
 | `phase_power_limit.py` | `PhasePowerLimiter`, `PhaseSensorReading` | Restringe las asignaciones finales a partir de medidas de corriente por fase. |
 | `pack_soc.py` | `pack_socs()`, `soc_vs_ceiling()`, `control_vmax()` | Normaliza decisiones de SOC por paquete y tensión de celda. |
-| `charge_delay.py` | `ChargeDelayManager` | Posee estado, previsiones, persistencia y decisiones de liberación del retraso de carga solar. |
 | `max_soc_charge.py` | `MaxSocChargeManager` | Aplica reducción gradual cerca de carga completa, recalibración y medición de diferencia de celdas. |
 | `weekly_full_charge.py` | `WeeklyFullChargeManager` | Programa y conserva el comportamiento periódico de carga completa y cambios temporales de corte. |
 | `temperature_limit.py` | `TemperatureChargeLimitManager` | Reduce límites de carga y descarga opcional por batería según la temperatura. |
-| `discharge_reserve.py` | `DischargeReserveManager` | Reserva energía para un periodo posterior de precio alto mediante bloqueadores de descarga. |
-| `high_price_discharge.py` | `HighPriceDischargeManager` | Construye y aplica anulaciones deliberadas de descarga a precio alto. |
-| `surplus_price_hold.py` | `SurplusPriceHoldManager` | Retrasa la absorción solar cuando exportar ahora tiene más valor. |
-
-Los cálculos puros de precios están en `pricing/`. `pricing/engine.py::PricingManager` coordina fuentes y evaluaciones de precio, mientras que `pricing/chronological.py` realiza la simulación cronológica de energía sin E/S de Home Assistant ni del dispositivo. Los adaptadores de ejecución de `control/` convierten esos planes en bloqueadores o anulaciones de consigna.
 
 ## Seguimiento y entidades
 
@@ -159,8 +153,6 @@ El paquete `tracking/` posee las observaciones y proyecciones persistidas:
 - `SolarProfileTracker` aprende una forma normalizada de producción solar.
 - `BalanceMonitor` registra la diferencia de tensión de celdas cerca de carga completa.
 - `NonResponsiveTracker` sigue episodios de entrega fallida y recuperación.
-- `HourlyBalanceManager` calcula la contabilidad del balance neto horario.
-- `DailyOperationTimelineManager` genera la cronología diaria de diagnóstico.
 
 Los archivos de plataforma de Home Assistant son consumidores ligeros de los datos del coordinador y las definiciones del controlador. Las entidades derivadas compartidas están en `sensors/`; los totales de todo el sistema usan `sensors/aggregate_sensors.py`, mientras que los valores calculados y restaurados usan `sensors/calculated_sensors.py`.
 
@@ -171,4 +163,4 @@ Los archivos de plataforma de Home Assistant son consumidores ligeros de los dat
 - Mantén al coordinador responsable de la planificación, bloqueos, actualizaciones de caché y salud; mantén el ciclo de vida del transporte dentro del controlador.
 - Mantén las decisiones de flota en `ChargeDischargeController` y `control/`; no hagas que un controlador elija la política del sistema.
 - Devuelve desconocido u omite una clave de telemetría cuando un valor no sea fiable. No sintetices cero para una medición válida que falta.
-- Añade planificación pura en `pricing/` o `tracking/` y un adaptador de ejecución solo donde sea necesario el estado de Home Assistant o el control del controlador.
+- Añade planificación pura en `tracking/` y un adaptador de ejecución solo donde sea necesario el estado de Home Assistant o el control del controlador.

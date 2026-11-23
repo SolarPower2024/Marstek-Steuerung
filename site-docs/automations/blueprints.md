@@ -101,20 +101,6 @@ The grid target is the total import, not the charge power: the battery charges w
 
 It sends the notification title, ID, and message with HTML-safe escaping.
 
-## Dismiss predictive charging notifications
-
-[Import blueprint](https://raw.githubusercontent.com/ffunes/Omnibattery/main/blueprints/dismiss_predictive_charging_notifications_blueprint.yaml)
-
-- **Purpose:** automatically dismisses persistent notifications about predictive grid charging, including evaluations, price-slot starts, and evening re-evaluations.
-- **Requires:** no additional entities or helpers.
-- **Controls:** nothing in Omnibattery; it only dismisses matching persistent notifications.
-- **Compatible with:** any installation using predictive charging.
-- **Does not do:** touch battery alarms, cell-balance messages, or manual-mode notifications — only predictive-charging notifications are dismissed.
-
-The notification may be visible briefly before Home Assistant executes the automation. Disable the automation at any time to receive predictive-charging notifications again.
-
-To stop these notifications at the source instead, turn off the **Predictive Charging Notifications** switch; see [Predictive charging](../configuration/predictive-charging/index.md).
-
 ## Solar forecast reserve discharge
 
 [Import blueprint](https://raw.githubusercontent.com/ffunes/Omnibattery/main/blueprints/solar_forecast_reserve_discharge_blueprint.yaml)

@@ -97,25 +97,6 @@ async def test_initial_remaining_forecast_replaces_unreadable_legacy_candidate()
     assert CONF_SOLAR_FORECAST_SENSOR not in flow.config_data
 
 
-async def test_predictive_steps_recognize_global_remaining_forecast():
-    for step_name in (
-        "async_step_predictive_charging_config",
-        "async_step_dynamic_pricing_config",
-        "async_step_realtime_price_config",
-    ):
-        flow = MarstekVenusConfigFlow()
-        flow.config_data[CONF_SOLAR_FORECAST_REMAINING_SENSOR] = "sensor.remaining"
-
-        result = await getattr(flow, step_name)()
-        fields = {
-            getattr(marker, "schema", marker)
-            for marker in result["data_schema"].schema
-        }
-
-        assert "solar_forecast_sensor" not in fields
-        assert "solar_profile_mode" not in fields
-
-
 async def test_options_flow_reports_production_sensor_unit_error_on_that_field():
     entry = SimpleNamespace(
         entry_id="test-entry",

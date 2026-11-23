@@ -1,10 +1,10 @@
 # Aprende el consumo de tu hogar
 
-Aprovecha al máximo la energía solar dejando que Omnibattery aprenda cuánta energía usa tu hogar y cuándo la usa. La estimación es automática; ayuda a la carga predictiva y al [Retraso de carga solar](solar-charge-delay.md) a decidir si la energía almacenada y la solar prevista pueden cubrir la demanda.
+Aprovecha al máximo la energía solar dejando que Omnibattery aprenda cuánta energía usa tu hogar y cuándo la usa. La estimación es automática; muestra el total diario y el patrón horario habituales de tu hogar.
 
 ## ¿Lo necesito?
 
-**Úsalo si** empleas la carga predictiva o el Retraso de carga solar y quieres que estas funciones tengan en cuenta la rutina habitual de tu hogar.
+**Úsalo si** quieres ver cuánta energía consume normalmente tu hogar y cuándo.
 
 **No necesitas gestionarlo** cuando tu consumo reciente es representativo. Intervén solo ante vacaciones, fallos del medidor o días inusuales que no deban influir en previsiones futuras.
 
@@ -33,9 +33,7 @@ Esta función es automática; no hay ningún interruptor para activar el aprendi
 - **Captura actual del perfil de consumo** muestra cuánta demanda de hoy se ha capturado hasta ahora.
 - **Modo vacaciones** informa de la línea base fija de vacaciones mientras el aprendizaje está en pausa.
 
-La integración aprende tanto un total diario como un patrón por hora del día. Un patrón maduro permite que Precio dinámico reserve energía antes de un pico de demanda temprano, manteniendo flexible por precio la demanda posterior hasta el siguiente amanecer. El Retraso de carga solar usa la misma previsión de demanda restante, de modo que la demanda ya observada hoy no se cuenta dos veces.
-
-Consulta la [cronología diaria de funcionamiento](daily-operation-timeline.md) para comparar el consumo aprendido con las acciones de batería previstas para hoy.
+La integración aprende tanto un total diario como un patrón por hora del día. Un patrón maduro sustituye la estimación alternativa por el ritmo propio de tu hogar.
 
 ## Si no funciona
 
@@ -85,7 +83,7 @@ Consulta la [cronología diaria de funcionamiento](daily-operation-timeline.md) 
     Expected consumption = 37.4 / 7 = 5.34 kWh
     ```
 
-    El valor en curso de todo el día también se expone como `household_consumption_full_day_kwh` en `binary_sensor.marstek_venus_system_predictive_charging_active` y persiste tras reinicios del mismo día. Sus atributos incluyen el historial diario y los recuentos de entradas reales y alternativas. En modo Precio dinámico, `energy_horizon_end` identifica el límite del amanecer local y `overnight_consumption_kwh` informa de la demanda prevista entre medianoche y ese límite.
+    El valor en curso de todo el día persiste tras reinicios del mismo día.
 
     **Red en SOC mínimo** (`sensor.marstek_venus_system_daily_grid_at_min_soc_energy`) se reinicia a medianoche local e informa de la energía de red importada mientras todas las baterías estaban en su estado de carga (SOC) mínimo durante una franja de descarga. Es solo diagnóstico y no se añade a la estimación porque el consumo derivado del hogar ya incluye esa demanda.
 

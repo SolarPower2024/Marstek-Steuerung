@@ -80,18 +80,11 @@ plugins:
             Large loads and EV chargers: Cargas grandes y cargadores VE
             Excluded devices: Dispositivos excluidos
             Load exclusion: Exclusión de cargas
-            Predictive charging: Carga predictiva
-            Which mode should I choose?: ¿Qué modo elijo?
-            Time Slot mode: Modo Franja Horaria
-            Dynamic Pricing mode: Modo Precio Dinámico
-            Real-Time Price mode: Modo Precio en Tiempo Real
             Features: Funcionalidades
             Follow home consumption: Seguir el consumo de casa
             PD Controller: Controlador PD
-            Hourly net balance: Balance neto horario
             Make the most of solar: Aprovechar el sol
             Daily consumption estimate: Estimación de consumo diario
-            Solar charge delay: Retraso de carga solar
             Protect your installation: Proteger la instalación
             Peak shaving: Peak shaving
             Temperature charge limit: Límite de carga por temperatura
@@ -99,7 +92,6 @@ plugins:
             Weekly full charge: Carga semanal completa
             Cell balance monitor: Monitor de equilibrio de celdas
             Multiple batteries: Varias baterías
-            Daily operation timeline: Cronología diaria
             Hardware and meters: Hardware y medidores
             Shelly Pro 3EM MQTT scripts: Scripts MQTT para Shelly Pro 3EM
             Automations: Automatizaciones
@@ -165,18 +157,11 @@ nav:
       - Large loads and EV chargers:
           - Excluded devices: configuration/excluded-devices.md
           - Load exclusion: features/load-exclusion.md
-      - Predictive charging:
-          - Which mode should I choose?: configuration/predictive-charging/index.md
-          - Time Slot mode: configuration/predictive-charging/time-slot.md
-          - Dynamic Pricing mode: configuration/predictive-charging/dynamic-pricing.md
-          - Real-Time Price mode: configuration/predictive-charging/real-time-price.md
   - Features:
       - Follow home consumption:
           - PD Controller: features/pd-controller.md
-          - Hourly net balance: features/hourly-net-balance.md
       - Make the most of solar:
           - Daily consumption estimate: features/consumption-estimate.md
-          - Solar charge delay: features/solar-charge-delay.md
       - Protect your installation:
           - Peak shaving: features/peak-shaving.md
           - Temperature charge limit: features/temperature-charge-limit.md
@@ -184,7 +169,6 @@ nav:
           - Weekly full charge: features/weekly-full-charge.md
           - Cell balance monitor: features/cell-balance-monitor.md
       - Multiple batteries: features/multi-battery.md
-      - Daily operation timeline: features/daily-operation-timeline.md
   - Hardware and meters:
       - Shelly Pro 3EM MQTT scripts: hardware/shelly-pro-3em-mqtt-script.md
   - Automations:

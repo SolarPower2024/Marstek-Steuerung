@@ -6,7 +6,7 @@ Time slots let you permit charging or discharging only during chosen periods. A 
 
 **Use it if** you want a recurring rule such as preventing discharge overnight, allowing charge only during selected hours, or applying a lower power or state-of-charge limit during part of the day.
 
-**You do not need it if** the batteries may follow home consumption at all times. Predictive charging has its own tariff schedule and does not require these operating slots.
+**You do not need it if** the batteries may follow home consumption at all times.
 
 ## Before you start
 
@@ -56,4 +56,3 @@ During an active PD slot, the battery continues responding to grid and household
 
     Slots aimed at different physical batteries may cover the same period. Slots that target the same battery, including an all-batteries scope, cannot overlap. A saved target for a battery removed from the integration becomes inert until you edit or remove the slot.
 
-    For diagnostics, the **Predictive Charging Active** binary sensor can expose `active_slot_per_battery` with the current slot definition and `manual_slot_owned` with batteries controlled by a Manual slot.

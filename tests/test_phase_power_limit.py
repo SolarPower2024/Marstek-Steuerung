@@ -210,13 +210,7 @@ def test_phase_budget_uses_controller_battery_sign():
     assert export["discharge_budget_a"] == 10
 
 
-@pytest.mark.parametrize(
-    ("grid_charging_active", "expected"),
-    [(False, 1340), (True, -1340)],
-)
-def test_phase_safety_review_preserves_active_power_sign_convention(
-    grid_charging_active, expected
-):
+def test_phase_safety_review_stores_signed_allocated_power():
     battery = FakeCoordinator("L1 battery", PHASE_L1)
     battery.commanded_charge_power = 1340
     calls = []
@@ -235,17 +229,11 @@ def test_phase_safety_review_preserves_active_power_sign_convention(
         _coordinator_delivered_power=ChargeDischargeController._coordinator_delivered_power,
         _set_battery_power=_set_battery_power,
         _phase_safety_pending=True,
-        grid_charging_active=grid_charging_active,
-    )
-    controller._signed_power_from_allocations = (
-        lambda charging, discharging: ChargeDischargeController._signed_power_from_allocations(
-            controller, charging, discharging
-        )
     )
 
     asyncio.run(ChargeDischargeController._apply_phase_safety_review(controller))
 
-    assert controller.previous_power == expected
+    assert controller.previous_power == 1340
     assert calls == [(battery, 1340, 0)]
     assert controller._phase_safety_pending is False
 

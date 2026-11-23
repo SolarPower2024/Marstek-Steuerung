@@ -6,7 +6,7 @@ Las franjas horarias le permiten permitir la carga o descarga solo durante los p
 
 **Úselo si** desea una regla recurrente, como evitar la descarga durante la noche, permitir la carga solo durante horas seleccionadas o aplicar un límite de energía o estado de carga más bajo durante parte del día.
 
-**No lo necesitas si** las baterías pueden seguir el consumo doméstico en todo momento. La carga predictiva tiene su propio cuadro tarifario y no requiere estas franjas operativas.
+**No lo necesitas si** las baterías pueden seguir el consumo doméstico en todo momento.
 
 ## Antes de empezar
 
@@ -56,4 +56,3 @@ Durante una ranura PD activa, la batería continúa respondiendo a la demanda de
 
     Las ranuras destinadas a diferentes baterías físicas pueden cubrir el mismo período. Las ranuras que apuntan a la misma batería, incluido un visor para todas las baterías, no pueden superponerse. Un objetivo guardado para una batería eliminada de la integración se vuelve inerte hasta que edites o elimines la ranura.
 
-    Para diagnóstico, el sensor binario **Carga predictiva activa** puede exponer `active_slot_per_battery` con la definición de ranura actual y `manual_slot_owned` con baterías controladas por una ranura manual.

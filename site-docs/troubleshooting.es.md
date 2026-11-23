@@ -25,12 +25,10 @@ La batería puede estar en reposo intencionadamente cuando la red ya está cerca
 |---|---|---|
 | Se alcanzó el SOC máximo o la histéresis de carga | `battery_charge_blockers`, SOC de corte/objetivo de carga y **Charge Hysteresis** | Reduce el objetivo solo si es intencionado; de lo contrario espera a que baje el SOC |
 | La carga está desactivada para esta batería | **Allow Charge** | Actívalo |
-| Charge Delay espera al sol | **Charge Delay** y **Charge Delay Status** | Revisa el [retraso de carga solar](features/solar-charge-delay.md) |
 | Una franja horaria bloquea la carga | **Discharge Window**, interruptores de franja horaria y `charge_blockers` | Revisa las [franjas horarias](configuration/time-slots.md) |
-| La carga predictiva no encontró déficit | **Predictive Charging Active**, su motivo, previsión y estimación de consumo | Es lo esperado; revisa la [carga predictiva](configuration/predictive-charging/index.md) |
 | La temperatura o la protección de batería limitan la carga | **Integration Status**, estado de temperatura, alarma de batería y entidades de fallo | Revisa el [límite de carga por temperatura](features/temperature-charge-limit.md) y el manual de la batería |
 
-**Resultado esperado:** el bloqueador desaparece y la potencia de carga sube cuando el excedente solar, una solicitud manual o un periodo predictivo apto requieren carga.
+**Resultado esperado:** el bloqueador desaparece y la potencia de carga sube cuando el excedente solar, o una solicitud manual requieren carga.
 
 ## La batería no descarga
 
@@ -39,11 +37,10 @@ La batería puede estar en reposo intencionadamente cuando la red ya está cerca
 | Se alcanzó el SOC mínimo | `battery_discharge_blockers` y el SOC mínimo de batería | Espera a cargar o ajusta el límite deliberadamente |
 | La descarga está desactivada | **Allow Discharge** | Actívalo |
 | La franja horaria actual bloquea la descarga | **Discharge Window** e interruptores de franja horaria | Revisa las [franjas horarias](configuration/time-slots.md) |
-| El control de precio o reserva retiene energía | **Integration Status**, **Price-Based Discharge**, **Discharge Reserve** y estados relacionados | Revisa [Precio dinámico](configuration/predictive-charging/dynamic-pricing.md) |
 | La protección de capacidad o lógica de carga excluida posee la respuesta | **Capacity Protection**, dispositivos excluidos activos y bloqueadores | Revisa [protección de capacidad](features/peak-shaving.md) y [exclusión de carga](features/load-exclusion.md) |
 | La batería no está disponible o está excluida | **Non-Responsive Batteries** y **Repairs** de Home Assistant | Sigue [Las entidades no están disponibles](#las-entidades-no-estan-disponibles) |
 
-**Resultado esperado:** la descarga se reanuda cuando existe demanda doméstica y ninguna regla de seguridad, horario, precio o participación la bloquea.
+**Resultado esperado:** la descarga se reanuda cuando existe demanda doméstica y ninguna regla de seguridad, horario o participación la bloquea.
 
 ## Importa o exporta más de lo esperado
 
@@ -73,7 +70,7 @@ La batería puede estar en reposo intencionadamente cuando la red ya está cerca
 ## El medidor de red no está disponible o está bloqueado
 
 !!! warning "Un medidor silencioso detiene el control automático tras 5 minutos"
-    Cuando el sensor de red pasa a `unavailable` o `unknown`, o deja de actualizarse, el bucle de control deja de seguir la carga de la casa, y una batería puede continuar a su última potencia solicitada, por ejemplo 2000W de descarga. Tras 5 minutos sin una lectura válida, Omnibattery crea una reparación de Home Assistant y pone a 0W cada batería bajo control automático. El modo manual y las franjas manuales se mantienen como están, y la carga predictiva desde la red se pausa. El control automático se reanuda solo en cuanto el sensor vuelve a publicar una lectura válida.
+    Cuando el sensor de red pasa a `unavailable` o `unknown`, o deja de actualizarse, el bucle de control deja de seguir la carga de la casa, y una batería puede continuar a su última potencia solicitada, por ejemplo 2000W de descarga. Tras 5 minutos sin una lectura válida, Omnibattery crea una reparación de Home Assistant y pone a 0W cada batería bajo control automático. El modo manual y las franjas manuales se mantienen como están. El control automático se reanuda solo en cuanto el sensor vuelve a publicar una lectura válida.
 
     Lo mismo ocurre cuando el sensor no publica nada tras reiniciar Home Assistant. Después de un fallo o un corte de luz, una batería puede seguir ejecutando su última orden de antes del reinicio; los 5 minutos cuentan entonces desde que Home Assistant termina de iniciarse.
 
@@ -97,17 +94,7 @@ Durante hasta 65 segundos después de la última lectura, el valor bloqueado sig
 
 **Resultado esperado:** **PD Control Quality** pasa a estable tras observar el controlador suficiente funcionamiento normal.
 
-## No cargó durante la noche
-
-| Causa probable | Qué comprobar | Acción |
-|---|---|---|
-| No se previó déficit de energía | Motivo de **Predictive Charging Active** y energía objetivo | No hace falta actuar si la energía almacenada y la previsión solar cubren la demanda |
-| Faltan datos de precio o previsión | `price_data_status`, previsión solar y disponibilidad de entidad fuente | Restaura la fuente descrita por tu [modo predictivo](configuration/predictive-charging/index.md) |
-| No hay periodo apto antes de la demanda | `chronological_plan_reason`, plazos, franjas seleccionadas e interruptores de franja | Ajusta el horario o el techo de precio |
-| La potencia de carga o capacidad libre es insuficiente | `deadline_shortfall_kwh`, SOC de batería, límite de carga y SOC objetivo | Aumenta un límite intencionado o acepta el déficit informado |
-| Otra función poseía la carga | `charge_blockers`, modo manual, retraso de carga o estado de franja horaria | Elimina la regla en conflicto |
-
-**Resultado esperado:** el sensor de diagnóstico muestra un plan de carga de red viable o informa claramente de por qué la carga es innecesaria o físicamente imposible. Consulta [Precio dinámico](configuration/predictive-charging/dynamic-pricing.md) o [modo Franja horaria](configuration/predictive-charging/time-slot.md).
+## La previsión o el perfil de consumo recurre a un método alternativo
 
 ??? "La fuente de consumo muestra `legacy_daily` o el perfil solar recurre a un método alternativo"
     Una fuente de previsión de consumo `legacy_daily` es esperable mientras el perfil de 28 días sigue aprendiendo, o cuando el intervalo solicitado no cumple su contrato de cobertura. Comprueba **Expected Home Consumption Profile** y los diagnósticos de integración. Cambiar una fuente o ajuste de carga excluida conserva todos los días aprendidos; un cambio de zona horaria los redistribuye según el desplazamiento entre las dos zonas, y el relleno de Recorder reconstruye en segundo plano lo que siga faltando. No se interpola un hueco de más de cinco minutos.
@@ -119,7 +106,7 @@ Durante hasta 65 segundos después de la última lectura, el valor bloqueado sig
 | Causa probable | Qué comprobar | Acción |
 |---|---|---|
 | Día incorrecto o función desactivada | **Weekly Full Charge** y **Weekly Full Charge Day** | Activa y programa la [carga completa semanal](features/weekly-full-charge.md) |
-| La carga está retrasada o bloqueada | Estado de carga semanal, `charge_blockers` y control manual | Elimina el bloqueador o desactiva el retraso configurado para esa ejecución |
+| La carga está retrasada o bloqueada | Estado de carga semanal, `charge_blockers` y control manual | Elimina el bloqueador o corrige la regla que lo bloquea |
 | El sistema de gestión de batería paró en la parte superior | SOC, tensión de celda, potencia de carga y entidades de alarma y fallo | Deja que la integración aplique su reducción gradual admitida; inspecciona los fallos persistentes |
 | Falta la telemetría de celda requerida | Tensión máxima/mínima de celda y entidades de balance | Comprueba la compatibilidad en [monitor de balance de celdas](features/cell-balance-monitor.md) |
 | Un blueprint posee la batería | **Manual Battery Control** y traza de automatización | Revisa el [blueprint de balance activo](automations/blueprints.md) |

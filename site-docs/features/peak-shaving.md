@@ -8,7 +8,7 @@ Protect your installation with capacity protection (peak shaving): below a batte
 
 **You do not need it if** you want the battery to cover ordinary household demand down to its normal minimum SOC and have no separate peak limit to protect.
 
-Peak shaving is an optional reserve strategy. Contracted-power emergency protection is separate and can still protect the physical grid connection during predictive charging.
+Peak shaving is an optional reserve strategy. Contracted-power emergency protection is separate and can still protect the physical grid connection.
 
 ## Before you start
 
@@ -46,8 +46,6 @@ For example, with a `3,000 W` limit and `4,500 W` of household demand, the batte
 
 ![Peak shaving controls](../assets/screenshots/features/peak-shaving-config.png){ width="650" style="display: block; margin: 0 auto;"}
 
-See the [daily operation timeline](daily-operation-timeline.md) to compare peak-shaving actions with household demand, and [predictive charging](../configuration/predictive-charging/index.md#household-demand-during-a-charging-slot) for the import-protection sequence during a charging period.
-
 ## If it does not work
 
 | Symptom | Likely cause | What to check |
@@ -56,8 +54,6 @@ See the [daily operation timeline](daily-operation-timeline.md) to compare peak-
 | A peak remains above the limit | Available battery discharge power or another safety rule is limiting output | Minimum SOC, battery availability, phase limits, backup state, and power limits |
 | An excluded load is not shaved | The separate excluded-device option is off | **Peak Shaving for Excluded Devices** |
 | The battery does not fall to idle immediately | Relay cooldown is holding minimum power or telemetry is settling | PD relay cooldown and live battery power |
-| Predictive grid charging pauses | Household import reached the applicable ceiling | Predictive charging status, **Peak Shaving Limit**, and maximum contracted power |
-| The battery discharges during a price-protected period | A physical peak or contracted-power emergency takes priority | Grid import and the active protection status |
 
 ??? "Advanced details"
     Below the conservation threshold, Omnibattery reconstructs household load from grid and battery AC telemetry and applies this target:
@@ -70,8 +66,6 @@ See the [daily operation timeline](daily-operation-timeline.md) to compare peak-
 
     **Peak Shaving for Excluded Devices** is disabled by default. Above the conservation threshold, ordinary home coverage stays unchanged and only the excluded share that would leave physical grid import over the limit is added back. With `1,000 W` of normal demand, `4,000 W` excluded, and a `3,000 W` limit, the battery supplies `2,000 W`: `1,000 W` for normal demand and `1,000 W` to shave the excluded load. Below the threshold, capacity protection already applies the limit to total demand.
 
-    During an active predictive charging period, household demand has priority. Omnibattery first reduces positive battery charging, then commands idle and waits for inverter and meter telemetry to settle. If import remains too high, Peak Shaving uses the lower of its configured limit and maximum contracted power. Independently, physical import above maximum contracted power can trigger emergency discharge, including for excluded loads seen by the grid connection.
-
-    Price-based discharge restrictions and protected negative-price periods cannot suppress a legitimate peak-shaving or contracted-power emergency command. Stopping predictive charge, Peak Shaving discharge, normal proportional–derivative (PD) discharge, and emergency discharge remain separate actions. When stable import capacity returns, discharge stops, telemetry settles, and predictive charging resumes with hysteresis; its SOC target and pending energy remain preserved.
+    Physical import above maximum contracted power can trigger emergency discharge, including for excluded loads seen by the grid connection.
 
     Relay cooldown is optional and defaults to `0 seconds`. When configured, an active-to-idle request can hold the already active direction at the configured minimum power, or `100 W` when no minimum is set, until the selected cooldown expires. A large imbalance bypasses the hold. This protects the relay from rapid off/on cycling and does not delay direct charge-to-discharge direction changes.

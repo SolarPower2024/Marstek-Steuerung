@@ -11,8 +11,8 @@ A config entry also creates one `ChargeDischargeController` for the fleet. The c
 ```mermaid
 flowchart TD
     GRID[Home Assistant grid sensor] --> CTRL[ChargeDischargeController]
-    PRICE[PricingManager and feature managers] --> CTRL
-    TRACK[Consumption and solar tracking] --> PRICE
+    FEAT[Feature managers] --> CTRL
+    TRACK[Consumption and solar tracking] --> FEAT
 
     CTRL --> GUARDS[residual_load.apply_guards]
     GUARDS --> PD[PD calculation and controller safeguards]
@@ -140,15 +140,9 @@ A driver chooses the cadence for each `ReadGroup`. During a real command change,
 | `residual_load.py` | `residual_demand_w()`, `apply_guards()`, `guards_pending()` | Reconstructs uncovered load and applies the shared guard pipeline. |
 | `phase_power_limit.py` | `PhasePowerLimiter`, `PhaseSensorReading` | Constrains final allocations from per-phase current measurements. |
 | `pack_soc.py` | `pack_socs()`, `soc_vs_ceiling()`, `control_vmax()` | Normalizes pack-level SOC and cell-voltage decisions. |
-| `charge_delay.py` | `ChargeDelayManager` | Owns solar charge-delay state, forecasts, persistence, and release decisions. |
 | `max_soc_charge.py` | `MaxSocChargeManager` | Applies top-of-charge taper, recalibration, and cell-delta measurement. |
 | `weekly_full_charge.py` | `WeeklyFullChargeManager` | Schedules and persists periodic full-charge behavior and temporary cutoff changes. |
 | `temperature_limit.py` | `TemperatureChargeLimitManager` | Derates per-battery charge and optional discharge limits from temperature. |
-| `discharge_reserve.py` | `DischargeReserveManager` | Reserves energy for a later high-price period through discharge blockers. |
-| `high_price_discharge.py` | `HighPriceDischargeManager` | Builds and applies deliberate high-price discharge overrides. |
-| `surplus_price_hold.py` | `SurplusPriceHoldManager` | Delays solar absorption when exporting now is more valuable. |
-
-Pure pricing calculations live under `pricing/`. `pricing/engine.py::PricingManager` coordinates price sources and evaluations, while `pricing/chronological.py` performs the chronological energy simulation without Home Assistant or device I/O. Runtime adapters in `control/` turn those plans into blockers or setpoint overrides.
 
 ## Tracking and entities
 
@@ -159,8 +153,6 @@ The `tracking/` package owns persisted observations and projections:
 - `SolarProfileTracker` learns a normalized solar-production shape.
 - `BalanceMonitor` records cell-voltage spread around full charge.
 - `NonResponsiveTracker` tracks failed delivery episodes and recovery.
-- `HourlyBalanceManager` calculates hourly net-balance accounting.
-- `DailyOperationTimelineManager` builds the diagnostic daily timeline.
 
 The Home Assistant platform files are thin consumers of coordinator data and driver definitions. Shared derived entities live under `sensors/`; system-wide totals use `sensors/aggregate_sensors.py`, while calculated and restored values use `sensors/calculated_sensors.py`.
 
@@ -171,4 +163,4 @@ The Home Assistant platform files are thin consumers of coordinator data and dri
 - Keep the coordinator responsible for scheduling, locking, cache updates, and health; keep transport lifecycle inside the driver.
 - Keep fleet decisions in `ChargeDischargeController` and `control/`; do not make a driver choose system policy.
 - Return unknown or omit a telemetry key when a value cannot be trusted. Do not synthesize zero for a valid missing measurement.
-- Add pure planning code under `pricing/` or `tracking/` and a runtime adapter only where Home Assistant state or controller ownership is required.
+- Add pure planning code under `tracking/` and a runtime adapter only where Home Assistant state or controller ownership is required.

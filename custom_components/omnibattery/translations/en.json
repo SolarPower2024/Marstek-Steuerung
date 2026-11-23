@@ -22,23 +22,19 @@
     },
     "dead_main_sensor": {
       "title": "Grid power sensor has stopped publishing",
-      "description": "The configured grid sensor {sensor} has not published a reading for {minutes} minutes. Omnibattery cannot regulate without it, so it has stopped automatic control: every battery under automatic control is set to 0W (the last command was {power}W) and predictive grid charging is paused. Manual mode and manual time slots are left as they are. Automatic control resumes by itself as soon as {sensor} publishes a valid reading again. Note that a sensor frozen on a valid value looks perfectly healthy in Home Assistant: check that {sensor} still updates, and that the integration or bridge behind it has not wedged."
+      "description": "The configured grid sensor {sensor} has not published a reading for {minutes} minutes. Omnibattery cannot regulate without it, so it has stopped automatic control: every battery under automatic control is set to 0W (the last command was {power}W). Manual mode and manual time slots are left as they are. Automatic control resumes by itself as soon as {sensor} publishes a valid reading again. Note that a sensor frozen on a valid value looks perfectly healthy in Home Assistant: check that {sensor} still updates, and that the integration or bridge behind it has not wedged."
     },
     "dead_main_sensor_since_start": {
       "title": "Grid power sensor has not reported since the restart",
-      "description": "The configured grid sensor {sensor} has not published a valid reading in the {minutes} minutes since Home Assistant started. Omnibattery cannot regulate without it. If Home Assistant did not shut down cleanly, a battery can still be running its last command from before the restart, so Omnibattery has stopped automatic control: every battery under automatic control is set to 0W and predictive grid charging is paused. Manual mode and manual time slots are left as they are. Automatic control starts by itself as soon as {sensor} publishes a valid reading. Check that {sensor} exists and updates, and that the integration or device behind it came back after the restart."
+      "description": "The configured grid sensor {sensor} has not published a valid reading in the {minutes} minutes since Home Assistant started. Omnibattery cannot regulate without it. If Home Assistant did not shut down cleanly, a battery can still be running its last command from before the restart, so Omnibattery has stopped automatic control: every battery under automatic control is set to 0W. Manual mode and manual time slots are left as they are. Automatic control starts by itself as soon as {sensor} publishes a valid reading. Check that {sensor} exists and updates, and that the integration or device behind it came back after the restart."
     },
     "slow_main_sensor": {
       "title": "Grid power sensor updates too slowly",
       "description": "The configured grid sensor {sensor} updates about every {observed_interval} seconds. Updates every {warning_interval} seconds or more are slower than recommended and may reduce regulation quality. Omnibattery still follows the latest reading until it is more than {stale_limit} seconds old. Use a faster sensor if you need tighter real-time control."
     },
-    "price_data_unusable": {
-      "title": "Price data unusable",
-      "description": "Omnibattery could not parse usable price slots from {sensor} for over {minutes} minutes (status: {status}). Price-aware charging is inactive: dynamic-pricing scheduling and the price-aware charge-delay release fall back to their no-price behaviour. Check that the sensor is available and that its price attribute is a list of entries; a template sensor must emit ISO-8601 timestamps, because a rendered Python datetime cannot be converted back into a list."
-    },
     "solar_forecast_unusable": {
       "title": "Solar forecast unusable",
-      "description": "The configured solar forecast sensor {sensor} has been unavailable or unreadable for over {minutes} minutes. Omnibattery keeps running, but every feature that depends on the forecast is now blind: the charge delay unlocks for the rest of the day, grid-charge decisions assume no sun at all and may book grid slots you do not need, and remaining-solar estimates read as 0 kWh. Check the sensor or the integration that provides it."
+      "description": "The configured solar forecast sensor {sensor} has been unavailable or unreadable for over {minutes} minutes. Omnibattery keeps running, but every feature that depends on the forecast is now blind: remaining-solar estimates read as 0 kWh. Check the sensor or the integration that provides it."
     },
     "solar_forecast_remaining_recommended": {
       "title": "Use a remaining solar forecast",
@@ -275,9 +271,7 @@
           "dynamic_power_control": "Device has dynamic power control",
           "cover_home_when_active": "Cover home while device is active",
           "ev_charger_no_telemetry": "EV charger without power telemetry",
-          "is_ev_charger": "EV charger (flow diagram only)",
-          "remaining_demand_sensor": "Expected remaining demand (kWh)",
-          "remaining_demand_presence_sensor": "Presence entity for the remaining demand (optional)"
+          "is_ev_charger": "EV charger (flow diagram only)"
         },
         "data_description": {
           "power_sensor": "Numeric power sensor (W) for the device. Optional for EV chargers without power telemetry; existing configurations that stored the charging-state sensor here remain supported.",
@@ -287,9 +281,7 @@
           "dynamic_power_control": "Enable for devices that automatically adjust their own demand from the grid meter, such as a solar-surplus wallbox. If an activity sensor is configured, Omnibattery yields before power appears; otherwise it reacts to the power sensor. It then uses genuine leftover export.",
           "cover_home_when_active": "Requires Solar Surplus and a solar-production sensor. The battery may cover the home's own load while this device is active; only the device's grid share stays excluded.",
           "ev_charger_no_telemetry": "✓ CHECKED = Use the Activity / EV charging sensor instead of numeric power telemetry. Existing configurations that placed this state sensor in Device power sensor continue to work. When charging is detected, the battery pauses for 5 minutes; afterwards it may only charge from solar surplus and never discharges for the EV.",
-          "is_ev_charger": "Tick it if this device is an electric-vehicle charger. It is used only by the animated energy-flow diagram, to draw the device on the EV charger cable instead of the excluded-devices cable. It does not change how the battery manages the device.",
-          "remaining_demand_sensor": "Optional. Sensor reporting the energy (kWh) this device still expects to consume today, for example sensor.evcc_[loadpoint]_charge_remaining_energy. Predictive charging then reserves that much of the remaining solar forecast for the device instead of assuming the battery receives it. Only used when 'Consumption is included in home consumption sensor' is checked. Devices marked 'EV charger without power telemetry' are skipped: their energy is already inside the consumption forecast, so reserving it would count it twice.",
-          "remaining_demand_presence_sensor": "Only count the expected remaining demand while this entity reports the device as present: on, true, home, connected, plugged or present. Leave empty to always count it. Point it at your charger's connected entity when the upstream keeps reporting a demand with nothing plugged in: evcc reports the energy to the vehicle's SOC target whether or not a car is there, and reserving solar for an absent car takes it from the battery for nothing. An unavailable or unknown entity counts as absent, so a broken sensor stops reserving rather than reserving for a device that may not be there."
+          "is_ev_charger": "Tick it if this device is an electric-vehicle charger. It is used only by the animated energy-flow diagram, to draw the device on the EV charger cable instead of the excluded-devices cable. It does not change how the battery manages the device."
         }
       },
       "add_more_excluded_devices": {
@@ -297,79 +289,6 @@
         "description": "You currently have {current_devices} excluded device(s). You can add up to {max_devices} devices total.",
         "data": {
           "add_more": "Add another excluded device"
-        }
-      },
-      "predictive_charging": {
-        "title": "Predictive Grid Charging",
-        "description": "Do you want to enable intelligent grid charging? This feature allows charging batteries from the grid during off-peak hours when today's solar forecast is insufficient.",
-        "data": {
-          "configure_predictive_charging": "Configure predictive charging"
-        }
-      },
-      "predictive_charging_mode": {
-        "title": "Predictive Charging Mode",
-        "description": "Select how the system decides when to charge from the grid.",
-        "data": {
-          "predictive_charging_mode": "Charging mode"
-        },
-        "data_description": {
-          "predictive_charging_mode": "Time Slot: charge during a fixed nightly window. Dynamic Pricing: automatically select the cheapest hours from a price sensor. Real-Time Price: activate charging instantly whenever the current price is below a threshold — no scheduling needed."
-        }
-      },
-      "predictive_charging_config": {
-        "title": "Predictive Charging — Time Slot",
-        "description": "Configure when and how to charge batteries from the grid based on solar forecast. You can set up to 3 charging windows — fill only window 1 to keep a single window, or add windows 2 and 3 as needed.",
-        "data": {
-          "start_time": "Window 1 — start time (off-peak tariff)",
-          "end_time": "Window 1 — end time (off-peak tariff)",
-          "days": "Window 1 — days of the week",
-          "start_time_2": "Window 2 — start time (optional)",
-          "end_time_2": "Window 2 — end time (optional)",
-          "days_2": "Window 2 — days of the week",
-          "start_time_3": "Window 3 — start time (optional)",
-          "end_time_3": "Window 3 — end time (optional)",
-          "days_3": "Window 3 — days of the week",
-          "solar_forecast_sensor": "Solar forecast sensor (kWh)"
-        },
-        "data_description": {
-          "start_time": "Start time of charging window (e.g., 01:00, off-peak tariff)",
-          "end_time": "End time of charging window (e.g., 06:00)",
-          "days": "Days when grid charging is allowed",
-          "solar_forecast_sensor": "Sensor providing the solar production forecast in kWh (e.g., Solcast). If you have solar panels, configure this sensor — the system will only charge from the grid when solar forecast is insufficient. If you have no solar panels, leave this empty — the system will charge whenever battery energy is not enough for the day. Not required if you already configured this sensor in the initial setup step — it will be used automatically."
-        }
-      },
-      "dynamic_pricing_config": {
-        "title": "Predictive Charging — Dynamic Pricing",
-        "description": "Configure the electricity price sensor and parameters for automatic cheap-hour selection.",
-        "data": {
-          "price_integration_type": "Price integration",
-          "price_sensor": "Electricity price sensor",
-          "export_price_sensor": "Export/feed-in price sensor (optional)",
-          "export_price_integration_type": "Export price integration (optional)",
-          "zonneplan_export_bonus_enabled": "Apply Zonneplan export bonus",
-          "solar_forecast_sensor": "Solar forecast sensor (kWh)"
-        },
-        "data_description": {
-          "price_integration_type": "Select your electricity price provider integration. Nord Pool supports both the official Home Assistant integration and HACS. Tibber is service-based, so its price sensor can be left empty.",
-          "price_sensor": "Sensor providing electricity prices (e.g., the official Nord Pool current-price sensor, a HACS Nordpool sensor, sensor.esios_pvpc for PVPC, or your CKW sensor for Switzerland)",
-          "export_price_sensor": "Sensor providing your export/feed-in prices. Leave empty to use the import price curve, which is correct when export is credited at the import price (net metering).",
-          "export_price_integration_type": "Attribute layout of the export price sensor. Leave empty to reuse the import integration. Tibber is not available here: it is service-based and its cache belongs to the import curve.",
-          "zonneplan_export_bonus_enabled": "Adds the Zonneplan sun bonus to the tax-inclusive export price of solar power: the bonus is €0.02/kWh on top of the tax-excluded price, then +10%. Only applies between sunrise and sunset and only when that price plus €0.02 is positive. Battery export is never valued with the bonus. Has no effect unless the effective export price integration is Zonneplan.",
-          "solar_forecast_sensor": "Sensor providing the solar production forecast in kWh (e.g., Solcast). If you have solar panels, configure this sensor — the system will only charge from the grid when solar forecast is insufficient. If you have no solar panels, leave this empty — the system will charge whenever battery energy is not enough for the day. Not required if you already configured this sensor in the initial setup step — it will be used automatically."
-        }
-      },
-      "realtime_price_config": {
-        "title": "Predictive Charging — Real-Time Price",
-        "description": "Configure the price sensor and threshold. The system reads the current price every few seconds and starts or stops grid charging immediately — no daily schedule needed.",
-        "data": {
-          "price_sensor": "Electricity price sensor",
-          "average_price_sensor": "Daily average price sensor (optional)",
-          "solar_forecast_sensor": "Solar forecast sensor (kWh)"
-        },
-        "data_description": {
-          "price_sensor": "Sensor whose state is the current electricity price (e.g. sensor.esios_pvpc, sensor.nordpool_kwh_es_eur_3_10_0). Any sensor that exposes the current period price as its state works.",
-          "average_price_sensor": "If provided, this sensor's state is used as the threshold instead of the fixed value above — useful when your price integration already exposes a daily average. Leave empty to use the fixed threshold.",
-          "solar_forecast_sensor": "Sensor providing the solar production forecast in kWh (e.g., Solcast). If you have solar panels, configure this sensor — the system will only charge from the grid when solar forecast is insufficient. Not required if you already configured this sensor in the initial setup step — it will be used automatically."
         }
       },
       "weekly_full_charge": {
@@ -387,29 +306,6 @@
         },
         "data_description": {
           "weekly_full_charge_day": "Day when batteries will charge to 100% regardless of configured max SOC. This helps balance battery cells."
-        }
-      },
-      "charge_delay": {
-        "title": "Solar charge delay",
-        "description": "Enable solar charge delay? This delays battery charging until the solar energy balance indicates it's needed, exporting excess solar to grid in the meantime.",
-        "data": {
-          "configure_charge_delay": "Configure charge delay"
-        }
-      },
-      "charge_delay_config": {
-        "title": "Charge delay configuration",
-        "description": "Configure the safety margin and solar forecast sensor for the charge delay.",
-        "data": {
-          "delay_safety_margin_h": "Safety margin (hours)",
-          "delay_soc_setpoint_enabled": "Enable minimum SOC before delay",
-          "delay_soc_setpoint": "Minimum SOC (%)",
-          "solar_forecast_sensor": "Solar forecast sensor"
-        },
-        "data_description": {
-          "delay_safety_margin_h": "Hours before sunset by which charging must be complete. Higher values unlock charging earlier.",
-          "delay_soc_setpoint_enabled": "When enabled, the battery charges freely up to the configured SOC; above it the solar delay activates.",
-          "delay_soc_setpoint": "The SOC the battery must reach before the solar delay kicks in. Minimum is 12 % — the Venus battery minimum discharge SOC.",
-          "solar_forecast_sensor": "Sensor providing solar production forecast in kWh (e.g., Solcast). Not required if you already configured this sensor in the initial setup step — it will be used automatically."
         }
       },
       "temp_charge_limit": {
@@ -454,13 +350,6 @@
           "capacity_protection_limit": "Grid import power threshold. When house consumption exceeds this value and peak shaving is active, the battery discharges only the excess above this limit."
         }
       },
-      "hourly_balance": {
-        "title": "Hourly Net Balance",
-        "description": "Enable hourly net balance control? This feature tracks grid import/export per hour and automatically adjusts the battery setpoint to achieve a target net energy balance.\n\n⚠️ **This feature is only useful in Spain**, under the hourly surplus-compensation scheme (Royal Decree 244/2019), where grid surplus is settled hour by hour. In markets with feed-in tariffs or annual net metering it provides no benefit and may cause lost export revenue and unnecessary battery cycling.\n\nDetected Home Assistant country: **{country}**.",
-        "data": {
-          "configure_hourly_balance": "Configure hourly net balance"
-        }
-      },
       "pd_advanced": {
         "title": "Advanced PD Controller Parameters",
         "description": "Configure advanced PD controller parameters for expert tuning of battery charge/discharge behavior. Only modify these if you understand PID control theory. Default values work well for most installations.",
@@ -496,22 +385,6 @@
           "enable_system_power_limits": "When enabled, the two sliders below cap the combined charge/discharge power of all active batteries.",
           "system_max_charge_power": "Optional cap for combined charge power across all active batteries. 0 = disabled; per-battery limits still apply.",
           "system_max_discharge_power": "Optional cap for combined discharge power across all active batteries. 0 = disabled; per-battery limits still apply."
-        }
-      },
-      "hourly_balance_config": {
-        "title": "Hourly Balance Configuration",
-        "description": "Configure the target net energy balance and control parameters. The system will adjust battery power to achieve the target Wh balance each hour.",
-        "data": {
-          "hourly_balance_target_net_wh": "Target net balance (kWh)",
-          "hourly_balance_max_offset_w": "Maximum offset (W)",
-          "hourly_balance_deadband_wh": "Net balance tolerance (kWh)",
-          "hourly_balance_hysteresis_w": "Offset hysteresis (W)"
-        },
-        "data_description": {
-          "hourly_balance_target_net_wh": "Target net energy balance per hour. 0 = net zero (default). Positive = allow import, negative = target export.",
-          "hourly_balance_max_offset_w": "Maximum power offset the controller can apply. The slider ceiling is the combined discharge power of all configured batteries.",
-          "hourly_balance_deadband_wh": "Tolerance band around the target. No correction is applied when the net balance is within ±N kWh of the target. 0 = exact correction.",
-          "hourly_balance_hysteresis_w": "Minimum change in offset required before a new correction is applied. Prevents micro-adjustments every cycle. 0 = apply every cycle. Default: 15 W."
         }
       },
       "reconfigure_battery": {
@@ -563,18 +436,11 @@
       "phase_limit_must_be_positive": "The phase fuse size must be a positive finite value in amperes.",
       "phase_sensor_and_limit_required": "Set both the phase current sensor and its fuse size, or leave both fields empty.",
       "battery_phase_required": "Select the physical phase for this battery.",
-      "incomplete_window": "Each extra charging window needs both a start and an end time. Fill both, or leave both empty to skip it.",
       "overlapping_slots": "This time slot overlaps with an existing one for the same battery. Adjust the times, days, or battery scope.",
       "midnight_crossing": "Start time must be before end time. For overnight periods, create two separate slots (e.g., 22:00-23:59 and 00:00-06:00).",
       "slot_does_nothing": "The slot must allow at least one direction (charge or discharge).",
       "manual_requires_power": "Manual mode requires the power override tick to be enabled.",
       "manual_requires_single_direction": "Manual mode forces a single direction: tick either Allow charge or Allow discharge, not both.",
-      "no_price_data": "Selected sensor is not a supported price source. Nord Pool: select an entity from the official integration or a HACS sensor with `raw_today`. PVPC: needs `price_00h` … `price_23h`. CKW: needs a `prices` list. EPEX: needs a `data` list. ENTSO-e: needs a `prices_today` list.",
-      "tibber_unavailable": "The Tibber integration is not installed, or its `tibber.get_prices` service is unavailable. Install and configure Tibber first.",
-      "energyzero_unavailable": "The EnergyZero integration is not installed, or its `energyzero.get_energy_prices` service is unavailable. Install and configure EnergyZero first.",
-      "export_tibber_unsupported": "Tibber cannot be used for the export price curve: it is service-based and its price cache belongs to the import curve. Choose a sensor-based provider instead.",
-      "export_type_required": "Select the export price integration explicitly. The import curve is service-based, so its type cannot be reused for a sensor.",
-      "discharge_below_charge": "The discharge price floor cannot be below the maximum (charge) price threshold. Set it equal or higher, or leave it empty to reuse the charge threshold.",
       "host_or_serial_required": "Enter either an IP address (TCP) or a serial port path (Modbus RTU).",
       "missing_power_sensor": "Select a device power sensor, or enable EV charger without power telemetry and select an activity sensor.",
       "missing_activity_sensor": "Select an Activity / EV charging sensor for Dynamic Power Control or an EV charger without power telemetry."
@@ -607,12 +473,9 @@
           "batteries": "Batteries",
           "time_slots": "Time slots",
           "excluded_devices": "Excluded devices",
-          "predictive_charging": "Predictive charging",
           "weekly_full_charge": "Weekly full charge",
-          "charge_delay": "Solar charge delay",
           "temp_charge_limit": "Temperature charge limit",
           "capacity_protection": "Capacity protection",
-          "hourly_balance": "Hourly net balance",
           "pd_advanced": "PD controller (advanced)"
         }
       },
@@ -846,9 +709,7 @@
           "dynamic_power_control": "Device has dynamic power control",
           "cover_home_when_active": "Cover home while device is active",
           "ev_charger_no_telemetry": "EV charger without power telemetry",
-          "is_ev_charger": "EV charger (flow diagram only)",
-          "remaining_demand_sensor": "Expected remaining demand (kWh)",
-          "remaining_demand_presence_sensor": "Presence entity for the remaining demand (optional)"
+          "is_ev_charger": "EV charger (flow diagram only)"
         },
         "data_description": {
           "power_sensor": "Numeric power sensor (W) for the device. Optional for EV chargers without power telemetry; existing configurations that stored the charging-state sensor here remain supported.",
@@ -858,9 +719,7 @@
           "dynamic_power_control": "Enable for devices that automatically adjust their own demand from the grid meter, such as a solar-surplus wallbox. If an activity sensor is configured, Omnibattery yields before power appears; otherwise it reacts to the power sensor. It then uses genuine leftover export.",
           "cover_home_when_active": "Requires Solar Surplus and a solar-production sensor. The battery may cover the home's own load while this device is active; only the device's grid share stays excluded.",
           "ev_charger_no_telemetry": "✓ CHECKED = Use the Activity / EV charging sensor instead of numeric power telemetry. Existing configurations that placed this state sensor in Device power sensor continue to work. When charging is detected, the battery pauses for 5 minutes; afterwards it may only charge from solar surplus and never discharges for the EV.",
-          "is_ev_charger": "Tick it if this device is an electric-vehicle charger. It is used only by the animated energy-flow diagram, to draw the device on the EV charger cable instead of the excluded-devices cable. It does not change how the battery manages the device.",
-          "remaining_demand_sensor": "Optional. Sensor reporting the energy (kWh) this device still expects to consume today, for example sensor.evcc_[loadpoint]_charge_remaining_energy. Predictive charging then reserves that much of the remaining solar forecast for the device instead of assuming the battery receives it. Only used when 'Consumption is included in home consumption sensor' is checked. Devices marked 'EV charger without power telemetry' are skipped: their energy is already inside the consumption forecast, so reserving it would count it twice.",
-          "remaining_demand_presence_sensor": "Only count the expected remaining demand while this entity reports the device as present: on, true, home, connected, plugged or present. Leave empty to always count it. Point it at your charger's connected entity when the upstream keeps reporting a demand with nothing plugged in: evcc reports the energy to the vehicle's SOC target whether or not a car is there, and reserving solar for an absent car takes it from the battery for nothing. An unavailable or unknown entity counts as absent, so a broken sensor stops reserving rather than reserving for a device that may not be there."
+          "is_ev_charger": "Tick it if this device is an electric-vehicle charger. It is used only by the animated energy-flow diagram, to draw the device on the EV charger cable instead of the excluded-devices cable. It does not change how the battery manages the device."
         }
       },
       "add_more_excluded_devices": {
@@ -868,79 +727,6 @@
         "description": "You have {current_devices} excluded device(s). You can add up to {max_devices} in total.",
         "data": {
           "add_more": "Add another excluded device"
-        }
-      },
-      "predictive_charging": {
-        "title": "Predictive Grid Charging",
-        "description": "Do you want to enable intelligent grid charging? This feature allows charging batteries from the grid during off-peak hours when today's solar forecast is insufficient.",
-        "data": {
-          "configure_predictive_charging": "Configure predictive charging"
-        }
-      },
-      "predictive_charging_mode": {
-        "title": "Predictive Charging Mode",
-        "description": "Select how the system decides when to charge from the grid.",
-        "data": {
-          "predictive_charging_mode": "Charging mode"
-        },
-        "data_description": {
-          "predictive_charging_mode": "Time Slot: charge during a fixed nightly window. Dynamic Pricing: automatically select the cheapest hours from a price sensor. Real-Time Price: activate charging instantly whenever the current price is below a threshold — no scheduling needed."
-        }
-      },
-      "predictive_charging_config": {
-        "title": "Predictive Charging — Time Slot",
-        "description": "Configure when and how to charge batteries from the grid based on solar forecast. You can set up to 3 charging windows — fill only window 1 to keep a single window, or add windows 2 and 3 as needed.",
-        "data": {
-          "start_time": "Window 1 — start time (off-peak tariff)",
-          "end_time": "Window 1 — end time (off-peak tariff)",
-          "days": "Window 1 — days of the week",
-          "start_time_2": "Window 2 — start time (optional)",
-          "end_time_2": "Window 2 — end time (optional)",
-          "days_2": "Window 2 — days of the week",
-          "start_time_3": "Window 3 — start time (optional)",
-          "end_time_3": "Window 3 — end time (optional)",
-          "days_3": "Window 3 — days of the week",
-          "solar_forecast_sensor": "Solar forecast sensor (kWh)"
-        },
-        "data_description": {
-          "start_time": "Start time of charging window (e.g., 01:00, off-peak tariff)",
-          "end_time": "End time of charging window (e.g., 06:00)",
-          "days": "Days when grid charging is allowed",
-          "solar_forecast_sensor": "Sensor providing the solar production forecast in kWh (e.g., Solcast). If you have solar panels, configure this sensor — the system will only charge from the grid when solar forecast is insufficient. If you have no solar panels, leave this empty — the system will charge whenever battery energy is not enough for the day. Not required if you already configured this sensor in the initial setup step — it will be used automatically."
-        }
-      },
-      "dynamic_pricing_config": {
-        "title": "Predictive Charging — Dynamic Pricing",
-        "description": "Configure the electricity price sensor and parameters for automatic cheap-hour selection.",
-        "data": {
-          "price_integration_type": "Price integration",
-          "price_sensor": "Electricity price sensor",
-          "export_price_sensor": "Export/feed-in price sensor (optional)",
-          "export_price_integration_type": "Export price integration (optional)",
-          "zonneplan_export_bonus_enabled": "Apply Zonneplan export bonus",
-          "solar_forecast_sensor": "Solar forecast sensor (kWh)"
-        },
-        "data_description": {
-          "price_integration_type": "Select your electricity price provider integration. Nord Pool supports both the official Home Assistant integration and HACS. Tibber is service-based, so its price sensor can be left empty.",
-          "price_sensor": "Sensor providing electricity prices (e.g., the official Nord Pool current-price sensor, a HACS Nordpool sensor, sensor.esios_pvpc for PVPC, or your CKW sensor for Switzerland)",
-          "export_price_sensor": "Sensor providing your export/feed-in prices. Leave empty to use the import price curve, which is correct when export is credited at the import price (net metering).",
-          "export_price_integration_type": "Attribute layout of the export price sensor. Leave empty to reuse the import integration. Tibber is not available here: it is service-based and its cache belongs to the import curve.",
-          "zonneplan_export_bonus_enabled": "Adds the Zonneplan sun bonus to the tax-inclusive export price of solar power: the bonus is €0.02/kWh on top of the tax-excluded price, then +10%. Only applies between sunrise and sunset and only when that price plus €0.02 is positive. Battery export is never valued with the bonus. Has no effect unless the effective export price integration is Zonneplan.",
-          "solar_forecast_sensor": "Sensor providing the solar production forecast in kWh (e.g., Solcast). If you have solar panels, configure this sensor — the system will only charge from the grid when solar forecast is insufficient. If you have no solar panels, leave this empty — the system will charge whenever battery energy is not enough for the day. Not required if you already configured this sensor in the initial setup step — it will be used automatically."
-        }
-      },
-      "realtime_price_config": {
-        "title": "Predictive Charging — Real-Time Price",
-        "description": "Configure the price sensor and threshold. The system reads the current price every few seconds and starts or stops grid charging immediately — no daily schedule needed.",
-        "data": {
-          "price_sensor": "Electricity price sensor",
-          "average_price_sensor": "Daily average price sensor (optional)",
-          "solar_forecast_sensor": "Solar forecast sensor (kWh)"
-        },
-        "data_description": {
-          "price_sensor": "Sensor whose state is the current electricity price (e.g. sensor.esios_pvpc, sensor.nordpool_kwh_es_eur_3_10_0). Any sensor that exposes the current period price as its state works.",
-          "average_price_sensor": "If provided, this sensor's state is used as the threshold instead of the fixed value above — useful when your price integration already exposes a daily average. Leave empty to use the fixed threshold.",
-          "solar_forecast_sensor": "Sensor providing the solar production forecast in kWh (e.g., Solcast). If you have solar panels, configure this sensor — the system will only charge from the grid when solar forecast is insufficient. Not required if you already configured this sensor in the initial setup step — it will be used automatically."
         }
       },
       "weekly_full_charge": {
@@ -958,29 +744,6 @@
         },
         "data_description": {
           "weekly_full_charge_day": "Day when batteries will charge to 100% regardless of configured max SOC. This helps balance battery cells."
-        }
-      },
-      "charge_delay": {
-        "title": "Solar charge delay",
-        "description": "Enable solar charge delay? This delays battery charging until the solar energy balance indicates it's needed, exporting excess solar to grid in the meantime.",
-        "data": {
-          "configure_charge_delay": "Configure charge delay"
-        }
-      },
-      "charge_delay_config": {
-        "title": "Charge delay configuration",
-        "description": "Configure the safety margin and solar forecast sensor for the charge delay.",
-        "data": {
-          "delay_safety_margin_h": "Safety margin (hours)",
-          "delay_soc_setpoint_enabled": "Enable minimum SOC before delay",
-          "delay_soc_setpoint": "Minimum SOC (%)",
-          "solar_forecast_sensor": "Solar forecast sensor"
-        },
-        "data_description": {
-          "delay_safety_margin_h": "Hours before sunset by which charging must be complete. Higher values unlock charging earlier.",
-          "delay_soc_setpoint_enabled": "When enabled, the battery charges freely up to the configured SOC; above it the solar delay activates.",
-          "delay_soc_setpoint": "The SOC the battery must reach before the solar delay kicks in. Minimum is 12 % — the Venus battery minimum discharge SOC.",
-          "solar_forecast_sensor": "Sensor providing solar production forecast in kWh (e.g., Solcast). Not required if you already configured this sensor in the initial setup step — it will be used automatically."
         }
       },
       "temp_charge_limit": {
@@ -1061,29 +824,6 @@
           "system_max_charge_power": "Optional cap for combined charge power across all active batteries. 0 = disabled; per-battery limits still apply.",
           "system_max_discharge_power": "Optional cap for combined discharge power across all active batteries. 0 = disabled; per-battery limits still apply."
         }
-      },
-      "hourly_balance": {
-        "title": "Hourly Net Balance",
-        "description": "Enable hourly net balance control? This feature tracks grid import/export per hour and automatically adjusts the battery setpoint to achieve a target net energy balance.\n\n⚠️ **This feature is only useful in Spain**, under the hourly surplus-compensation scheme (Royal Decree 244/2019), where grid surplus is settled hour by hour. In markets with feed-in tariffs or annual net metering it provides no benefit and may cause lost export revenue and unnecessary battery cycling.\n\nDetected Home Assistant country: **{country}**.",
-        "data": {
-          "configure_hourly_balance": "Configure hourly net balance"
-        }
-      },
-      "hourly_balance_config": {
-        "title": "Hourly Balance Configuration",
-        "description": "Configure the target net energy balance and control parameters. The system will adjust battery power to achieve the target Wh balance each hour.",
-        "data": {
-          "hourly_balance_target_net_wh": "Target net balance (kWh)",
-          "hourly_balance_max_offset_w": "Maximum offset (W)",
-          "hourly_balance_deadband_wh": "Net balance tolerance (kWh)",
-          "hourly_balance_hysteresis_w": "Offset hysteresis (W)"
-        },
-        "data_description": {
-          "hourly_balance_target_net_wh": "Target net energy balance per hour. 0 = net zero (default). Positive = allow import, negative = target export.",
-          "hourly_balance_max_offset_w": "Maximum power offset the controller can apply. The slider ceiling is the combined discharge power of all configured batteries.",
-          "hourly_balance_deadband_wh": "Tolerance band around the target. No correction is applied when the net balance is within ±N kWh of the target. 0 = exact correction.",
-          "hourly_balance_hysteresis_w": "Minimum change in offset required before a new correction is applied. Prevents micro-adjustments every cycle. 0 = apply every cycle. Default: 15 W."
-        }
       }
     },
     "error": {
@@ -1105,18 +845,11 @@
       "phase_limit_must_be_positive": "The phase fuse size must be a positive finite value in amperes.",
       "phase_sensor_and_limit_required": "Set both the phase current sensor and its fuse size, or leave both fields empty.",
       "battery_phase_required": "Select the physical phase for this battery.",
-      "incomplete_window": "Each extra charging window needs both a start and an end time. Fill both, or leave both empty to skip it.",
       "overlapping_slots": "This time slot overlaps with an existing one for the same battery. Adjust the times, days, or battery scope.",
       "midnight_crossing": "Start time must be before end time. For overnight periods, create two separate slots (e.g., 22:00-23:59 and 00:00-06:00).",
       "slot_does_nothing": "The slot must allow at least one direction (charge or discharge).",
       "manual_requires_power": "Manual mode requires the power override tick to be enabled.",
       "manual_requires_single_direction": "Manual mode forces a single direction: tick either Allow charge or Allow discharge, not both.",
-      "no_price_data": "Selected sensor is not a supported price source. Nord Pool: select an entity from the official integration or a HACS sensor with `raw_today`. PVPC: needs `price_00h` … `price_23h`. CKW: needs a `prices` list. EPEX: needs a `data` list. ENTSO-e: needs a `prices_today` list.",
-      "tibber_unavailable": "The Tibber integration is not installed, or its `tibber.get_prices` service is unavailable. Install and configure Tibber first.",
-      "energyzero_unavailable": "The EnergyZero integration is not installed, or its `energyzero.get_energy_prices` service is unavailable. Install and configure EnergyZero first.",
-      "export_tibber_unsupported": "Tibber cannot be used for the export price curve: it is service-based and its price cache belongs to the import curve. Choose a sensor-based provider instead.",
-      "export_type_required": "Select the export price integration explicitly. The import curve is service-based, so its type cannot be reused for a sensor.",
-      "discharge_below_charge": "The discharge price floor cannot be below the maximum (charge) price threshold. Set it equal or higher, or leave it empty to reuse the charge threshold.",
       "host_or_serial_required": "Enter either an IP address (TCP) or a serial port path (Modbus RTU).",
       "missing_power_sensor": "Select a device power sensor, or enable EV charger without power telemetry and select an activity sensor.",
       "missing_activity_sensor": "Select an Activity / EV charging sensor for Dynamic Power Control or an EV charger without power telemetry."
@@ -1152,51 +885,15 @@
         "l2": "L2",
         "l3": "L3"
       }
-    },
-    "predictive_charging_mode": {
-      "options": {
-        "time_slot": "Time Slot (fixed nightly window)",
-        "dynamic_pricing": "Dynamic Pricing (cheapest hours)",
-        "realtime_price": "Real-Time Price (instant threshold)"
-      }
-    },
-    "price_integration_type": {
-      "options": {
-        "nordpool": "Nordpool",
-        "pvpc": "PVPC (Spain – ESIOS REE)",
-        "ckw": "CKW (Switzerland)",
-        "epex": "EPEX Spot (e.g. aWATTar)",
-        "entsoe": "ENTSO-e (Transparency Platform)",
-        "zonneplan": "Zonneplan",
-        "frank_energie": "Frank Energie",
-        "energyzero": "EnergyZero",
-        "tibber": "Tibber (service-based)",
-        "be_electricity_prices": "BE Electricity Prices (Belgium, all-in)"
-      }
     }
   },
   "entity": {
     "switch": {
-      "surplus_price_hold": {
-        "name": "Surplus Price Hold"
-      },
-      "discharge_reserve": {
-        "name": "Discharge Reserve"
-      },
       "primary_feedforward": {
         "name": "Feed the real demand forward"
       },
       "weekly_full_charge_enabled": {
         "name": "Weekly Full Charge"
-      },
-      "price_discharge_control": {
-        "name": "Price-Based Discharge"
-      },
-      "smart_predischarge": {
-        "name": "Smart Pre-discharge / Anti-curtailment"
-      },
-      "negative_price_charging": {
-        "name": "Negative-price opportunistic charging"
       },
       "manual_mode": {
         "name": "Manual Mode"
@@ -1216,41 +913,17 @@
       "offgrid_mode": {
         "name": "Off-grid Meter Mode"
       },
-      "min_soc_floor_enabled": {
-        "name": "Guaranteed Minimum SOC"
-      },
-      "max_price_threshold_enabled": {
-        "name": "Manual Charge Price Ceiling"
-      },
-      "discharge_price_threshold_enabled": {
-        "name": "Manual Discharge Price Floor"
-      },
       "system_power_limits": {
         "name": "System Power Limits"
       },
-      "predictive_charging": {
-        "name": "Predictive Charging"
-      },
-      "predictive_charging_notifications": {
-        "name": "Predictive Charging Notifications"
-      },
       "vacation_mode": {
         "name": "Vacation Mode"
-      },
-      "charge_delay": {
-        "name": "Charge Delay"
-      },
-      "delay_soc_setpoint_enabled": {
-        "name": "Charge Delay Target SOC Enabled"
       },
       "temp_charge_limit": {
         "name": "Temperature Charge Limit"
       },
       "temp_charge_limit_discharge": {
         "name": "Temperature Discharge Limit"
-      },
-      "weekly_full_charge_delay": {
-        "name": "Delay Weekly Full Charge"
       },
       "capacity_protection": {
         "name": "Peak Shaving"
@@ -1293,9 +966,6 @@
       },
       "time_slot": {
         "name": "Time Slot {slot_number}"
-      },
-      "hourly_balance": {
-        "name": "Net Balance"
       }
     },
     "time": {
@@ -1341,9 +1011,6 @@
       },
       "consumption_profile_capture": {
         "name": "Current Consumption Profile Capture"
-      },
-      "daily_operation_timeline": {
-        "name": "Daily Operation Timeline"
       },
       "home_consumption": {
         "name": "Home Consumption"
@@ -1395,22 +1062,11 @@
         "state": {
           "initializing": "Initializing",
           "manual": "Manual Mode",
-          "grid_charging": "Charging from Grid",
           "weekly_full_charge": "Weekly Full Charge",
-          "charge_delayed": "Charge Delayed",
-          "surplus_price_hold": "Surplus Exporting (Cheaper Window Ahead)",
-          "price_reserve_hold": "Holding Charge for Dearer Hours",
-          "waiting_for_solar": "Waiting for Solar",
-          "charging_to_setpoint": "Charging to Setpoint",
           "capacity_protection": "Capacity Protection",
           "peak_shaving": "Peak Shaving",
           "capacity_conserving": "Conserving Capacity",
           "capacity_protection_charging": "Capacity Protection - Charging",
-          "price_discharge_blocked": "Discharge Blocked by Price",
-          "hourly_balance_import": "Hourly Balance - Importing",
-          "hourly_balance_export": "Hourly Balance - Exporting",
-          "hourly_balance_capped": "Hourly Balance - Capped",
-          "hourly_balance_blocked": "Hourly Balance - Blocked",
           "cell_balance_hold": "Cell Balance Hold",
           "ev_charger_pause": "EV Charger Pause",
           "ev_discharge_blocked": "EV Discharge Blocked",
@@ -1430,29 +1086,6 @@
           "disabled": "Disabled",
           "charging": "Charging to 100%",
           "complete": "Complete"
-        }
-      },
-      "charge_delay_status": {
-        "name": "Charge Delay",
-        "state": {
-          "idle": "Idle",
-          "disabled": "Disabled",
-          "waiting_for_solar": "Waiting for solar",
-          "delayed": "Delayed",
-          "charging_allowed": "Charging allowed",
-          "skipped_full_charge_day": "Skipped – Full charge day",
-          "charging_to_setpoint": "Charging to setpoint"
-        }
-      },
-      "high_price_discharge_status": {
-        "name": "High-Price Sale Status",
-        "state": {
-          "disabled": "Disabled",
-          "invalid_configuration": "Invalid configuration",
-          "no_data": "No data",
-          "blocked": "Blocked",
-          "waiting": "Waiting",
-          "active": "Active"
         }
       },
       "battery_soc": {
@@ -1701,34 +1334,11 @@
       },
       "delta_avg_4w": {
         "name": "Balance - Delta Average (4 readings)"
-      },
-      "balance_neto": {
-        "name": "Net Balance",
-        "state": {
-          "idle": "Idle",
-          "out_of_slot": "Out of Slot",
-          "capped": "Capped",
-          "compensating_import": "Compensating Import",
-          "compensating_export": "Compensating Export",
-          "compensation_stopped": "Compensation Stopped"
-        }
       }
     },
     "binary_sensor": {
       "capacity_protection_active": {
         "name": "Peak Shaving Active"
-      },
-      "predictive_charging_active": {
-        "name": "Predictive Charging Active"
-      },
-      "curtailment_status": {
-        "name": "Smart Pre-discharge Status"
-      },
-      "surplus_price_hold_status": {
-        "name": "Surplus Price Hold Status"
-      },
-      "discharge_reserve_status": {
-        "name": "Discharge Reserve Status"
       },
       "wifi_status": {
         "name": "WiFi Status"
@@ -1788,14 +1398,6 @@
           "automatic": "Automatic (fullest first)"
         }
       },
-      "high_price_sale": {
-        "name": "High-Price Sale",
-        "state": {
-          "off": "Off",
-          "surplus": "Surplus only",
-          "surplus_arbitrage": "Surplus + arbitrage (buy back later)"
-        }
-      },
       "pd_tuning_profile": {
         "name": "PD Tuning Profile",
         "state": {
@@ -1809,12 +1411,6 @@
       }
     },
     "number": {
-      "surplus_hold_min_saving": {
-        "name": "Surplus Hold Minimum Saving"
-      },
-      "discharge_reserve_min_saving": {
-        "name": "Discharge Reserve Minimum Saving"
-      },
       "excluded_device_exclusion_pct": {
         "name": "{device} – Exclusion %"
       },
@@ -1899,15 +1495,6 @@
       "capacity_protection_soc_threshold": {
         "name": "Peak Shaving SOC Threshold"
       },
-      "delay_safety_margin_min": {
-        "name": "Charge Delay Margin"
-      },
-      "charge_delay_balance_deadband_kwh": {
-        "name": "Charge Delay Balance Deadband"
-      },
-      "delay_soc_setpoint": {
-        "name": "Charge Delay SOC Setpoint"
-      },
       "temp_charge_limit_c": {
         "name": "Temperature Charge Limit"
       },
@@ -1932,52 +1519,13 @@
       "charge_hysteresis_percent": {
         "name": "Charge Hysteresis Percent"
       },
-      "predictive_safety_margin_kwh": {
-        "name": "Solar Forecast Safety Margin"
-      },
-      "predictive_min_soc_floor": {
-        "name": "Guaranteed Minimum SOC"
-      },
-      "hourly_balance_target_net_wh": {
-        "name": "Hourly Balance Target"
-      },
-      "hourly_balance_max_offset_w": {
-        "name": "Hourly Balance Max Offset"
-      },
-      "hourly_balance_deadband_wh": {
-        "name": "Hourly Balance Deadband"
-      },
-      "hourly_balance_hysteresis_w": {
-        "name": "Hourly Balance Hysteresis"
-      },
       "min_soc": {
         "name": "Minimum SOC"
-      },
-      "max_price_threshold": {
-        "name": "Max Price Threshold (Charge)"
-      },
-      "discharge_price_threshold": {
-        "name": "Discharge Price Floor"
-      },
-      "min_arbitrage_margin": {
-        "name": "Minimum Arbitrage Margin"
-      },
-      "round_trip_efficiency": {
-        "name": "Round-Trip Efficiency"
-      },
-      "negative_injection_threshold": {
-        "name": "Negative Injection Threshold"
-      },
-      "predischarge_reserve_soc": {
-        "name": "Pre-discharge Reserve SOC"
       }
     },
     "button": {
       "reset_device": {
         "name": "Reset Device"
-      },
-      "reevaluate_dynamic_pricing": {
-        "name": "Re-evaluate Predictive Charging"
       }
     }
   },

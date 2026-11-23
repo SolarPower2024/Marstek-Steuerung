@@ -6,7 +6,6 @@ import logging
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -16,16 +15,6 @@ from .const import (
     DYNAMIC_BOUNDS_SYSTEM_POWER,
     DYNAMIC_BOUNDS_SYSTEM_POWER_CAP,
     CONF_ENABLE_SYSTEM_POWER_LIMITS,
-    CONF_MAX_PRICE_THRESHOLD,
-    CONF_DISCHARGE_PRICE_THRESHOLD,
-    CONF_MAX_PRICE_THRESHOLD_ENABLED,
-    CONF_DISCHARGE_PRICE_THRESHOLD_ENABLED,
-    effective_price_threshold,
-    CONF_MIN_ARBITRAGE_MARGIN,
-    CONF_ROUND_TRIP_EFFICIENCY,
-    DEFAULT_ROUND_TRIP_EFFICIENCY,
-    MIN_ROUND_TRIP_EFFICIENCY,
-    MAX_ROUND_TRIP_EFFICIENCY,
     CONF_ENABLE_TEMP_CHARGE_LIMIT,
     CONF_TEMP_CHARGE_LIMIT_C,
     DEFAULT_TEMP_CHARGE_LIMIT_C,
@@ -33,16 +22,6 @@ from .const import (
     DEFAULT_TEMP_CHARGE_LIMIT_BAND_C,
     CONF_TEMP_CHARGE_LIMIT_FLOOR_PCT,
     DEFAULT_TEMP_CHARGE_LIMIT_FLOOR_PCT,
-    CONF_PREDICTIVE_CHARGING_MODE,
-    CONF_PRICE_INTEGRATION_TYPE,
-    PREDICTIVE_MODE_DYNAMIC_PRICING,
-    PRICE_INTEGRATION_CKW,
-    CONF_NEGATIVE_INJECTION_THRESHOLD,
-    CONF_PREDISCHARGE_RESERVE_SOC,
-    DEFAULT_NEGATIVE_INJECTION_THRESHOLD,
-    DEFAULT_PREDISCHARGE_RESERVE_SOC,
-    CONF_SURPLUS_PRICE_HOLD_ENABLED,
-    CONF_DISCHARGE_RESERVE_ENABLED,
     MIN_CHARGE_HYSTERESIS_PERCENT,
     MAX_CHARGE_HYSTERESIS_PERCENT,
     DOMAIN,
@@ -122,15 +101,6 @@ async def async_setup_entry(
     # hides disabled features' sliders, and toggling a feature switch doesn't
     # reload platforms, so the entities must exist either way. System power
     # limits predate their enable key, so presence is not required for them.
-    # Features whose keys are backfilled on every entry but which only run under
-    # dynamic pricing; their sliders would otherwise render on time-slot installs.
-    dynamic_pricing_only = {
-        CONF_SURPLUS_PRICE_HOLD_ENABLED,
-        CONF_DISCHARGE_RESERVE_ENABLED,
-    }
-    is_dynamic_pricing = (
-        entry.data.get(CONF_PREDICTIVE_CHARGING_MODE) == PREDICTIVE_MODE_DYNAMIC_PRICING
-    )
     for definition in CONFIG_NUMBER_DEFINITIONS:
         condition = definition.get("condition")
         if (
@@ -139,23 +109,7 @@ async def async_setup_entry(
             and condition != CONF_ENABLE_SYSTEM_POWER_LIMITS
         ):
             continue
-        if condition in dynamic_pricing_only and not is_dynamic_pricing:
-            continue
         entities.append(MarstekConfigNumberEntity(hass, entry, definition))
-
-    # Dynamic-pricing charge ceiling / discharge floor as live entities (#408),
-    # so automations can rewrite them. Scoped to dynamic-pricing mode (the
-    # discharge floor only applies there).
-    if (
-        entry.data.get("enable_predictive_charging")
-        and entry.data.get(CONF_PREDICTIVE_CHARGING_MODE) == PREDICTIVE_MODE_DYNAMIC_PRICING
-    ):
-        entities.append(MarstekPriceThresholdNumber(hass, entry, "charge"))
-        entities.append(MarstekPriceThresholdNumber(hass, entry, "discharge"))
-        entities.append(MarstekArbitrageNumber(hass, entry, "margin"))
-        entities.append(MarstekArbitrageNumber(hass, entry, "efficiency"))
-        entities.append(SmartPredischargeNumber(hass, entry, "threshold"))
-        entities.append(SmartPredischargeNumber(hass, entry, "reserve"))
 
     # Temperature charge limit sliders (system-level, when the feature is configured)
     if CONF_ENABLE_TEMP_CHARGE_LIMIT in entry.data:
@@ -484,13 +438,7 @@ class MarstekConfigNumberEntity(NumberEntity):
         self._attr_unique_id = f"{SYSTEM_UNIQUE_ID_PREFIX}{definition['key']}"
         self.entity_id = system_entity_id("number", definition["key"])
         self._attr_icon = definition.get("icon")
-        unit = definition.get("unit")
-        if unit == "/kWh":
-            # A price difference: in the price source's currency, like the
-            # arbitrage margin and the price thresholds.
-            is_chf = entry.data.get(CONF_PRICE_INTEGRATION_TYPE) == PRICE_INTEGRATION_CKW
-            unit = ("CHF" if is_chf else "€") + unit
-        self._attr_native_unit_of_measurement = unit
+        self._attr_native_unit_of_measurement = definition.get("unit")
         # min/max are not set here: they are properties, so entries marked
         # dynamic_bounds can follow config_entry.data without a reload.
         self._attr_native_step = definition["step"]
@@ -533,17 +481,7 @@ class MarstekConfigNumberEntity(NumberEntity):
     @property
     def native_value(self):
         """Return the current value from config_entry.data, in display units."""
-        default = self._definition["default"]
-        if callable(default):
-            # The same fleet the controller sizes it to, reported capacities included.
-            controller = (
-                (getattr(self.hass, "data", None) or {}).get(DOMAIN, {})
-                .get(getattr(self.entry, "entry_id", None), {})
-                .get("controller")
-            )
-            reported = getattr(controller, "_reported_battery_capacity_kwh", None)
-            default = default(self.entry.data, reported() if callable(reported) else None)
-        raw = self.entry.data.get(self._key, default)
+        raw = self.entry.data.get(self._key, self._definition["default"])
         return raw / self._scale
 
     async def async_set_native_value(self, value: float) -> None:
@@ -569,259 +507,6 @@ class MarstekConfigNumberEntity(NumberEntity):
             "manufacturer": "Omnibattery",
             "model": "Multi-Battery System",
         }
-
-
-class MarstekArbitrageNumber(NumberEntity):
-    """Minimum arbitrage margin and round-trip efficiency for the charge gate.
-
-    The margin is unset by default, which leaves grid-charge slot selection
-    exactly as it was: a static ceiling only. Setting it makes the ceiling move
-    with the day's spread, so charging is skipped when the expensive hours are
-    not far enough above the cheap ones to repay conversion losses. Setting it
-    back to 0 turns the gate off again, since a NumberEntity cannot be cleared
-    to "unset" from the UI.
-
-    Both values live in ``config_entry.data`` and are re-read by
-    ``update_pd_parameters`` on every entry update, the same hot-reload path the
-    existing price thresholds use.
-    """
-
-    _attr_has_entity_name = True
-    _attr_mode = NumberMode.BOX
-    _attr_entity_category = EntityCategory.CONFIG
-    _attr_should_poll = False
-
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, kind: str) -> None:
-        """kind = 'margin' (currency/kWh, 0 or unset = disabled) or 'efficiency' (ratio)."""
-        self.hass = hass
-        self.entry = entry
-        self._kind = kind
-        is_margin = kind == "margin"
-        key = CONF_MIN_ARBITRAGE_MARGIN if is_margin else CONF_ROUND_TRIP_EFFICIENCY
-        self._conf_key = key
-        self._attr_translation_key = key
-        self._attr_unique_id = f"{SYSTEM_UNIQUE_ID_PREFIX}{key}"
-        self.entity_id = system_entity_id("number", key)
-        self._attr_icon = "mdi:scale-balance" if is_margin else "mdi:battery-sync"
-
-        if is_margin:
-            self._attr_native_min_value = 0.0
-            self._attr_native_max_value = 0.5
-            self._attr_native_step = 0.001
-            is_chf = entry.data.get(CONF_PRICE_INTEGRATION_TYPE) == PRICE_INTEGRATION_CKW
-            self._attr_native_unit_of_measurement = "CHF/kWh" if is_chf else "\u20ac/kWh"
-        else:
-            self._attr_native_min_value = MIN_ROUND_TRIP_EFFICIENCY
-            self._attr_native_max_value = MAX_ROUND_TRIP_EFFICIENCY
-            self._attr_native_step = 0.01
-
-    async def async_added_to_hass(self) -> None:
-        """Refresh state when config_entry.data changes (options flow / sibling write)."""
-        self.async_on_remove(self.entry.add_update_listener(self._handle_entry_update))
-
-    async def _handle_entry_update(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
-        self.async_write_ha_state()
-
-    @property
-    def native_value(self):
-        """The margin, 0 while unset (both mean off); efficiency falls back to the default.
-
-        An unset margin used to be ``unknown``, which the panel drops as a
-        leftover, so the slider never appeared on installs that had not set
-        one. Every reader treats unset and 0 alike (``<= 0`` / ``or 0.0``).
-        """
-        if self._kind == "margin":
-            value = self.entry.data.get(self._conf_key)
-            return 0.0 if value is None else value
-        return self.entry.data.get(self._conf_key, DEFAULT_ROUND_TRIP_EFFICIENCY)
-
-    async def async_set_native_value(self, value: float) -> None:
-        """Persist to config_entry.data; the controller re-reads on the update listener."""
-        new_data = dict(self.entry.data)
-        new_data[self._conf_key] = value
-        self.hass.config_entries.async_update_entry(self.entry, data=new_data)
-        _LOGGER.info("Dynamic pricing %s updated to %s", self._conf_key, value)
-        self.async_write_ha_state()
-
-    @property
-    def device_info(self):
-        """Return device information for the system."""
-        return {
-            "identifiers": {(DOMAIN, "marstek_venus_system")},
-            "name": "Omnibattery System",
-            "manufacturer": "Omnibattery",
-            "model": "Multi-Battery System",
-        }
-
-
-class MarstekPriceThresholdNumber(NumberEntity):
-    """Live-editable dynamic-pricing charge ceiling / discharge floor (#408).
-
-    Mirrors the optional config-flow value into ``config_entry.data`` so an
-    automation can rewrite it via ``number.set_value``. ``update_pd_parameters``
-    re-reads both thresholds on every entry update (the same hot-reload hook the
-    options flow uses), so changes take effect on the next control cycle. The
-    value may be unset (``None`` → ``unknown`` state) or disabled by its sibling
-    switch (#612); the engine then falls back (discharge → charge ceiling →
-    daily average).
-    """
-
-    _attr_has_entity_name = True
-    _attr_mode = NumberMode.BOX
-    _attr_entity_category = EntityCategory.CONFIG
-    _attr_native_min_value = -1.0
-    _attr_native_max_value = 2.0
-    _attr_native_step = 0.001
-    _attr_should_poll = False
-
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, kind: str) -> None:
-        """kind = 'charge' (max_price_threshold) or 'discharge' (discharge floor)."""
-        self.hass = hass
-        self.entry = entry
-        self._kind = kind
-        key = "max_price_threshold" if kind == "charge" else "discharge_price_threshold"
-        self._conf_key = CONF_MAX_PRICE_THRESHOLD if kind == "charge" else CONF_DISCHARGE_PRICE_THRESHOLD
-        self._attr_translation_key = key
-        # unique_id keeps the legacy prefix (registry identity → preserves history
-        # across the Omnibattery rebrand); only the entity_id is rebranded.
-        self._attr_unique_id = f"{SYSTEM_UNIQUE_ID_PREFIX}{key}"
-        self.entity_id = system_entity_id("number", key)
-        self._attr_icon = "mdi:cash-plus" if kind == "charge" else "mdi:cash-minus"
-        is_chf = entry.data.get(CONF_PRICE_INTEGRATION_TYPE) == PRICE_INTEGRATION_CKW
-        self._attr_native_unit_of_measurement = "CHF/kWh" if is_chf else "€/kWh"
-
-    async def async_added_to_hass(self) -> None:
-        """Refresh state when config_entry.data changes (options flow / sibling write)."""
-        self.async_on_remove(self.entry.add_update_listener(self._handle_entry_update))
-
-    async def _handle_entry_update(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
-        self.async_write_ha_state()
-
-    @property
-    def native_value(self):
-        """Current threshold from config_entry.data (None → unknown)."""
-        return self.entry.data.get(self._conf_key)
-
-    async def async_set_native_value(self, value: float) -> None:
-        """Persist after enforcing charge ceiling <= discharge floor (#408).
-
-        Only an active sibling constrains the value: a stored-but-disabled one
-        (#612) is ignored by the engine, so it must not block edits here.
-        """
-        max_price = effective_price_threshold(
-            self.entry.data, CONF_MAX_PRICE_THRESHOLD, CONF_MAX_PRICE_THRESHOLD_ENABLED
-        )
-        discharge_price = effective_price_threshold(
-            self.entry.data, CONF_DISCHARGE_PRICE_THRESHOLD, CONF_DISCHARGE_PRICE_THRESHOLD_ENABLED
-        )
-        if self._kind == "charge" and discharge_price is not None and value > discharge_price:
-            raise ServiceValidationError(
-                f"Charge threshold ({value}) cannot exceed the discharge floor ({discharge_price})."
-            )
-        if self._kind == "discharge" and max_price is not None and value < max_price:
-            raise ServiceValidationError(
-                f"Discharge floor ({value}) cannot be below the charge threshold ({max_price})."
-            )
-
-        new_data = dict(self.entry.data)
-        new_data[self._conf_key] = value
-        self.hass.config_entries.async_update_entry(self.entry, data=new_data)
-        _LOGGER.info("Dynamic pricing %s price threshold updated to %s", self._kind, value)
-        self.async_write_ha_state()
-
-    @property
-    def device_info(self):
-        """Return device information for the system."""
-        return {
-            "identifiers": {(DOMAIN, "marstek_venus_system")},
-            "name": "Omnibattery System",
-            "manufacturer": "Omnibattery",
-            "model": "Multi-Battery System",
-        }
-
-
-class SmartPredischargeNumber(NumberEntity):
-    """Hot-editable anti-curtailment parameter, dynamic-pricing only."""
-
-    _attr_has_entity_name = True
-    _attr_mode = NumberMode.BOX
-    _attr_entity_category = EntityCategory.CONFIG
-    _attr_should_poll = False
-
-    _DEFINITIONS = {
-        "threshold": (
-            CONF_NEGATIVE_INJECTION_THRESHOLD,
-            -2.0,
-            2.0,
-            0.001,
-            "mdi:cash-minus",
-            DEFAULT_NEGATIVE_INJECTION_THRESHOLD,
-        ),
-        "reserve": (
-            CONF_PREDISCHARGE_RESERVE_SOC,
-            0.0,
-            100.0,
-            1.0,
-            "mdi:battery-lock",
-            DEFAULT_PREDISCHARGE_RESERVE_SOC,
-        ),
-    }
-
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, kind: str) -> None:
-        self.hass = hass
-        self.entry = entry
-        self._kind = kind
-        key, minimum, maximum, step, icon, default = self._DEFINITIONS[kind]
-        self._conf_key = key
-        self._default = default
-        self._attr_translation_key = key
-        self._attr_unique_id = f"{SYSTEM_UNIQUE_ID_PREFIX}{key}"
-        self.entity_id = system_entity_id("number", key)
-        self._attr_icon = icon
-        self._attr_native_min_value = minimum
-        self._attr_native_max_value = maximum
-        self._attr_native_step = step
-        if kind == "threshold":
-            is_chf = entry.data.get(CONF_PRICE_INTEGRATION_TYPE) == PRICE_INTEGRATION_CKW
-            self._attr_native_unit_of_measurement = "CHF/kWh" if is_chf else "€/kWh"
-        else:
-            self._attr_native_unit_of_measurement = "%"
-
-    async def async_added_to_hass(self) -> None:
-        self.async_on_remove(self.entry.add_update_listener(self._handle_entry_update))
-
-    async def _handle_entry_update(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
-        self.async_write_ha_state()
-
-    @property
-    def native_value(self) -> float:
-        return self.entry.data.get(self._conf_key, self._default)
-
-    async def async_set_native_value(self, value: float) -> None:
-        new_data = dict(self.entry.data)
-        new_data[self._conf_key] = value
-        self.hass.config_entries.async_update_entry(self.entry, data=new_data)
-        controller = self.hass.data[DOMAIN][self.entry.entry_id].get("controller")
-        if controller is not None:
-            controller.update_pd_parameters()
-            # Never keep applying a plan calculated with the previous
-            # threshold or reserve.  The existing reevaluate button (or the
-            # next scheduled evaluation) rebuilds it.
-            controller._pricing_mgr.clear_curtailment_runtime(
-                "configuration_changed"
-            )
-        _LOGGER.info("Smart pre-discharge %s updated to %s", self._conf_key, value)
-        self.async_write_ha_state()
-
-    @property
-    def device_info(self):
-        return {
-            "identifiers": {(DOMAIN, "marstek_venus_system")},
-            "name": "Omnibattery System",
-            "manufacturer": "Omnibattery",
-            "model": "Multi-Battery System",
-        }
-
 
 
 class TempChargeLimitNumber(NumberEntity):

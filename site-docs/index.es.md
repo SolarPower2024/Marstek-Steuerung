@@ -2,11 +2,11 @@
 
 # Usa la batería de tu casa para reducir los costes de red
 
-Omnibattery conecta baterías domésticas compatibles a Home Assistant para que sigan el consumo de la casa, almacenen la energía solar disponible y carguen cuando tu horario o el precio de la electricidad lo hagan conveniente.
+Omnibattery conecta baterías domésticas compatibles a Home Assistant para que sigan el consumo de la casa, almacenen la energía solar disponible y sigan el horario que establezcas.
 
 ## ¿Es Omnibattery para mí?
 
-**Úsalo si** ya tienes una batería compatible y un sensor de Home Assistant que mide la potencia importada de la red o exportada a ella. Es especialmente útil si quieres un único lugar para coordinar baterías, previsiones solares, precios de electricidad y cargas domésticas.
+**Úsalo si** ya tienes una batería compatible y un sensor de Home Assistant que mide la potencia importada de la red o exportada a ella. Es especialmente útil si quieres un único lugar para coordinar baterías, previsiones solares y cargas domésticas.
 
 **No lo necesitas si** el control del propio fabricante ya cubre tus necesidades, o si solo quieres ver datos de la batería sin que Home Assistant ajuste su potencia.
 
@@ -31,9 +31,9 @@ Omnibattery puede coordinar marcas compatibles en la misma instalación. Consult
 
     Combina producción en directo, capacidad de la batería y previsiones para decidir cuándo almacenar energía.
 
--   :material-currency-eur: **Cargar cuando la energía de red tiene sentido**
+-   :material-clock-outline: **Funcionar según tu horario**
 
-    Usa franjas horarias o precios de electricidad para comprar solo la energía que previsiblemente necesitará tu casa.
+    Usa franjas horarias para decidir cuándo puede cargar o descargar cada batería y con qué límites.
 
 -   :material-battery-sync: **Coordinar varias baterías**
 
@@ -60,16 +60,13 @@ El panel lateral se instala con la integración; no requiere otra tarjeta de Hom
 
     La integración puede coordinar hasta diez baterías. Usa prioridades de estado de carga, histéresis de energía y reparto que considera la eficiencia, a la vez que aplica límites de potencia por batería y del sistema. Consulta [Gestión de varias baterías](features/multi-battery.md).
 
-    La pestaña **Resumen** del panel incluye un anillo animado de estado de carga, un diagrama de flujo Red↔Casa↔Batería↔Solar, diagnósticos, gráficos de historial y una cronología diaria medida/proyectada. **Baterías** muestra la potencia, estado de carga, salud, celdas, energía diaria, entradas opcionales de seguimiento del punto de máxima potencia (MPPT), firmware y controles de cada unidad.
+    La pestaña **Resumen** del panel incluye un anillo animado de estado de carga, un diagrama de flujo Red↔Casa↔Batería↔Solar, diagnósticos y gráficos de historial. **Baterías** muestra la potencia, estado de carga, salud, celdas, energía diaria, entradas opcionales de seguimiento del punto de máxima potencia (MPPT), firmware y controles de cada unidad.
 
     Las funciones energéticas opcionales incluyen:
 
-    - [Carga predictiva](configuration/predictive-charging/index.md) mediante franjas horarias, precios dinámicos o precios en tiempo real, incluido Tibber; su estimación de demanda utiliza un historial móvil de siete días del consumo doméstico
     - [Franjas horarias](configuration/time-slots.md) para ventanas independientes de carga y descarga, cada una con sus propios ajustes de estado de carga y potencia
     - [Protección de capacidad (peak shaving)](features/peak-shaving.md) para reservar energía para demanda por encima de un umbral configurado
     - [Carga completa semanal](features/weekly-full-charge.md), que puede cargar al 100% para el equilibrado, y un [monitor de equilibrio de celdas](features/cell-balance-monitor.md) que registra la diferencia de tensión entre celdas y protege el periodo de reposo en circuito abierto
-    - [Retraso de carga solar](features/solar-charge-delay.md) cuando la producción prevista puede llenar la batería más tarde
-    - [Balance neto horario](features/hourly-net-balance.md), que ajusta el objetivo PD hacia un resultado de energía de red horario configurable y puede usar un sensor de balance externo
     - [Exclusión de cargas](features/load-exclusion.md) para cargadores de vehículo eléctrico y otras cargas grandes, con un ajuste individual de exclusión de 0–100%
     - Notificaciones proactivas de fallos y alarmas de Home Assistant cuando un controlador de batería proporciona esa telemetría; **System Alarm Status** resume la flota como `OK`, `Warning` o `Fault`
 

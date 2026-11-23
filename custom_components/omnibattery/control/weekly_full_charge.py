@@ -64,7 +64,7 @@ class WeeklyFullChargeManager:
     ) -> None:
         self._hass = hass
         self._controller = controller
-        # Bundled store: weekly charge flags + delay_unlocked + solar_t_start.
+        # Bundled store: weekly charge flags + solar_t_start.
         # Format preserved for backward-compat with existing user installs.
         self._store = Store(hass, 1, f"{DOMAIN}.{config_entry.entry_id}.weekly_charge_state")
         # Per-battery debounce counter for BMS-cutoff detection (in-memory only).
@@ -449,18 +449,15 @@ class WeeklyFullChargeManager:
                 saved_state = data.get("state")
                 if saved_state:
                     ctrl._weekly_charge_status["state"] = saved_state
-                # Restore delay state
-                ctrl._charge_delay_unlocked = data.get("delay_unlocked", False)
                 ctrl._solar_t_start = data.get("solar_t_start")
                 ctrl._weekly_charge_needs_restore = bool(data.get("restore_pending", False))
                 self._restore_saved_max_soc(data.get("saved_max_soc"))
                 getattr(self, "_cutoff_applied_names", set()).clear()
                 _LOGGER.info(
                     "Weekly Full Charge: Restored state - complete=%s, "
-                    "registers_written=%s, delay_unlocked=%s, restore_pending=%s",
+                    "registers_written=%s, restore_pending=%s",
                     ctrl.weekly_full_charge_complete,
                     ctrl.weekly_full_charge_registers_written,
-                    ctrl._charge_delay_unlocked,
                     ctrl._weekly_charge_needs_restore,
                 )
             else:
@@ -506,8 +503,7 @@ class WeeklyFullChargeManager:
                 "saved_max_soc": dict(getattr(ctrl, "_weekly_charge_saved_max_soc", {})),
                 "date": date.today().isoformat(),
                 "timestamp": now.isoformat(),
-                # Delay state (bundled in the same store for legacy reasons)
-                "delay_unlocked": ctrl._charge_delay_unlocked,
+                # Bundled in the same store for legacy reasons
                 "solar_t_start": ctrl._solar_t_start,
             }
             await self._store.async_save(data)
@@ -602,7 +598,7 @@ class WeeklyFullChargeManager:
     async def handle_registers(self) -> None:
         """Manage weekly full charge register writes and completion detection.
 
-        Runs independently of control mode (predictive/normal) to ensure
+        Runs independently of the control loop's early returns to ensure
         hardware registers are properly configured when weekly charge is active.
 
         Responsibilities:
@@ -651,12 +647,6 @@ class WeeklyFullChargeManager:
             ctrl._weekly_charge_status["state"] = "Idle"
             ctrl._weekly_charge_status.pop("completion_reason", None)
             return
-
-        # Check if unified charge delay is active - if so, don't write registers yet
-        # Skip delay logic when force button was pressed
-        if (ctrl.charge_delay_enabled and not ctrl._charge_delay_unlocked
-                and not ctrl._force_full_charge and not ctrl._balance_monitor_overrides_delay()):
-            return  # Delay is handled by _is_charge_delayed() in _is_operation_allowed()
 
         # Write register 44000 to 100% on first activation (v2 only - v3 uses software enforcement).
         # Also re-write after HA restart: registers_written may be True (from persisted state)

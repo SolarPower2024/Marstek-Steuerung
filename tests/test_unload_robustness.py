@@ -1,8 +1,7 @@
 """One driver failing to close must not abort the rest of the unload.
 
 ``asyncio.gather`` without ``return_exceptions`` re-raised the first
-disconnect error, so the hourly balance, consumption tracker and daily
-timeline were never saved and the entry's ``hass.data`` was left behind.
+disconnect error, so the consumption tracker was never saved and the entry's ``hass.data`` was left behind.
 """
 from __future__ import annotations
 
@@ -49,18 +48,10 @@ def test_unload_saves_state_when_a_driver_fails_to_close(monkeypatch):
     controller = SimpleNamespace(
         _unloading=False,
         async_stop_background_tasks=_noop,
-        _pricing_mgr=SimpleNamespace(
-            clear_curtailment_runtime=lambda _r: None,
-            clear_negative_price_runtime=lambda _r: None,
-        ),
-        _high_price_discharge_mgr=SimpleNamespace(clear_runtime=lambda _r: None),
-        # One persistence step failing must not skip the next ones either.
-        _hourly_balance_mgr=SimpleNamespace(async_unload=_saver("hourly", fails=True)),
         _consumption_tracker=SimpleNamespace(
             async_stop_background_work=_noop,
             async_save_all=_saver("tracker"),
         ),
-        _daily_operation_timeline=SimpleNamespace(async_shutdown=_saver("timeline")),
     )
     broken = _coordinator("broken", fails=True)
     healthy = _coordinator("healthy")
@@ -85,5 +76,5 @@ def test_unload_saves_state_when_a_driver_fails_to_close(monkeypatch):
     assert asyncio.run(integration.async_unload_entry(hass, entry)) is True
 
     assert healthy.closed == ["healthy"]
-    assert saved == ["tracker", "timeline"]
+    assert saved == ["tracker"]
     assert "entry1" not in hass.data[DOMAIN]

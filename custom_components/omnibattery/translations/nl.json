@@ -30,23 +30,19 @@
     },
     "dead_main_sensor": {
       "title": "Netvermogenssensor publiceert niet meer",
-      "description": "De ingestelde netsensor {sensor} heeft al {minutes} minuten geen meting gepubliceerd. Omnibattery kan zonder die meting niet regelen en heeft daarom de automatische regeling gestopt: elke batterij onder automatische regeling staat op 0W (het laatste commando was {power}W) en voorspellend laden van het net is gepauzeerd. Handmatige modus en handmatige tijdsloten blijven zoals ze zijn. De automatische regeling hervat vanzelf zodra {sensor} weer een geldige meting publiceert. Let op: een sensor die op een geldige waarde is vastgelopen ziet er in Home Assistant volkomen gezond uit. Controleer of {sensor} nog bijwerkt en of de integratie of bridge erachter niet is vastgelopen."
+      "description": "De ingestelde netsensor {sensor} heeft al {minutes} minuten geen meting gepubliceerd. Omnibattery kan zonder die meting niet regelen en heeft daarom de automatische regeling gestopt: elke batterij onder automatische regeling staat op 0W (het laatste commando was {power}W). Handmatige modus en handmatige tijdsloten blijven zoals ze zijn. De automatische regeling hervat vanzelf zodra {sensor} weer een geldige meting publiceert. Let op: een sensor die op een geldige waarde is vastgelopen ziet er in Home Assistant volkomen gezond uit. Controleer of {sensor} nog bijwerkt en of de integratie of bridge erachter niet is vastgelopen."
     },
     "dead_main_sensor_since_start": {
       "title": "Netvermogenssensor publiceert niet sinds de herstart",
-      "description": "De ingestelde netsensor {sensor} heeft in de {minutes} minuten sinds Home Assistant is gestart geen geldige meting gepubliceerd. Omnibattery kan zonder die meting niet regelen. Als Home Assistant niet netjes is afgesloten, kan een batterij nog het laatste commando van vóór de herstart uitvoeren. Omnibattery heeft daarom de automatische regeling gestopt: elke batterij onder automatische regeling staat op 0W en voorspellend laden van het net is gepauzeerd. Handmatige modus en handmatige tijdsloten blijven zoals ze zijn. De automatische regeling start vanzelf zodra {sensor} een geldige meting publiceert. Controleer of {sensor} bestaat en bijwerkt, en of de integratie of het apparaat erachter na de herstart weer werkt."
+      "description": "De ingestelde netsensor {sensor} heeft in de {minutes} minuten sinds Home Assistant is gestart geen geldige meting gepubliceerd. Omnibattery kan zonder die meting niet regelen. Als Home Assistant niet netjes is afgesloten, kan een batterij nog het laatste commando van vóór de herstart uitvoeren. Omnibattery heeft daarom de automatische regeling gestopt: elke batterij onder automatische regeling staat op 0W. Handmatige modus en handmatige tijdsloten blijven zoals ze zijn. De automatische regeling start vanzelf zodra {sensor} een geldige meting publiceert. Controleer of {sensor} bestaat en bijwerkt, en of de integratie of het apparaat erachter na de herstart weer werkt."
     },
     "slow_main_sensor": {
       "title": "De netvermogenssensor werkt te langzaam bij",
       "description": "De geconfigureerde netsensor {sensor} werkt ongeveer elke {observed_interval} seconden bij. Intervallen van {warning_interval} seconden of meer zijn trager dan aanbevolen en kunnen de regelkwaliteit verminderen. Omnibattery volgt de laatste meting totdat deze ouder is dan {stale_limit} seconden. Gebruik een snellere sensor als u een nauwkeurigere realtime regeling nodig hebt."
     },
-    "price_data_unusable": {
-      "title": "Prijsdata onbruikbaar",
-      "description": "Omnibattery kon langer dan {minutes} minuten geen bruikbare prijsslots uit {sensor} lezen (status: {status}). Prijsgestuurd laden is daardoor inactief: de dynamic-pricing planning en de prijsgestuurde vrijgave van de laadvertraging vallen terug op hun gedrag zonder prijzen. Controleer of de sensor beschikbaar is en of het prijsattribuut een lijst met items is; een template-sensor moet ISO-8601-tijdstempels teruggeven, omdat een gerenderd Python-datetime niet terug naar een lijst kan worden omgezet."
-    },
     "solar_forecast_unusable": {
       "title": "Zonneprognose onbruikbaar",
-      "description": "De ingestelde zonneprognose-sensor {sensor} is al meer dan {minutes} minuten niet beschikbaar of onleesbaar. Omnibattery blijft draaien, maar alles wat op de prognose leunt werkt nu blind: de laadvertraging geeft de rest van de dag vrij, beslissingen over netladen gaan uit van geen enkele zon en kunnen onnodig netlaadslots boeken, en de resterende-zon-schatting leest 0 kWh. Controleer de sensor of de integratie die hem levert."
+      "description": "De ingestelde zonneprognose-sensor {sensor} is al meer dan {minutes} minuten niet beschikbaar of onleesbaar. Omnibattery blijft draaien, maar alles wat op de prognose leunt werkt nu blind: de resterende-zon-schatting leest 0 kWh. Controleer de sensor of de integratie die hem levert."
     },
     "solar_forecast_remaining_recommended": {
       "title": "Gebruik een resterende zonneprognose",
@@ -108,7 +104,9 @@
       "phase_assignments": {
         "title": "Fasetoewijzing batterij {battery_num}",
         "description": "Selecteer de fysieke fase waarop {battery_name} is aangesloten, of Niet toegewezen als geen beschermde fase wordt gebruikt.",
-        "data": {"battery_phase": "Fysieke batterijfase"}
+        "data": {
+          "battery_phase": "Fysieke batterijfase"
+        }
       },
       "batteries": {
         "title": "Aantal batterijen",
@@ -279,9 +277,7 @@
           "dynamic_power_control": "Apparaat heeft dynamische vermogensregeling",
           "cover_home_when_active": "Huis dekken terwijl het apparaat actief is",
           "ev_charger_no_telemetry": "EV-lader zonder vermogenstelemetrie",
-          "is_ev_charger": "EV-lader (alleen stroomdiagram)",
-          "remaining_demand_sensor": "Verwachte resterende vraag (kWh)",
-          "remaining_demand_presence_sensor": "Aanwezigheids-entiteit voor de resterende vraag (optioneel)"
+          "is_ev_charger": "EV-lader (alleen stroomdiagram)"
         },
         "data_description": {
           "power_sensor": "Numerieke vermogenssensor (W) van het apparaat. Optioneel voor EV-laders zonder telemetrie; bestaande configuraties met de statussensor in dit veld blijven ondersteund.",
@@ -291,9 +287,7 @@
           "dynamic_power_control": "Schakel dit in voor apparaten die hun vraag automatisch via de netmeter regelen. Met een activiteitssensor wijkt Omnibattery voordat vermogen verschijnt; anders reageert het op de vermogenssensor. Daarna wordt alleen het werkelijk resterende overschot gebruikt.",
           "cover_home_when_active": "Vereist Zonne-overschot en een sensor voor zonneproductie. De batterij mag het eigen huisverbruik dekken terwijl dit apparaat actief is; alleen het netaandeel van het apparaat blijft uitgesloten.",
           "ev_charger_no_telemetry": "✓ AANGEVINKT = Gebruikt de sensor Apparaat actief / EV-laden in plaats van numerieke telemetrie. Bestaande configuraties met deze sensor in het vermogensveld blijven werken. Bij gedetecteerd laden pauzeert de batterij 5 minuten; daarna laadt ze alleen met zonne-overschot en ontlaadt nooit voor de EV.",
-          "is_ev_charger": "Aanvinken als dit apparaat een laadpaal voor elektrische voertuigen is. Wordt alleen gebruikt door het geanimeerde energiestroomdiagram, om het apparaat op de kabel van de EV-lader te tekenen in plaats van op de kabel van uitgesloten apparaten. Verandert niet hoe de batterij het apparaat beheert.",
-          "remaining_demand_sensor": "Optioneel. Sensor met de energie (kWh) die dit apparaat vandaag nog denkt te verbruiken, bijvoorbeeld sensor.evcc_[laadpunt]_charge_remaining_energy. Predictief laden reserveert dan dat deel van de resterende zonprognose voor het apparaat in plaats van aan te nemen dat de batterij het krijgt. Werkt alleen als 'Verbruik zit in de sensor voor thuisverbruik' is aangevinkt. Apparaten met 'EV-lader zonder vermogenstelemetrie' worden overgeslagen: hun energie zit al in de verbruiksprognose, dus reserveren zou dubbel tellen.",
-          "remaining_demand_presence_sensor": "Tel de verwachte resterende vraag alleen mee zolang deze entiteit het apparaat als aanwezig meldt: on, true, home, connected, plugged of present. Leeg laten betekent altijd meetellen. Wijs hem naar de connected-entiteit van je laadpaal als de bron een vraag blijft melden terwijl er niets ingeplugd is: evcc meldt de energie tot het SOC-doel van de auto, of er nu een auto hangt of niet, en zon reserveren voor een afwezige auto haalt die weg bij de batterij zonder dat er iets mee gebeurt. Een onbeschikbare of onbekende entiteit telt als afwezig, zodat een kapotte sensor stopt met reserveren in plaats van te reserveren voor een apparaat dat er misschien niet is."
+          "is_ev_charger": "Aanvinken als dit apparaat een laadpaal voor elektrische voertuigen is. Wordt alleen gebruikt door het geanimeerde energiestroomdiagram, om het apparaat op de kabel van de EV-lader te tekenen in plaats van op de kabel van uitgesloten apparaten. Verandert niet hoe de batterij het apparaat beheert."
         }
       },
       "add_more_excluded_devices": {
@@ -301,79 +295,6 @@
         "description": "U heeft momenteel {current_devices} uitgesloten apparaat/apparaten. U kunt in totaal maximaal {max_devices} apparaten toevoegen.",
         "data": {
           "add_more": "Nog een uitgesloten apparaat toevoegen"
-        }
-      },
-      "predictive_charging": {
-        "title": "Voorspellend netladen",
-        "description": "Wilt u intelligent netladen inschakelen? Deze functie maakt het laden van batterijen vanuit het net mogelijk tijdens daluren wanneer de zonnevoorspelling voor vandaag onvoldoende is.",
-        "data": {
-          "configure_predictive_charging": "Voorspellend laden configureren"
-        }
-      },
-      "predictive_charging_config": {
-        "title": "Configuratie voorspellend laden",
-        "description": "Configureer wanneer en hoe batterijen vanuit het net geladen moeten worden op basis van de zonnevoorspelling. U kunt maximaal 3 laadvensters instellen — vul alleen venster 1 in voor één venster, of voeg vensters 2 en 3 toe indien nodig.",
-        "data": {
-          "start_time": "Venster 1 — starttijd (daltarief)",
-          "end_time": "Venster 1 — eindtijd (daltarief)",
-          "days": "Venster 1 — dagen van de week",
-          "start_time_2": "Venster 2 — starttijd (optioneel)",
-          "end_time_2": "Venster 2 — eindtijd (optioneel)",
-          "days_2": "Venster 2 — dagen van de week",
-          "start_time_3": "Venster 3 — starttijd (optioneel)",
-          "end_time_3": "Venster 3 — eindtijd (optioneel)",
-          "days_3": "Venster 3 — dagen van de week",
-          "solar_forecast_sensor": "Zonnevoorspellingssensor (kWh)"
-        },
-        "data_description": {
-          "start_time": "Starttijd van het laadvenster (bijv. 01:00, daltarief)",
-          "end_time": "Eindtijd van het laadvenster (bijv. 06:00)",
-          "days": "Dagen waarop netladen is toegestaan",
-          "solar_forecast_sensor": "Sensor die de zonneproductievoorspelling in kWh levert (bijv. Solcast). Met zonnepanelen: configureer deze sensor — het systeem laadt alleen van het net als de voorspelling onvoldoende is. Zonder zonnepanelen: laat leeg — het systeem laadt wanneer de batterij-energie niet voldoende is voor de dag. Niet vereist als u deze sensor al in de eerste stap heeft geconfigureerd — hij wordt automatisch gebruikt."
-        }
-      },
-      "predictive_charging_mode": {
-        "title": "Laadmodus selecteren",
-        "description": "Selecteer de modus voor voorspellend netladen. Tijdslot gebruikt een vast nachtelijk laadvenster; Dynamische prijs selecteert automatisch de goedkoopste uren op basis van realtime stroomprijzen.",
-        "data": {
-          "predictive_charging_mode": "Laadmodus"
-        },
-        "data_description": {
-          "predictive_charging_mode": "Tijdslot: Laden tijdens een vast daltariefvenster. Dynamische prijs: Dagelijkse selectie van de goedkoopste uren op basis van Nordpool/ENTSO-e prijzen. Realtimeprijs: Onmiddellijke activering van het laden wanneer de prijs onder de drempel daalt."
-        }
-      },
-      "dynamic_pricing_config": {
-        "title": "Configuratie dynamische prijslading",
-        "description": "Configureer dynamische prijslading. Het systeem leest uurlijkse stroomprijzen en selecteert automatisch de goedkoopste uren om te laden.",
-        "data": {
-          "price_integration_type": "Prijsintegratie",
-          "price_sensor": "Prijssensor",
-          "export_price_sensor": "Sensor voor teruglever-/exportprijs (optioneel)",
-          "export_price_integration_type": "Integratie voor de exportprijs (optioneel)",
-          "zonneplan_export_bonus_enabled": "Zonneplan-exportbonus toepassen",
-          "solar_forecast_sensor": "Zonnevoorspellingssensor (kWh)"
-        },
-        "data_description": {
-          "price_integration_type": "Selecteer de domoticaintegratie die stroomprijs gegevens levert",
-          "price_sensor": "Sensor met uurlijkse stroomprijzen (bijv. sensor.nordpool_kwh_nl_eur_3_10_025)",
-          "export_price_sensor": "Sensor met de terugleverprijzen. Laat leeg om de importprijscurve te gebruiken; dat klopt wanneer teruglevering tegen de importprijs wordt vergoed (salderen).",
-          "export_price_integration_type": "Attribuutindeling van de exportprijssensor. Laat leeg om de importintegratie te hergebruiken. Tibber is hier niet beschikbaar: die is servicegebaseerd en de cache hoort bij de importcurve.",
-          "zonneplan_export_bonus_enabled": "Telt de Zonneplan-zonnebonus op bij de exportprijs van zonnestroom inclusief belastingen: de bonus is €0,02/kWh bovenop de prijs exclusief belastingen, daarna +10%. Geldt alleen tussen zonsopkomst en zonsondergang en alleen als die prijs plus €0,02 positief is. Export vanuit de accu wordt nooit met de bonus gewaardeerd. Heeft geen effect tenzij de effectieve exportprijsintegratie Zonneplan is.",
-          "solar_forecast_sensor": "Sensor die de zonneproductievoorspelling in kWh levert (bijv. Solcast). Met zonnepanelen: configureer deze sensor — het systeem laadt alleen van het net als de voorspelling onvoldoende is. Zonder zonnepanelen: laat leeg — het systeem laadt wanneer de batterij-energie niet voldoende is voor de dag. Niet vereist als u deze sensor al in de eerste stap heeft geconfigureerd — hij wordt automatisch gebruikt."
-        }
-      },
-      "realtime_price_config": {
-        "title": "Voorspellend laden — Realtimeprijs",
-        "description": "Configureer de prijssensor en drempelwaarde. Het systeem leest de huidige prijs elke paar seconden en start of stopt het netwerkladen onmiddellijk — geen dagelijkse planning nodig.",
-        "data": {
-          "price_sensor": "Elektriciteitsprijssensor",
-          "average_price_sensor": "Daggemiddelde prijssensor (optioneel)",
-          "solar_forecast_sensor": "Zonnevoorspellingssensor (kWh)"
-        },
-        "data_description": {
-          "price_sensor": "Sensor waarvan de toestand de huidige elektriciteits prijs is. Elke sensor die de huidige periodenprijs als toestand weergeeft, werkt.",
-          "average_price_sensor": "Indien opgegeven, wordt deze waarde gebruikt als drempel in plaats van de vaste waarde — handig als uw prijsintegratie al een daggemiddelde blootstelt. Leeg laten voor de vaste drempel.",
-          "solar_forecast_sensor": "Sensor die de zonneproductievoorspelling in kWh levert. Niet vereist als u deze sensor al in de eerste stap heeft geconfigureerd — hij wordt automatisch gebruikt."
         }
       },
       "weekly_full_charge": {
@@ -391,29 +312,6 @@
         },
         "data_description": {
           "weekly_full_charge_day": "Dag waarop batterijen tot 100% worden geladen, ongeacht de geconfigureerde maximale SOC. Dit helpt bij het balanceren van batterijcellen."
-        }
-      },
-      "charge_delay": {
-        "title": "Zonne-oplaadvertraging",
-        "description": "Zonne-oplaadvertraging inschakelen? Deze functie vertraagt het laden van de batterijen totdat de zonne-energiebalans aangeeft dat het nodig is, en exporteert overtollige zonne-energie naar het net in de tussentijd.",
-        "data": {
-          "configure_charge_delay": "Oplaadvertraging configureren"
-        }
-      },
-      "charge_delay_config": {
-        "title": "Configuratie oplaadvertraging",
-        "description": "Configureer de veiligheidsmarge en de zonnevoorspellingssensor voor de oplaadvertraging.",
-        "data": {
-          "delay_safety_margin_h": "Veiligheidsmarge (uren)",
-          "delay_soc_setpoint_enabled": "Minimale SOC vóór vertraging inschakelen",
-          "delay_soc_setpoint": "Minimale SOC (%)",
-          "solar_forecast_sensor": "Zonnevoorspellingssensor"
-        },
-        "data_description": {
-          "delay_safety_margin_h": "Uren voor zonsondergang waarvoor het laden voltooid moet zijn. Hogere waarden ontgrendelen het laden eerder.",
-          "delay_soc_setpoint_enabled": "Wanneer ingeschakeld, laadt de batterij vrij op tot het ingestelde SOC; daarboven wordt de zonnelaadvertraging geactiveerd.",
-          "delay_soc_setpoint": "Het SOC dat de batterij moet bereiken voordat de zonnelaadvertraging ingaat. Minimum: 12 % — het minimale ontlaad-SOC van de Venus-batterijen.",
-          "solar_forecast_sensor": "Sensor die de zonneproductievoorspelling in kWh levert (bijv. Solcast). Niet vereist als u deze sensor al in de eerste stap heeft geconfigureerd — hij wordt automatisch gebruikt."
         }
       },
       "temp_charge_limit": {
@@ -495,29 +393,6 @@
           "system_max_discharge_power": "Optionele limiet voor gecombineerd ontlaadvermogen van alle actieve batterijen. 0 = uitgeschakeld; limieten per batterij blijven gelden."
         }
       },
-      "hourly_balance": {
-        "title": "Uurlijks Netsaldo",
-        "description": "Uurlijkse netsaldo-regeling inschakelen? Deze functie registreert netimport/-export per uur en past het batterij-instelpunt automatisch aan om een doel-energiebalans te bereiken.\n\n⚠️ **Deze functie is alleen nuttig in Spanje**, onder de regeling voor uurlijkse compensatie van overschotten (Koninklijk Besluit 244/2019), waarbij netoverschot per uur wordt verrekend. In markten met terugleververgoeding (feed-in) of jaarlijkse saldering biedt het geen voordeel en kan het leiden tot gemiste teruglever-inkomsten en onnodige batterijcycli.\n\nGedetecteerd Home Assistant-land: **{country}**.",
-        "data": {
-          "configure_hourly_balance": "Uurlijks nettosaldo configureren"
-        }
-      },
-      "hourly_balance_config": {
-        "title": "Configuratie Uurlijks Saldo",
-        "description": "Configureer de doel-energiebalans en regelparameters. Het systeem zal het batterijvermogen aanpassen om elk uur de doel-Wh-balans te bereiken.",
-        "data": {
-          "hourly_balance_target_net_wh": "Doel netto-saldo (kWh)",
-          "hourly_balance_max_offset_w": "Maximale verschuiving (W)",
-          "hourly_balance_deadband_wh": "Tolerantie nettosaldo (kWh)",
-          "hourly_balance_hysteresis_w": "Hysterese van de verschuiving (W)"
-        },
-        "data_description": {
-          "hourly_balance_target_net_wh": "Doel netto-energiebalans per uur. 0 = netto nul (standaard). Positief = import toestaan, negatief = export-doel.",
-          "hourly_balance_max_offset_w": "Maximale vermogensverschuiving van de regelaar. Het schuifregelaarmaximum is de gecombineerde ontlaadvermogens van alle batterijen.",
-          "hourly_balance_deadband_wh": "Tolerantieband rondom het doel. Geen correctie als het nettosaldo binnen ±N kWh van het doel valt. 0 = exacte correctie.",
-          "hourly_balance_hysteresis_w": "Minimale verandering in de verschuiving vereist voordat een nieuwe correctie wordt toegepast. Voorkomt micro-aanpassingen elke cyclus. 0 = altijd toepassen. Standaard: 15 W."
-        }
-      },
       "reconfigure_battery": {
         "title": "Batterij {battery_num} opnieuw configureren — Verbinding (Marstek)",
         "description": "Verbindingsgegevens bijwerken voor batterij {battery_num}. Vermogenslimieten, SOC-limieten en alle andere instellingen blijven behouden.",
@@ -567,18 +442,11 @@
       "phase_limit_must_be_positive": "De zekeringgrootte van de fase moet een eindige positieve waarde in ampère zijn.",
       "phase_sensor_and_limit_required": "Vul zowel de fasestroomsensor als de zekeringgrootte in, of laat beide velden leeg.",
       "battery_phase_required": "Selecteer de fysieke fase van deze batterij.",
-      "incomplete_window": "Elk extra laadvenster heeft een start- en een eindtijd nodig. Vul beide in, of laat beide leeg om het over te slaan.",
       "overlapping_slots": "Dit tijdslot overlapt met een bestaand slot voor dezelfde batterij. Pas tijden, dagen of de batterij aan.",
       "midnight_crossing": "De starttijd moet vóór de eindtijd liggen. Maak voor nachtperiodes twee aparte tijdslots aan (bijv. 22:00-23:59 en 00:00-06:00).",
       "slot_does_nothing": "Het slot moet ten minste één richting toestaan (laden of ontladen).",
       "manual_requires_power": "Handmatige modus vereist dat vermogenscontrole is ingeschakeld.",
       "manual_requires_single_direction": "Handmatige modus forceert één richting: vink Laden toestaan of Ontladen toestaan aan, niet beide.",
-      "no_price_data": "De geselecteerde sensor is geen ondersteunde prijsbron. Nord Pool: selecteer een entiteit van de officiële integratie of een HACS-sensor met `raw_today`. PVPC vereist `price_00h` … `price_23h`, CKW een `prices`-lijst, EPEX een `data`-lijst en ENTSO-e een `prices_today`-lijst.",
-      "tibber_unavailable": "De Tibber-integratie is niet geïnstalleerd, of de service `tibber.get_prices` is niet beschikbaar. Installeer en configureer eerst Tibber.",
-      "energyzero_unavailable": "De EnergyZero-integratie is niet geïnstalleerd of de service `energyzero.get_energy_prices` is niet beschikbaar. Installeer en configureer eerst EnergyZero.",
-      "export_tibber_unsupported": "Tibber cannot be used for the export price curve: it is service-based and its price cache belongs to the import curve. Choose a sensor-based provider instead.",
-      "export_type_required": "Select the export price integration explicitly. The import curve is service-based, so its type cannot be reused for a sensor.",
-      "discharge_below_charge": "De ontlaad-prijsondergrens mag niet lager zijn dan de maximale (laad)prijsdrempel. Stel deze gelijk of hoger in, of laat leeg om de laaddrempel te hergebruiken.",
       "host_or_serial_required": "Voer een IP-adres (TCP) of een pad naar een seriële poort (Modbus RTU) in.",
       "missing_power_sensor": "Selecteer een vermogenssensor, of activeer EV-lader zonder telemetrie en selecteer een activiteitssensor.",
       "missing_activity_sensor": "Selecteer een sensor Apparaat actief / EV-laden voor dynamische vermogensregeling of een lader zonder telemetrie."
@@ -626,7 +494,9 @@
       "phase_assignments": {
         "title": "Fasetoewijzing batterij {battery_num}",
         "description": "Selecteer de fysieke fase waarop {battery_name} is aangesloten, of Niet toegewezen als geen beschermde fase wordt gebruikt.",
-        "data": {"battery_phase": "Fysieke batterijfase"}
+        "data": {
+          "battery_phase": "Fysieke batterijfase"
+        }
       },
       "init": {
         "title": "Omnibattery opnieuw configureren",
@@ -636,13 +506,10 @@
           "batteries": "Batterijen",
           "time_slots": "Tijdslots",
           "excluded_devices": "Uitgesloten apparaten",
-          "predictive_charging": "Voorspellend laden",
           "weekly_full_charge": "Wekelijkse volledige lading",
-          "charge_delay": "Zonne-oplaadvertraging",
           "temp_charge_limit": "Temperatuurbegrenzing laden",
           "capacity_protection": "Capaciteitsbescherming",
-          "pd_advanced": "PD-regelaar (geavanceerd)",
-          "hourly_balance": "Uurlijks netsaldo"
+          "pd_advanced": "PD-regelaar (geavanceerd)"
         }
       },
       "sensors": {
@@ -854,9 +721,7 @@
           "dynamic_power_control": "Apparaat heeft dynamische vermogensregeling",
           "cover_home_when_active": "Huis dekken terwijl het apparaat actief is",
           "ev_charger_no_telemetry": "EV-lader zonder vermogenstelemetrie",
-          "is_ev_charger": "EV-lader (alleen stroomdiagram)",
-          "remaining_demand_sensor": "Verwachte resterende vraag (kWh)",
-          "remaining_demand_presence_sensor": "Aanwezigheids-entiteit voor de resterende vraag (optioneel)"
+          "is_ev_charger": "EV-lader (alleen stroomdiagram)"
         },
         "data_description": {
           "power_sensor": "Numerieke vermogenssensor (W) van het apparaat. Optioneel voor EV-laders zonder telemetrie; bestaande configuraties met de statussensor in dit veld blijven ondersteund.",
@@ -866,9 +731,7 @@
           "dynamic_power_control": "Schakel dit in voor apparaten die hun vraag automatisch via de netmeter regelen. Met een activiteitssensor wijkt Omnibattery voordat vermogen verschijnt; anders reageert het op de vermogenssensor. Daarna wordt alleen het werkelijk resterende overschot gebruikt.",
           "cover_home_when_active": "Vereist Zonne-overschot en een sensor voor zonneproductie. De batterij mag het eigen huisverbruik dekken terwijl dit apparaat actief is; alleen het netaandeel van het apparaat blijft uitgesloten.",
           "ev_charger_no_telemetry": "✓ AANGEVINKT = Gebruikt de sensor Apparaat actief / EV-laden in plaats van numerieke telemetrie. Bestaande configuraties met deze sensor in het vermogensveld blijven werken. Bij gedetecteerd laden pauzeert de batterij 5 minuten; daarna laadt ze alleen met zonne-overschot en ontlaadt nooit voor de EV.",
-          "is_ev_charger": "Aanvinken als dit apparaat een laadpaal voor elektrische voertuigen is. Wordt alleen gebruikt door het geanimeerde energiestroomdiagram, om het apparaat op de kabel van de EV-lader te tekenen in plaats van op de kabel van uitgesloten apparaten. Verandert niet hoe de batterij het apparaat beheert.",
-          "remaining_demand_sensor": "Optioneel. Sensor met de energie (kWh) die dit apparaat vandaag nog denkt te verbruiken, bijvoorbeeld sensor.evcc_[laadpunt]_charge_remaining_energy. Predictief laden reserveert dan dat deel van de resterende zonprognose voor het apparaat in plaats van aan te nemen dat de batterij het krijgt. Werkt alleen als 'Verbruik zit in de sensor voor thuisverbruik' is aangevinkt. Apparaten met 'EV-lader zonder vermogenstelemetrie' worden overgeslagen: hun energie zit al in de verbruiksprognose, dus reserveren zou dubbel tellen.",
-          "remaining_demand_presence_sensor": "Tel de verwachte resterende vraag alleen mee zolang deze entiteit het apparaat als aanwezig meldt: on, true, home, connected, plugged of present. Leeg laten betekent altijd meetellen. Wijs hem naar de connected-entiteit van je laadpaal als de bron een vraag blijft melden terwijl er niets ingeplugd is: evcc meldt de energie tot het SOC-doel van de auto, of er nu een auto hangt of niet, en zon reserveren voor een afwezige auto haalt die weg bij de batterij zonder dat er iets mee gebeurt. Een onbeschikbare of onbekende entiteit telt als afwezig, zodat een kapotte sensor stopt met reserveren in plaats van te reserveren voor een apparaat dat er misschien niet is."
+          "is_ev_charger": "Aanvinken als dit apparaat een laadpaal voor elektrische voertuigen is. Wordt alleen gebruikt door het geanimeerde energiestroomdiagram, om het apparaat op de kabel van de EV-lader te tekenen in plaats van op de kabel van uitgesloten apparaten. Verandert niet hoe de batterij het apparaat beheert."
         }
       },
       "add_more_excluded_devices": {
@@ -876,79 +739,6 @@
         "description": "U heeft {current_devices} geconfigureerd(e) apparaat/apparaten. U kunt in totaal maximaal {max_devices} toevoegen.",
         "data": {
           "add_more": "Nog een speciaal apparaat toevoegen"
-        }
-      },
-      "predictive_charging": {
-        "title": "Voorspellend netladen",
-        "description": "Wilt u intelligent netladen inschakelen? Deze functie maakt het laden van batterijen vanuit het net mogelijk tijdens daluren wanneer de zonnevoorspelling voor vandaag onvoldoende is.",
-        "data": {
-          "configure_predictive_charging": "Voorspellend laden configureren"
-        }
-      },
-      "predictive_charging_config": {
-        "title": "Configuratie voorspellend laden",
-        "description": "Configureer wanneer en hoe batterijen vanuit het net geladen moeten worden op basis van de zonnevoorspelling. U kunt maximaal 3 laadvensters instellen — vul alleen venster 1 in voor één venster, of voeg vensters 2 en 3 toe indien nodig.",
-        "data": {
-          "start_time": "Venster 1 — starttijd (daltarief)",
-          "end_time": "Venster 1 — eindtijd (daltarief)",
-          "days": "Venster 1 — dagen van de week",
-          "start_time_2": "Venster 2 — starttijd (optioneel)",
-          "end_time_2": "Venster 2 — eindtijd (optioneel)",
-          "days_2": "Venster 2 — dagen van de week",
-          "start_time_3": "Venster 3 — starttijd (optioneel)",
-          "end_time_3": "Venster 3 — eindtijd (optioneel)",
-          "days_3": "Venster 3 — dagen van de week",
-          "solar_forecast_sensor": "Zonnevoorspellingssensor (kWh)"
-        },
-        "data_description": {
-          "start_time": "Starttijd van het laadvenster (bijv. 01:00, daltarief)",
-          "end_time": "Eindtijd van het laadvenster (bijv. 06:00)",
-          "days": "Dagen waarop netladen is toegestaan",
-          "solar_forecast_sensor": "Sensor die de zonneproductievoorspelling in kWh levert (bijv. Solcast). Met zonnepanelen: configureer deze sensor — het systeem laadt alleen van het net als de voorspelling onvoldoende is. Zonder zonnepanelen: laat leeg — het systeem laadt wanneer de batterij-energie niet voldoende is voor de dag. Niet vereist als u deze sensor al in de eerste stap heeft geconfigureerd — hij wordt automatisch gebruikt."
-        }
-      },
-      "predictive_charging_mode": {
-        "title": "Laadmodus selecteren",
-        "description": "Selecteer de modus voor voorspellend netladen. Tijdslot gebruikt een vast nachtelijk laadvenster; Dynamische prijs selecteert automatisch de goedkoopste uren op basis van realtime stroomprijzen.",
-        "data": {
-          "predictive_charging_mode": "Laadmodus"
-        },
-        "data_description": {
-          "predictive_charging_mode": "Tijdslot: Laden tijdens een vast daltariefvenster. Dynamische prijs: Dagelijkse selectie van de goedkoopste uren op basis van Nordpool/ENTSO-e prijzen. Realtimeprijs: Onmiddellijke activering van het laden wanneer de prijs onder de drempel daalt."
-        }
-      },
-      "dynamic_pricing_config": {
-        "title": "Configuratie dynamische prijslading",
-        "description": "Configureer dynamische prijslading. Het systeem leest uurlijkse stroomprijzen en selecteert automatisch de goedkoopste uren om te laden.",
-        "data": {
-          "price_integration_type": "Prijsintegratie",
-          "price_sensor": "Prijssensor",
-          "export_price_sensor": "Sensor voor teruglever-/exportprijs (optioneel)",
-          "export_price_integration_type": "Integratie voor de exportprijs (optioneel)",
-          "zonneplan_export_bonus_enabled": "Zonneplan-exportbonus toepassen",
-          "solar_forecast_sensor": "Zonnevoorspellingssensor (kWh)"
-        },
-        "data_description": {
-          "price_integration_type": "Selecteer de domoticaintegratie die stroomprijs gegevens levert",
-          "price_sensor": "Sensor met uurlijkse stroomprijzen (bijv. sensor.nordpool_kwh_nl_eur_3_10_025)",
-          "export_price_sensor": "Sensor met de terugleverprijzen. Laat leeg om de importprijscurve te gebruiken; dat klopt wanneer teruglevering tegen de importprijs wordt vergoed (salderen).",
-          "export_price_integration_type": "Attribuutindeling van de exportprijssensor. Laat leeg om de importintegratie te hergebruiken. Tibber is hier niet beschikbaar: die is servicegebaseerd en de cache hoort bij de importcurve.",
-          "zonneplan_export_bonus_enabled": "Telt de Zonneplan-zonnebonus op bij de exportprijs van zonnestroom inclusief belastingen: de bonus is €0,02/kWh bovenop de prijs exclusief belastingen, daarna +10%. Geldt alleen tussen zonsopkomst en zonsondergang en alleen als die prijs plus €0,02 positief is. Export vanuit de accu wordt nooit met de bonus gewaardeerd. Heeft geen effect tenzij de effectieve exportprijsintegratie Zonneplan is.",
-          "solar_forecast_sensor": "Sensor die de zonneproductievoorspelling in kWh levert (bijv. Solcast). Met zonnepanelen: configureer deze sensor — het systeem laadt alleen van het net als de voorspelling onvoldoende is. Zonder zonnepanelen: laat leeg — het systeem laadt wanneer de batterij-energie niet voldoende is voor de dag. Niet vereist als u deze sensor al in de eerste stap heeft geconfigureerd — hij wordt automatisch gebruikt."
-        }
-      },
-      "realtime_price_config": {
-        "title": "Voorspellend laden — Realtimeprijs",
-        "description": "Configureer de prijssensor en drempelwaarde. Het systeem leest de huidige prijs elke paar seconden en start of stopt het netwerkladen onmiddellijk — geen dagelijkse planning nodig.",
-        "data": {
-          "price_sensor": "Elektriciteitsprijssensor",
-          "average_price_sensor": "Daggemiddelde prijssensor (optioneel)",
-          "solar_forecast_sensor": "Zonnevoorspellingssensor (kWh)"
-        },
-        "data_description": {
-          "price_sensor": "Sensor waarvan de toestand de huidige elektriciteits prijs is. Elke sensor die de huidige periodenprijs als toestand weergeeft, werkt.",
-          "average_price_sensor": "Indien opgegeven, wordt deze waarde gebruikt als drempel in plaats van de vaste waarde — handig als uw prijsintegratie al een daggemiddelde blootstelt. Leeg laten voor de vaste drempel.",
-          "solar_forecast_sensor": "Sensor die de zonneproductievoorspelling in kWh levert. Niet vereist als u deze sensor al in de eerste stap heeft geconfigureerd — hij wordt automatisch gebruikt."
         }
       },
       "weekly_full_charge": {
@@ -966,29 +756,6 @@
         },
         "data_description": {
           "weekly_full_charge_day": "Dag waarop batterijen tot 100% worden geladen, ongeacht de geconfigureerde maximale SOC. Dit helpt bij het balanceren van batterijcellen."
-        }
-      },
-      "charge_delay": {
-        "title": "Zonne-oplaadvertraging",
-        "description": "Zonne-oplaadvertraging inschakelen? Deze functie vertraagt het laden van de batterijen totdat de zonne-energiebalans aangeeft dat het nodig is, en exporteert overtollige zonne-energie naar het net in de tussentijd.",
-        "data": {
-          "configure_charge_delay": "Oplaadvertraging configureren"
-        }
-      },
-      "charge_delay_config": {
-        "title": "Configuratie oplaadvertraging",
-        "description": "Configureer de veiligheidsmarge en de zonnevoorspellingssensor voor de oplaadvertraging.",
-        "data": {
-          "delay_safety_margin_h": "Veiligheidsmarge (uren)",
-          "delay_soc_setpoint_enabled": "Minimale SOC vóór vertraging inschakelen",
-          "delay_soc_setpoint": "Minimale SOC (%)",
-          "solar_forecast_sensor": "Zonnevoorspellingssensor"
-        },
-        "data_description": {
-          "delay_safety_margin_h": "Uren voor zonsondergang waarvoor het laden voltooid moet zijn. Hogere waarden ontgrendelen het laden eerder.",
-          "delay_soc_setpoint_enabled": "Wanneer ingeschakeld, laadt de batterij vrij op tot het ingestelde SOC; daarboven wordt de zonnelaadvertraging geactiveerd.",
-          "delay_soc_setpoint": "Het SOC dat de batterij moet bereiken voordat de zonnelaadvertraging ingaat. Minimum: 12 % — het minimale ontlaad-SOC van de Venus-batterijen.",
-          "solar_forecast_sensor": "Sensor die de zonneproductievoorspelling in kWh levert (bijv. Solcast). Niet vereist als u deze sensor al in de eerste stap heeft geconfigureerd — hij wordt automatisch gebruikt."
         }
       },
       "temp_charge_limit": {
@@ -1069,29 +836,6 @@
           "system_max_charge_power": "Optionele limiet voor gecombineerd laadvermogen van alle actieve batterijen. 0 = uitgeschakeld; limieten per batterij blijven gelden.",
           "system_max_discharge_power": "Optionele limiet voor gecombineerd ontlaadvermogen van alle actieve batterijen. 0 = uitgeschakeld; limieten per batterij blijven gelden."
         }
-      },
-      "hourly_balance": {
-        "title": "Uurlijks Netsaldo",
-        "description": "Uurlijkse netsaldo-regeling inschakelen? Deze functie registreert netimport/-export per uur en past het batterij-instelpunt automatisch aan om een doel-energiebalans te bereiken.\n\n⚠️ **Deze functie is alleen nuttig in Spanje**, onder de regeling voor uurlijkse compensatie van overschotten (Koninklijk Besluit 244/2019), waarbij netoverschot per uur wordt verrekend. In markten met terugleververgoeding (feed-in) of jaarlijkse saldering biedt het geen voordeel en kan het leiden tot gemiste teruglever-inkomsten en onnodige batterijcycli.\n\nGedetecteerd Home Assistant-land: **{country}**.",
-        "data": {
-          "configure_hourly_balance": "Uurlijks nettosaldo configureren"
-        }
-      },
-      "hourly_balance_config": {
-        "title": "Configuratie Uurlijks Saldo",
-        "description": "Configureer de doel-energiebalans en regelparameters. Het systeem zal het batterijvermogen aanpassen om elk uur de doel-Wh-balans te bereiken.",
-        "data": {
-          "hourly_balance_target_net_wh": "Doel netto-saldo (kWh)",
-          "hourly_balance_max_offset_w": "Maximale verschuiving (W)",
-          "hourly_balance_deadband_wh": "Tolerantie nettosaldo (kWh)",
-          "hourly_balance_hysteresis_w": "Hysterese van de verschuiving (W)"
-        },
-        "data_description": {
-          "hourly_balance_target_net_wh": "Doel netto-energiebalans per uur. 0 = netto nul (standaard). Positief = import toestaan, negatief = export-doel.",
-          "hourly_balance_max_offset_w": "Maximale vermogensverschuiving van de regelaar. Het schuifregelaarmaximum is de gecombineerde ontlaadvermogens van alle batterijen.",
-          "hourly_balance_deadband_wh": "Tolerantieband rondom het doel. Geen correctie als het nettosaldo binnen ±N kWh van het doel valt. 0 = exacte correctie.",
-          "hourly_balance_hysteresis_w": "Minimale verandering in de verschuiving vereist voordat een nieuwe correctie wordt toegepast. Voorkomt micro-aanpassingen elke cyclus. 0 = altijd toepassen. Standaard: 15 W."
-        }
       }
     },
     "error": {
@@ -1113,18 +857,11 @@
       "phase_limit_must_be_positive": "De zekeringgrootte van de fase moet een eindige positieve waarde in ampère zijn.",
       "phase_sensor_and_limit_required": "Vul zowel de fasestroomsensor als de zekeringgrootte in, of laat beide velden leeg.",
       "battery_phase_required": "Selecteer de fysieke fase van deze batterij.",
-      "incomplete_window": "Elk extra laadvenster heeft een start- en een eindtijd nodig. Vul beide in, of laat beide leeg om het over te slaan.",
       "overlapping_slots": "Dit tijdslot overlapt met een bestaand slot voor dezelfde batterij. Pas tijden, dagen of de batterij aan.",
       "midnight_crossing": "De starttijd moet vóór de eindtijd liggen. Maak voor nachtperiodes twee aparte tijdslots aan (bijv. 22:00-23:59 en 00:00-06:00).",
       "slot_does_nothing": "Het slot moet ten minste één richting toestaan (laden of ontladen).",
       "manual_requires_power": "Handmatige modus vereist dat vermogenscontrole is ingeschakeld.",
       "manual_requires_single_direction": "Handmatige modus forceert één richting: vink Laden toestaan of Ontladen toestaan aan, niet beide.",
-      "no_price_data": "De geselecteerde sensor is geen ondersteunde prijsbron. Nord Pool: selecteer een entiteit van de officiële integratie of een HACS-sensor met `raw_today`. PVPC vereist `price_00h` … `price_23h`, CKW een `prices`-lijst, EPEX een `data`-lijst en ENTSO-e een `prices_today`-lijst.",
-      "tibber_unavailable": "De Tibber-integratie is niet geïnstalleerd, of de service `tibber.get_prices` is niet beschikbaar. Installeer en configureer eerst Tibber.",
-      "energyzero_unavailable": "De EnergyZero-integratie is niet geïnstalleerd of de service `energyzero.get_energy_prices` is niet beschikbaar. Installeer en configureer eerst EnergyZero.",
-      "export_tibber_unsupported": "Tibber cannot be used for the export price curve: it is service-based and its price cache belongs to the import curve. Choose a sensor-based provider instead.",
-      "export_type_required": "Select the export price integration explicitly. The import curve is service-based, so its type cannot be reused for a sensor.",
-      "discharge_below_charge": "De ontlaad-prijsondergrens mag niet lager zijn dan de maximale (laad)prijsdrempel. Stel deze gelijk of hoger in, of laat leeg om de laaddrempel te hergebruiken.",
       "host_or_serial_required": "Voer een IP-adres (TCP) of een pad naar een seriële poort (Modbus RTU) in.",
       "missing_power_sensor": "Selecteer een vermogenssensor, of activeer EV-lader zonder telemetrie en selecteer een activiteitssensor.",
       "missing_activity_sensor": "Selecteer een sensor Apparaat actief / EV-laden voor dynamische vermogensregeling of een lader zonder telemetrie."
@@ -1132,7 +869,12 @@
   },
   "selector": {
     "battery_phase": {
-      "options": {"unassigned": "Niet toegewezen", "l1": "L1", "l2": "L2", "l3": "L3"}
+      "options": {
+        "unassigned": "Niet toegewezen",
+        "l1": "L1",
+        "l2": "L2",
+        "l3": "L3"
+      }
     },
     "weekday": {
       "options": {
@@ -1155,37 +897,10 @@
       "options": {
         "all": "Alle batterijen"
       }
-    },
-    "predictive_charging_mode": {
-      "options": {
-        "time_slot": "Tijdslot",
-        "dynamic_pricing": "Dynamische prijs",
-        "realtime_price": "Realtimeprijs (directe drempel)"
-      }
-    },
-      "price_integration_type": {
-      "options": {
-        "nordpool": "Nordpool",
-        "pvpc": "PVPC (Spanje – ESIOS REE)",
-        "ckw": "CKW (Zwitserland)",
-        "epex": "EPEX Spot (bijv. aWATTar)",
-        "entsoe": "ENTSO-e (Transparency Platform)",
-        "zonneplan": "Zonneplan",
-        "frank_energie": "Frank Energie",
-        "energyzero": "EnergyZero",
-        "tibber": "Tibber (servicegebaseerd)",
-        "be_electricity_prices": "BE Electricity Prices (België, all-in)"
-      }
     }
   },
   "entity": {
     "switch": {
-      "surplus_price_hold": {
-        "name": "Prijsrem zonne-overschot"
-      },
-      "discharge_reserve": {
-        "name": "Ontlaadreserve"
-      },
       "primary_feedforward": {
         "name": "Werkelijke vraag vooruitsturen"
       },
@@ -1207,41 +922,17 @@
       "offgrid_mode": {
         "name": "Off-grid Metermodus"
       },
-      "min_soc_floor_enabled": {
-        "name": "Gegarandeerd Minimum SOC"
-      },
-      "max_price_threshold_enabled": {
-        "name": "Handmatig laadprijsplafond"
-      },
-      "discharge_price_threshold_enabled": {
-        "name": "Handmatige ontlaad-prijsondergrens"
-      },
       "system_power_limits": {
         "name": "Systeemvermogenslimieten"
       },
-      "predictive_charging": {
-        "name": "Voorspellend Laden"
-      },
-      "predictive_charging_notifications": {
-        "name": "Meldingen Voorspellend Laden"
-      },
       "vacation_mode": {
         "name": "Vakantiemodus"
-      },
-      "charge_delay": {
-        "name": "Laadvertraging"
-      },
-      "delay_soc_setpoint_enabled": {
-        "name": "Doel-SOC Vertraging Actief"
       },
       "temp_charge_limit": {
         "name": "Temperatuurbegrenzing laden"
       },
       "temp_charge_limit_discharge": {
         "name": "Temperatuurbegrenzing ontladen"
-      },
-      "weekly_full_charge_delay": {
-        "name": "Wekelijkse Volledige Lading Vertragen"
       },
       "capacity_protection": {
         "name": "Piekbegrenzing"
@@ -1285,20 +976,8 @@
       "time_slot": {
         "name": "Tijdslot {slot_number}"
       },
-      "hourly_balance": {
-        "name": "Nettosaldo"
-      },
       "weekly_full_charge_enabled": {
         "name": "Wekelijkse volledige lading"
-      },
-      "price_discharge_control": {
-        "name": "Prijsgebaseerd ontladen"
-      },
-      "smart_predischarge": {
-        "name": "Slim voorontladen / anti-afregeling"
-      },
-      "negative_price_charging": {
-        "name": "Opportunistisch laden bij negatieve prijzen"
       }
     },
     "time": {
@@ -1344,9 +1023,6 @@
       },
       "consumption_profile_capture": {
         "name": "Huidige verbruiksprofielregistratie"
-      },
-      "daily_operation_timeline": {
-        "name": "Dagelijkse bedrijfstijdlijn"
       },
       "system_relay_guard": {
         "name": "Relay Guard",
@@ -1398,22 +1074,11 @@
         "state": {
           "initializing": "Initialiseren",
           "manual": "Handmatige Modus",
-          "grid_charging": "Laden vanuit Net",
           "weekly_full_charge": "Wekelijkse Volledige Lading",
-          "charge_delayed": "Lading Vertraagd",
-          "surplus_price_hold": "Overschot Terugleveren (Goedkoper Moment Verwacht)",
-          "price_reserve_hold": "Lading Vasthouden voor Duurdere Uren",
-          "waiting_for_solar": "Wachten op Zon",
-          "charging_to_setpoint": "Laden naar Instelpunt",
           "capacity_protection": "Capaciteitsbescherming",
           "peak_shaving": "Piekafvlakking",
           "capacity_conserving": "Capaciteit Behouden",
           "capacity_protection_charging": "Capaciteitsbescherming - Laden",
-          "price_discharge_blocked": "Ontladen Geblokkeerd door Prijs",
-          "hourly_balance_import": "Uurbalans - Importeren",
-          "hourly_balance_export": "Uurbalans - Exporteren",
-          "hourly_balance_capped": "Uurbalans - Begrensd",
-          "hourly_balance_blocked": "Uurbalans - Geblokkeerd",
           "cell_balance_hold": "Celbalans Hold",
           "ev_charger_pause": "EV-lader Pauze",
           "ev_discharge_blocked": "EV Ontladen Geblokkeerd",
@@ -1433,29 +1098,6 @@
           "disabled": "Uitgeschakeld",
           "charging": "Laden naar 100%",
           "complete": "Voltooid"
-        }
-      },
-      "charge_delay_status": {
-        "name": "Laadvertraging",
-        "state": {
-          "idle": "Inactief",
-          "disabled": "Uitgeschakeld",
-          "waiting_for_solar": "Wachten op zon",
-          "delayed": "Vertraagd",
-          "charging_allowed": "Laden toegestaan",
-          "skipped_full_charge_day": "Overgeslagen – Vollaaddag",
-          "charging_to_setpoint": "Laden tot setpoint"
-        }
-      },
-      "high_price_discharge_status": {
-        "name": "Status Verkoop bij hoge prijs",
-        "state": {
-          "disabled": "Uitgeschakeld",
-          "invalid_configuration": "Ongeldige configuratie",
-          "no_data": "Geen gegevens",
-          "blocked": "Geblokkeerd",
-          "waiting": "Wachtend",
-          "active": "Actief"
         }
       },
       "battery_soc": {
@@ -1704,34 +1346,11 @@
       },
       "delta_avg_4w": {
         "name": "Balans - Delta Gemiddelde (4 metingen)"
-      },
-      "balance_neto": {
-        "name": "Nettosaldo",
-        "state": {
-          "idle": "Inactief",
-          "out_of_slot": "Buiten tijdslot",
-          "capped": "Begrensd",
-          "compensating_import": "Import compenseren",
-          "compensating_export": "Export compenseren",
-          "compensation_stopped": "Compensatie Gestopt"
-        }
       }
     },
     "binary_sensor": {
       "capacity_protection_active": {
         "name": "Piekbegrenzing Actief"
-      },
-      "predictive_charging_active": {
-        "name": "Voorspellend Laden Actief"
-      },
-      "curtailment_status": {
-        "name": "Status slim voorontladen"
-      },
-      "surplus_price_hold_status": {
-        "name": "Status prijsrem zonne-overschot"
-      },
-      "discharge_reserve_status": {
-        "name": "Status ontlaadreserve"
       },
       "wifi_status": {
         "name": "WiFi-status"
@@ -1791,14 +1410,6 @@
           "automatic": "Automatisch (volste eerst)"
         }
       },
-      "high_price_sale": {
-        "name": "Verkoop bij hoge prijs",
-        "state": {
-          "off": "Uit",
-          "surplus": "Alleen overschot",
-          "surplus_arbitrage": "Overschot + arbitrage (later terugkopen)"
-        }
-      },
       "pd_tuning_profile": {
         "name": "PD-Afstemprofiel",
         "state": {
@@ -1812,12 +1423,6 @@
       }
     },
     "number": {
-      "surplus_hold_min_saving": {
-        "name": "Minimale besparing overschotrem"
-      },
-      "discharge_reserve_min_saving": {
-        "name": "Minimale besparing ontlaadreserve"
-      },
       "excluded_device_exclusion_pct": {
         "name": "{device} – Uitsluiting %"
       },
@@ -1902,15 +1507,6 @@
       "capacity_protection_soc_threshold": {
         "name": "Piekbegrenzing – SOC Drempel"
       },
-      "delay_safety_margin_min": {
-        "name": "Laadvertraging – Marge"
-      },
-      "charge_delay_balance_deadband_kwh": {
-        "name": "Laadvertraging – Balans Dode Band"
-      },
-      "delay_soc_setpoint": {
-        "name": "Laadvertraging – SOC-drempel"
-      },
       "temp_charge_limit_c": {
         "name": "Temperatuurlimiet laden"
       },
@@ -1935,52 +1531,13 @@
       "charge_hysteresis_percent": {
         "name": "Laadhysterese Percentage"
       },
-      "predictive_safety_margin_kwh": {
-        "name": "Veiligheidsmarge Zonneprognose"
-      },
-      "negative_injection_threshold": {
-        "name": "Drempelwaarde negatieve teruglevering"
-      },
-      "predischarge_reserve_soc": {
-        "name": "SOC-reserve voor voorontladen"
-      },
-      "predictive_min_soc_floor": {
-        "name": "Gegarandeerde minimale SOC"
-      },
-      "hourly_balance_target_net_wh": {
-        "name": "Doel uurbalans"
-      },
-      "hourly_balance_max_offset_w": {
-        "name": "Max. offset uurbalans"
-      },
-      "hourly_balance_deadband_wh": {
-        "name": "Dodeband uurbalans"
-      },
-      "hourly_balance_hysteresis_w": {
-        "name": "Hysterese uurbalans"
-      },
       "min_soc": {
         "name": "Minimale SOC"
-      },
-      "max_price_threshold": {
-        "name": "Maximale prijs (laden)"
-      },
-      "discharge_price_threshold": {
-        "name": "Ontlaad-prijsondergrens"
-      },
-      "min_arbitrage_margin": {
-        "name": "Minimale arbitragemarge"
-      },
-      "round_trip_efficiency": {
-        "name": "Retourrendement"
       }
     },
     "button": {
       "reset_device": {
         "name": "Apparaat Resetten"
-      },
-      "reevaluate_dynamic_pricing": {
-        "name": "Voorspellend Laden Herevalueren"
       }
     }
   },

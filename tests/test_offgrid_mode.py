@@ -72,9 +72,7 @@ def test_source_change_resets_control_and_statistics_sample_anchors():
         _daily_grid_last_time=1.0,
         _daily_grid_last_power_kw=0.2,
     )
-    hourly = SimpleNamespace(_last_sample_monotonic=1.0, _last_grid_w=200.0)
     ctrl._consumption_tracker = tracker
-    ctrl._hourly_balance_mgr = hourly
 
     ctrl.set_offgrid_mode(True)
 
@@ -86,7 +84,6 @@ def test_source_change_resets_control_and_statistics_sample_anchors():
     assert ctrl._control_sample_is_new is True
     assert tracker._daily_home_last_time is None
     assert tracker._daily_grid_last_time is None
-    assert hourly._last_sample_monotonic is None
 
 
 def test_offgrid_sensor_validation_requires_distinct_available_power_sensor():
