@@ -25,6 +25,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.helpers.sun import get_astral_event_date
 from homeassistant.util import dt as dt_util
 
+from ..infra.clock import local_now
 from .pack_soc import control_vmax, soc_vs_ceiling
 from ..const import (
     DISCHARGE_ENGAGE_GRACE_S,
@@ -365,7 +366,7 @@ class WeeklyFullChargeManager:
         if not ctrl.weekly_full_charge_complete:
             self._already_complete_logged = False
 
-        now = datetime.now()
+        now = local_now()
         current_weekday = now.weekday()
         target_weekday = WEEKDAY_MAP[ctrl.weekly_full_charge_day]
 
@@ -437,12 +438,14 @@ class WeeklyFullChargeManager:
                 _LOGGER.debug("Weekly Full Charge: No persisted state found")
                 return
 
-            today_iso = date.today().isoformat()
+            now = local_now()
+            today = now.date()
+            today_iso = today.isoformat()
             stored_date = data.get("date")
             # A run saved on the target day carries on in the night after it.
             same_run = stored_date == today_iso or (
-                stored_date == (date.today() - timedelta(days=1)).isoformat()
-                and self.in_overnight_extension(datetime.now())
+                stored_date == (today - timedelta(days=1)).isoformat()
+                and self.in_overnight_extension(now)
             )
 
             # Only restore state if saved on the same calendar date (prevents last week's
@@ -500,14 +503,14 @@ class WeeklyFullChargeManager:
             return
 
         try:
-            now = datetime.now()
+            now = local_now()
             data = {
                 "complete": ctrl.weekly_full_charge_complete,
                 "registers_written": ctrl.weekly_full_charge_registers_written,
                 "state": ctrl._weekly_charge_status.get("state", "Idle"),
                 "restore_pending": bool(getattr(ctrl, "_weekly_charge_needs_restore", False)),
                 "saved_max_soc": dict(getattr(ctrl, "_weekly_charge_saved_max_soc", {})),
-                "date": date.today().isoformat(),
+                "date": now.date().isoformat(),
                 "timestamp": now.isoformat(),
             }
             await self._store.async_save(data)

@@ -1,7 +1,7 @@
 """Regression tests for weekly full-charge lifecycle persistence and cleanup."""
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -10,6 +10,7 @@ import pytest
 from custom_components.omnibattery.control.weekly_full_charge import (
     WeeklyFullChargeManager,
 )
+from custom_components.omnibattery.infra.clock import local_now
 
 
 def _controller(**overrides):
@@ -44,10 +45,12 @@ def test_exiting_weekly_day_marks_unfinished_run_for_restore():
 
     # Tuesday immediately after a Monday weekly run.
     with (
-        patch("custom_components.omnibattery.control.weekly_full_charge.datetime") as clock,
+        patch(
+            "custom_components.omnibattery.control.weekly_full_charge.local_now",
+            return_value=datetime(2026, 8, 18),
+        ),
         patch("custom_components.omnibattery.control.weekly_full_charge.asyncio.create_task"),
     ):
-        clock.now.return_value = datetime(2026, 8, 18)
         assert manager.is_active() is False
 
     assert controller._weekly_charge_needs_restore is True
@@ -75,7 +78,7 @@ async def test_load_state_restores_saved_soc_and_pending_restore():
     store = SimpleNamespace(
         async_load=AsyncMock(
             return_value={
-                "date": date.today().isoformat(),
+                "date": local_now().date().isoformat(),
                 "complete": False,
                 "registers_written": True,
                 "state": "Charging to 100%",
@@ -102,7 +105,7 @@ async def test_load_state_queues_restore_for_unfinished_previous_day():
     store = SimpleNamespace(
         async_load=AsyncMock(
             return_value={
-                "date": (date.today() - timedelta(days=1)).isoformat(),
+                "date": (local_now().date() - timedelta(days=1)).isoformat(),
                 "complete": False,
                 "registers_written": True,
                 "saved_max_soc": {"Venus B": 95},
@@ -203,6 +206,7 @@ def _clock(monkeypatch, moment):
             return moment
 
     monkeypatch.setattr(weekly_module, "datetime", FixedDateTime)
+    monkeypatch.setattr(weekly_module, "local_now", FixedDateTime.now)
 
 
 def _night_manager(monkeypatch, sunrise_h=SUNRISE_H, **overrides):
@@ -290,7 +294,7 @@ def test_a_failing_sun_lookup_falls_back_to_midnight(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_a_restart_in_the_night_keeps_the_run(monkeypatch):
-    today = date.today()
+    today = local_now().date()
     yesterday = today - timedelta(days=1)
     day_names = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
     controller, manager = _night_manager(

@@ -15,6 +15,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
+from .infra.clock import local_now
 from .infra.entity_naming import english_entity_id, system_entity_id, SYSTEM_UNIQUE_ID_PREFIX
 from .const import (
     DOMAIN,
@@ -346,7 +347,7 @@ class DischargeWindowSensor(SensorEntity):
         if not enabled_slots:
             return "no_slots"
 
-        now = datetime.now()
+        now = local_now()
         current_time = now.time()
         current_day = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"][now.weekday()]
 
@@ -377,7 +378,7 @@ class DischargeWindowSensor(SensorEntity):
 
         # Find active slot number
         from datetime import datetime, time as dt_time
-        now = datetime.now()
+        now = local_now()
         current_time = now.time()
         current_day = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"][now.weekday()]
         active_slot = None

@@ -147,6 +147,7 @@ from .const import (
     DEFAULT_CHARGE_HYSTERESIS_PERCENT,
     DEBUG_CONTROL_LOOP_DETAIL,
 )
+from .infra.clock import local_now
 from .infra.lifecycle import is_reload_pending
 from .control.residual_load import apply_guards, guards_pending
 from .infra import cycle_trace  # FORK: trace (docs/fork/08-trace.md)
@@ -2066,7 +2067,7 @@ class ChargeDischargeController:
         if not any(s.get(field, False) for s in relevant):
             return True
 
-        now = datetime.now()
+        now = local_now()
         current_time = now.time()
         current_day = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"][now.weekday()]
 
@@ -2501,7 +2502,7 @@ class ChargeDischargeController:
         if not slots:
             return None
 
-        now = datetime.now()
+        now = local_now()
         current_time = now.time()
         current_day = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"][now.weekday()]
 
