@@ -2791,6 +2791,9 @@
       "capacity_protection_limit": {
         "name": "Écrêtement de Pointe – Limite"
       },
+      "capacity_protection_soc_hysteresis": {
+        "name": "Hystérésis de décharge d'écrêtement"
+      },
       "capacity_protection_limit_margin": {
         "name": "Peak Limit Safety Margin"
       },

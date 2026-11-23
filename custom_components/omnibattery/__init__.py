@@ -1296,6 +1296,9 @@ class ChargeDischargeController:
             CONF_CAPACITY_PROTECTION_EXCLUDED_DEVICES, False
         )
         self.capacity_protection_soc_threshold = config_entry.data.get(CONF_CAPACITY_PROTECTION_SOC_THRESHOLD, DEFAULT_CAPACITY_PROTECTION_SOC)
+        # FORK: release hysteresis on top of the SOC threshold (L, 23.11.2026)
+        self.capacity_protection_soc_hysteresis = _fork_const.capacity_protection_soc_hysteresis(config_entry.data)
+        self._capacity_protection_soc_latched = False
         self.capacity_protection_limit = config_entry.data.get(CONF_CAPACITY_PROTECTION_LIMIT, DEFAULT_CAPACITY_PROTECTION_LIMIT)
         self._capacity_protection_active = False  # True while either peak-shaving mode intervenes
         self._excluded_included_adjustment = 0.0  # Tracks excluded device adjustment for included_in_consumption devices
@@ -3644,6 +3647,7 @@ class ChargeDischargeController:
             CONF_CAPACITY_PROTECTION_EXCLUDED_DEVICES, False
         )
         self.capacity_protection_soc_threshold = self.config_entry.data.get(CONF_CAPACITY_PROTECTION_SOC_THRESHOLD, DEFAULT_CAPACITY_PROTECTION_SOC)
+        self.capacity_protection_soc_hysteresis = _fork_const.capacity_protection_soc_hysteresis(self.config_entry.data)  # FORK
         self.capacity_protection_limit = self.config_entry.data.get(CONF_CAPACITY_PROTECTION_LIMIT, DEFAULT_CAPACITY_PROTECTION_LIMIT)
 
         if (
@@ -5397,6 +5401,7 @@ class ChargeDischargeController:
         # FORK: re-decided every cycle; only "conserving" and "charging" set it.
         self._capacity_protection_block_discharge = False
         if not self.capacity_protection_enabled:
+            self._capacity_protection_soc_latched = False  # FORK: SOC hysteresis
             self.remove_setpoint_override("capacity_protection")
             self._capacity_protection_active = False
             self._capacity_protection_status["active"] = False
@@ -5462,7 +5467,9 @@ class ChargeDischargeController:
             ) - battery_power
         self._capacity_protection_status["excluded_peak_excess"] = 0
 
-        if avg_soc < self.capacity_protection_soc_threshold:
+        soc_protected = ChargeDischargeController._capacity_protection_soc_below(self, avg_soc)
+        self._capacity_protection_soc_latched = soc_protected  # FORK: SOC hysteresis
+        if soc_protected:
             # Estimate house consumption: grid reading minus what the battery is currently doing
             # sensor_actual = grid power (positive=import), previous_power > 0 = charging, < 0 = discharging
             # Add back excluded-device adjustment so capacity protection sees the REAL grid load
@@ -5603,6 +5610,11 @@ class ChargeDischargeController:
 
         # Always keep thresholds up to date
         self._capacity_protection_status["soc_threshold"] = self.capacity_protection_soc_threshold
+        # FORK: SOC at which a running protection ends (threshold + hysteresis)
+        self._capacity_protection_status["soc_release"] = (
+            self.capacity_protection_soc_threshold
+            + (getattr(self, "capacity_protection_soc_hysteresis", 0) or 0)
+        )
         self._capacity_protection_status["peak_limit"] = limit
         self._capacity_protection_status["grid_source"] = (  # FORK: grid view (docs/fork/02-architektur.md)
             "physical" if physical_actual is not None else "control"
@@ -5649,6 +5661,45 @@ class ChargeDischargeController:
 
         return sensor_actual
 
+    def _apply_capacity_protection_discharge_block(self, new_power):
+        """FORK: below the SOC threshold capacity protection allows a discharge
+        only for shaving (incl. the peak exit hold and ICP excluded-device
+        protection). Run after the mixed-fleet guards and again after the
+        shut-off dwell, so no stage downstream lifts it to a minimum discharge.
+        """
+        if (
+            new_power < 0
+            and getattr(self, "_capacity_protection_block_discharge", False)
+            and not ChargeDischargeController._guard_peak_bypass(self)
+        ):
+            _LOGGER.debug(
+                "Capacity Protection: below SOC threshold without shaving - "
+                "discharge %.0fW blocked", new_power,
+            )
+            cycle_trace.put(self, p_cp=0.0)
+            return 0
+        return new_power
+
+    def _capacity_protection_soc_below(self, avg_soc: float) -> bool:
+        """FORK: SOC test of capacity protection with a release hysteresis.
+
+        Protection starts below the configured threshold and, once started,
+        ends only at threshold + hysteresis. Without it the SOC hovering at
+        the threshold alternated discharge (at 40 %) and stop (at 39 %),
+        6x in 3 h on 21.11.2026.
+        """
+        threshold = self.capacity_protection_soc_threshold
+        if avg_soc < threshold:
+            return True
+        try:
+            hysteresis = max(0.0, float(getattr(self, "capacity_protection_soc_hysteresis", 0) or 0))
+        except (TypeError, ValueError):
+            hysteresis = 0.0
+        return (
+            getattr(self, "_capacity_protection_soc_latched", False)
+            and avg_soc < threshold + hysteresis
+        )
+
     def _is_capacity_protection_soc_limited(self) -> bool:
         """Return True when peak shaving should be active based on current SOC."""
         if not self.capacity_protection_enabled:
@@ -5662,7 +5713,7 @@ class ChargeDischargeController:
             sum(c.data.get("battery_soc", 0) for c in coordinators_with_data)
             / len(coordinators_with_data)
         )
-        return avg_soc < self.capacity_protection_soc_threshold
+        return ChargeDischargeController._capacity_protection_soc_below(self, avg_soc)
 
     def _planning_floor_soc(self, coordinator) -> float:
         """Lowest SOC that may cover normal load in an energy plan (#627).
@@ -10830,17 +10881,7 @@ class ChargeDischargeController:
         # for shaving (incl. the peak exit hold and ICP excluded-device protection).
         # Applied before the zero-cross hold, minimum power and relay guard, so no
         # stage downstream lifts it to a minimum discharge or counts a switch.
-        if (
-            new_power < 0
-            and getattr(self, "_capacity_protection_block_discharge", False)
-            and not ChargeDischargeController._guard_peak_bypass(self)
-        ):
-            _LOGGER.debug(
-                "Capacity Protection: below SOC threshold without shaving - "
-                "discharge %.0fW blocked", new_power,
-            )
-            new_power = 0
-            cycle_trace.put(self, p_cp=0.0)
+        new_power = ChargeDischargeController._apply_capacity_protection_discharge_block(self, new_power)
 
         # ZERO-CROSS HOLD: a charge<->discharge flip must survive the actuator
         # settle window before it becomes a real opposite-direction command (see
@@ -10866,6 +10907,10 @@ class ChargeDischargeController:
             new_power, error, stale_recalc=stale_safety_recalc
         )
         cycle_trace.put(self, p_dwell=new_power)
+        # FORK: the shut-off dwell holds a running discharge at minimum power and
+        # undid the block once (21.11.2026 11:14:58: p_cp=0 -> p_dwell=-30). Re-apply
+        # it after the dwell; the relay guard passes a request for 0 unchanged.
+        new_power = ChargeDischargeController._apply_capacity_protection_discharge_block(self, new_power)
         # FORK: relay guard (docs/fork/02-architektur.md)
         guard = getattr(self, "_relay_guard", None)
         if guard is not None:

@@ -26,6 +26,8 @@ def _cp_controller(*, previous_power: float, ac_power: float | None):
     ctrl.capacity_protection_excluded_devices = False
     ctrl.capacity_protection_soc_threshold = 40
     ctrl.capacity_protection_limit = 7000
+    ctrl.capacity_protection_soc_hysteresis = 0
+    ctrl._capacity_protection_soc_latched = False
     data = {"battery_soc": 39}
     if ac_power is not None:
         data["ac_power"] = ac_power  # Marstek: + discharge / - charge
@@ -198,3 +200,104 @@ def test_shaving_bypass_wins_over_stale_block():
     controller = _cycle(block=True, status={"action": "shaving"})
 
     assert controller.previous_power == pytest.approx(-500.0)
+
+
+def test_dwell_cannot_lift_a_blocked_discharge():
+    """M - 21.11.2026 11:14:58: p_cp=0, then the dwell held -30 W."""
+    reported_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    controller = _main_controller({"state": _state(100, reported_at)}, [])
+    controller.previous_power = -266.8
+    controller.last_output_sign = -1
+    controller._compute_pd_new_power = lambda *_a: -225.7
+    controller._apply_relay_dwell = lambda p, e, stale_recalc=False: -30.0
+    controller._capacity_protection_block_discharge = True
+    controller._capacity_protection_active = True
+    controller._capacity_protection_status = {"action": "conserving"}
+    asyncio.run(controller._run_control_cycle(now=reported_at))
+
+    assert controller.previous_power == 0
+
+
+# --- L: SOC release hysteresis -------------------------------------------------
+
+def _set_soc(ctrl, soc):
+    ctrl.coordinators[0].data["battery_soc"] = soc
+
+
+def test_hysteresis_holds_protection_until_threshold_plus_hysteresis():
+    """21.11.2026: 39 % -> charge -> 40 % -> discharge -> 39 % ... (6x in 3 h)."""
+    ctrl = _cp_controller(previous_power=0.0, ac_power=0)
+    ctrl.capacity_protection_soc_hysteresis = 2
+
+    for soc, protected in [(39, True), (40, True), (41, True), (42, False), (41, False)]:
+        _set_soc(ctrl, soc)
+        ctrl._apply_capacity_protection(120.0, active_target=20.0)
+        assert ctrl._capacity_protection_status["active"] is protected, soc
+        assert ctrl._capacity_protection_block_discharge is protected, soc
+
+
+def test_hysteresis_is_on_top_of_the_configured_threshold():
+    ctrl = _cp_controller(previous_power=0.0, ac_power=0)
+    ctrl.capacity_protection_soc_threshold = 30
+    ctrl.capacity_protection_soc_hysteresis = 2
+
+    for soc, protected in [(29, True), (31, True), (32, False)]:
+        _set_soc(ctrl, soc)
+        ctrl._apply_capacity_protection(120.0, active_target=20.0)
+        assert ctrl._capacity_protection_status["active"] is protected, soc
+    assert ctrl._capacity_protection_status["soc_release"] == 32
+
+
+def test_hysteresis_does_not_start_protection_above_threshold():
+    ctrl = _cp_controller(previous_power=0.0, ac_power=0)
+    ctrl.capacity_protection_soc_hysteresis = 2
+    _set_soc(ctrl, 41)
+
+    ctrl._apply_capacity_protection(120.0, active_target=20.0)
+
+    assert ctrl._capacity_protection_status["active"] is False
+
+
+def test_zero_hysteresis_keeps_the_old_edge():
+    ctrl = _cp_controller(previous_power=0.0, ac_power=0)
+    ctrl._apply_capacity_protection(120.0, active_target=20.0)
+    _set_soc(ctrl, 40)
+
+    ctrl._apply_capacity_protection(120.0, active_target=20.0)
+
+    assert ctrl._capacity_protection_status["active"] is False
+
+
+def test_soc_limited_query_follows_the_latch():
+    ctrl = _cp_controller(previous_power=0.0, ac_power=0)
+    ctrl.capacity_protection_soc_hysteresis = 2
+    ctrl._capacity_protection_coordinators = lambda: ctrl.coordinators
+    ctrl._apply_capacity_protection(120.0, active_target=20.0)
+    _set_soc(ctrl, 41)
+
+    assert ctrl._is_capacity_protection_soc_limited() is True
+
+
+def test_disabling_protection_clears_the_latch():
+    ctrl = _cp_controller(previous_power=0.0, ac_power=0)
+    ctrl.capacity_protection_soc_hysteresis = 2
+    ctrl._apply_capacity_protection(120.0, active_target=20.0)
+    ctrl.capacity_protection_enabled = False
+
+    ctrl._apply_capacity_protection(120.0, active_target=20.0)
+
+    assert ctrl._capacity_protection_soc_latched is False
+
+
+@pytest.mark.parametrize(
+    "data, expected",
+    [({}, 2.0), ({"capacity_protection_soc_hysteresis": None}, 2.0),
+     ({"capacity_protection_soc_hysteresis": 0}, 0.0),
+     ({"capacity_protection_soc_hysteresis": 3}, 3.0),
+     ({"capacity_protection_soc_hysteresis": -1}, 0.0),
+     ({"capacity_protection_soc_hysteresis": "x"}, 2.0)],
+)
+def test_hysteresis_config_value(data, expected):
+    from custom_components.omnibattery.const import capacity_protection_soc_hysteresis
+
+    assert capacity_protection_soc_hysteresis(data) == expected

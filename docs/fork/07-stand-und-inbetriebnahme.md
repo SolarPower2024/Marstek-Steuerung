@@ -37,6 +37,7 @@ Die Fork-Commits ließen sich ohne inhaltlichen Konflikt auf den 2.0.0-Zweig üb
 | Zahl | Sperren aufheben ab Abweichung | `pd_guard_bypass_error` |
 | Zahl | Schaltbudget pro Stunde | `pd_relay_switch_budget` |
 | Zahl | Sicherheitsabstand Peak-Limit | `capacity_protection_limit_margin` |
+| Zahl | Entladehysterese Kapazitätsschutz | `capacity_protection_soc_hysteresis` |
 | Sensor (Diagnose) | Relais-Schutz | Zustand = Grund, Attribute Restzeit und Schaltzähler |
 | Sensor (Diagnose) | Peak-Netzquelle | `physical` / `fallback` / `none` |
 | Options-Flow, Schritt Sensoren | realer Netzsensor, Vorzeichen umkehren, Entität für Peak-Limit | `physical_grid_sensor`, `physical_grid_inverted`, `capacity_protection_limit_entity` |
@@ -54,6 +55,7 @@ Die Fork-Commits ließen sich ohne inhaltlichen Konflikt auf den 2.0.0-Zweig üb
 | Min. Ladeleistung | 30 W (deine Entscheidung) |
 | Relais-Schutz | ein |
 | Sicherheitsabstand Peak-Limit | 10 % (ersetzt den Faktor 0,9 aus dem Template, wenn die Limit-Entität gesetzt ist) |
+| Entladehysterese Kapazitätsschutz | 2 % |
 
 Für den ersten Test des Relais-Schutzes kann Peak Shaving ausgeschaltet oder der reale Sensor leer bleiben. Beide Funktionen sind unabhängig.
 

@@ -2791,6 +2791,9 @@
       "capacity_protection_limit": {
         "name": "Piekbegrenzing Limiet"
       },
+      "capacity_protection_soc_hysteresis": {
+        "name": "Ontlaadhysterese piekbegrenzing"
+      },
       "capacity_protection_limit_margin": {
         "name": "Peak Limit Safety Margin"
       },

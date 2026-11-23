@@ -33,6 +33,7 @@ Als `number`-Entität:
 | Schlüssel | Name (de) | Bereich | Default | Empfehlung |
 |---|---|---|---|---|
 | `capacity_protection_limit_margin` | Sicherheitsabstand Peak-Limit | 0–30 % | 0 | 10 % |
+| `capacity_protection_soc_hysteresis` | Entladehysterese Kapazitätsschutz | 0–10 % | 2 | 2 % (ab 1.6.0.5): Nach dem Fall unter die SOC-Schwelle wird erst ab Schwelle + Hysterese wieder normal entladen, z. B. 40 % + 2 % = 42 %. 0 = altes Verhalten |
 
 Als `switch`-Entität (erst mit AP B6):
 

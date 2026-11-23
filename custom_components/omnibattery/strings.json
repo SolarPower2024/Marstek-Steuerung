@@ -2786,6 +2786,9 @@
       "capacity_protection_limit": {
         "name": "Peak Shaving Limit"
       },
+      "capacity_protection_soc_hysteresis": {
+        "name": "Peak Shaving Discharge Hysteresis"
+      },
       "capacity_protection_limit_margin": {
         "name": "Peak Limit Safety Margin"
       },

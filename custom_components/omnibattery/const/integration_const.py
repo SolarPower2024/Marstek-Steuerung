@@ -676,6 +676,21 @@ DEFAULT_CAPACITY_PROTECTION_LIMIT = 2500
 CONF_CAPACITY_PROTECTION_LIMIT_ENTITY = "capacity_protection_limit_entity"
 CONF_CAPACITY_PROTECTION_LIMIT_MARGIN = "capacity_protection_limit_margin"
 DEFAULT_CAPACITY_PROTECTION_LIMIT_MARGIN = 0
+# FORK: release hysteresis on top of the SOC threshold. Once below the
+# threshold, normal discharge is allowed again only at threshold + hysteresis.
+CONF_CAPACITY_PROTECTION_SOC_HYSTERESIS = "capacity_protection_soc_hysteresis"
+DEFAULT_CAPACITY_PROTECTION_SOC_HYSTERESIS = 2
+
+
+def capacity_protection_soc_hysteresis(data) -> float:
+    """FORK: configured SOC release hysteresis in % (missing -> default)."""
+    value = data.get(CONF_CAPACITY_PROTECTION_SOC_HYSTERESIS)
+    if value is None:
+        return float(DEFAULT_CAPACITY_PROTECTION_SOC_HYSTERESIS)
+    try:
+        return max(0.0, float(value))
+    except (TypeError, ValueError):
+        return float(DEFAULT_CAPACITY_PROTECTION_SOC_HYSTERESIS)
 CONF_PHYSICAL_GRID_SENSOR = "physical_grid_sensor"
 CONF_PHYSICAL_GRID_INVERTED = "physical_grid_inverted"
 DEFAULT_PHYSICAL_GRID_INVERTED = False
@@ -1409,6 +1424,18 @@ CONFIG_NUMBER_DEFINITIONS = [
         "unit": "%",
         "default": DEFAULT_CAPACITY_PROTECTION_SOC,
         "icon": "mdi:battery-alert-variant-outline",
+        "condition": CONF_CAPACITY_PROTECTION_ENABLED,
+    },
+    {
+        # FORK: release hysteresis (on top of the SOC threshold)
+        "key": CONF_CAPACITY_PROTECTION_SOC_HYSTERESIS,
+        "name": "Capacity Protection Discharge Hysteresis",
+        "min": 0,
+        "max": 10,
+        "step": 1,
+        "unit": "%",
+        "default": DEFAULT_CAPACITY_PROTECTION_SOC_HYSTERESIS,
+        "icon": "mdi:battery-sync-outline",
         "condition": CONF_CAPACITY_PROTECTION_ENABLED,
     },
     {

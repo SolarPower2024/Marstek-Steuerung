@@ -2791,6 +2791,9 @@
       "capacity_protection_limit": {
         "name": "Reducció de Pics – Límit"
       },
+      "capacity_protection_soc_hysteresis": {
+        "name": "Histèresi de descàrrega de reducció de pics"
+      },
       "capacity_protection_limit_margin": {
         "name": "Peak Limit Safety Margin"
       },

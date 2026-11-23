@@ -2791,6 +2791,9 @@
       "capacity_protection_limit": {
         "name": "Spitzenlastkappung Limit"
       },
+      "capacity_protection_soc_hysteresis": {
+        "name": "Entladehysterese Kapazitätsschutz"
+      },
       "capacity_protection_limit_margin": {
         "name": "Sicherheitsabstand Peak-Limit"
       },
