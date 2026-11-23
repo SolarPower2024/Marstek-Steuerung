@@ -28,7 +28,7 @@ def _controller(*, previous_power: float):
     ctrl.capacity_protection_excluded_devices = False
     ctrl.capacity_protection_soc_threshold = 25
     ctrl.capacity_protection_limit = 3000
-    ctrl.coordinators = [SimpleNamespace(data={"battery_soc": 24})]
+    ctrl.coordinators = [SimpleNamespace(max_soc=100, data={"battery_soc": 24})]
     ctrl._non_responsive = SimpleNamespace(is_excluded=lambda _c: False)
     ctrl.previous_power = previous_power
     ctrl._excluded_included_adjustment = 0.0
@@ -81,7 +81,7 @@ def test_solar_surplus_charge_remains_allowed():
 
 def test_excluded_devices_switch_is_backward_compatible_when_off():
     ctrl = _controller(previous_power=0.0)
-    ctrl.coordinators = [SimpleNamespace(data={"battery_soc": 80})]
+    ctrl.coordinators = [SimpleNamespace(max_soc=100, data={"battery_soc": 80})]
     ctrl._excluded_included_adjustment = 4000.0
 
     target, sensor = ctrl._apply_capacity_protection(
@@ -96,7 +96,7 @@ def test_excluded_devices_switch_is_backward_compatible_when_off():
 
 def test_excluded_devices_switch_covers_only_demand_above_peak_limit():
     ctrl = _controller(previous_power=0.0)
-    ctrl.coordinators = [SimpleNamespace(data={"battery_soc": 80})]
+    ctrl.coordinators = [SimpleNamespace(max_soc=100, data={"battery_soc": 80})]
     ctrl.capacity_protection_excluded_devices = True
     ctrl._excluded_included_adjustment = 4000.0
 
@@ -113,7 +113,7 @@ def test_excluded_devices_switch_covers_only_demand_above_peak_limit():
 
 def test_excluded_devices_switch_preserves_normal_home_coverage():
     ctrl = _controller(previous_power=-2000.0)
-    ctrl.coordinators = [SimpleNamespace(data={"battery_soc": 80})]
+    ctrl.coordinators = [SimpleNamespace(max_soc=100, data={"battery_soc": 80})]
     ctrl.capacity_protection_excluded_devices = True
     ctrl._excluded_included_adjustment = 4000.0
 
@@ -128,7 +128,7 @@ def test_excluded_devices_switch_preserves_normal_home_coverage():
 
 def test_excluded_devices_below_peak_limit_keep_normal_exclusion():
     ctrl = _controller(previous_power=0.0)
-    ctrl.coordinators = [SimpleNamespace(data={"battery_soc": 80})]
+    ctrl.coordinators = [SimpleNamespace(max_soc=100, data={"battery_soc": 80})]
     ctrl.capacity_protection_excluded_devices = True
     ctrl._excluded_included_adjustment = 2500.0
 
@@ -154,8 +154,8 @@ def _stale_soc_fleet(*, threshold: float = 35):
     """Two batteries: one unreachable at 89%, one live at 12% (#803)."""
     ctrl = _controller(previous_power=STALE_SOC_PREVIOUS_POWER)
     ctrl.capacity_protection_soc_threshold = threshold
-    dead = SimpleNamespace(data={"battery_soc": 89})
-    live = SimpleNamespace(data={"battery_soc": 12})
+    dead = SimpleNamespace(max_soc=100, data={"battery_soc": 89})
+    live = SimpleNamespace(max_soc=100, data={"battery_soc": 12})
     ctrl.coordinators = [dead, live]
     return ctrl, dead, live
 
@@ -206,8 +206,8 @@ def test_unavailable_battery_stale_soc_is_left_out_of_the_average():
     ctrl = _controller(previous_power=STALE_SOC_PREVIOUS_POWER)
     ctrl.capacity_protection_soc_threshold = 35
     ctrl.coordinators = [
-        SimpleNamespace(data={"battery_soc": 89}, is_available=False),
-        SimpleNamespace(data={"battery_soc": 12}),
+        SimpleNamespace(max_soc=100, data={"battery_soc": 89}, is_available=False),
+        SimpleNamespace(max_soc=100, data={"battery_soc": 12}),
     ]
 
     ctrl._apply_capacity_protection(
@@ -238,8 +238,8 @@ def test_responsive_fleet_still_averages_every_battery():
     ctrl = _controller(previous_power=STALE_SOC_PREVIOUS_POWER)
     ctrl.capacity_protection_soc_threshold = 35
     ctrl.coordinators = [
-        SimpleNamespace(data={"battery_soc": 89}),
-        SimpleNamespace(data={"battery_soc": 12}),
+        SimpleNamespace(max_soc=100, data={"battery_soc": 89}),
+        SimpleNamespace(max_soc=100, data={"battery_soc": 12}),
     ]
 
     ctrl._apply_capacity_protection(
@@ -250,3 +250,62 @@ def test_responsive_fleet_still_averages_every_battery():
     assert ctrl._capacity_protection_status["action"] == "idle"
     assert ctrl._is_capacity_protection_soc_limited() is False
 
+
+
+# --- Issue #913: a threshold at max SOC is "peaks only" at full SOC too ---
+
+
+def _fleet(*socs_and_max, threshold, previous_power=0.0):
+    ctrl = _controller(previous_power=previous_power)
+    ctrl.capacity_protection_soc_threshold = threshold
+    ctrl.coordinators = [
+        SimpleNamespace(data={"battery_soc": soc}, max_soc=top)
+        for soc, top in socs_and_max
+    ]
+    return ctrl
+
+
+@pytest.mark.parametrize("grid,target,action", [
+    (450, 450, "conserving"), (4600, 3000, "shaving"), (-300, 0, "charging"),
+])
+@pytest.mark.parametrize("soc,top,threshold", [
+    (65, 100, 100), (99, 100, 100), (100, 100, 100), (95, 95, 95), (100, 95, 95),
+])
+def test_peaks_only_holds_at_full_soc(soc, top, threshold, grid, target, action):
+    ctrl = _fleet((soc, top), threshold=threshold)
+    actual, sensor = ctrl._apply_capacity_protection(grid, active_target=0)
+    assert (actual, sensor) == (target, grid)
+    assert ctrl._capacity_protection_status["action"] == action
+    assert ctrl._is_capacity_protection_soc_limited() is True
+
+
+@pytest.mark.parametrize("threshold,held", [(95, True), (94, False)])
+def test_peaks_only_mixed_max_soc(threshold, held):
+    ctrl = _fleet((90, 90), (100, 100), threshold=threshold)
+    ctrl._apply_capacity_protection(450, active_target=0)
+    assert (ctrl._capacity_protection_status["action"] == "conserving") is held
+    assert ctrl._is_capacity_protection_soc_limited() is held
+
+
+@pytest.mark.parametrize("reason", ["empty", "unavailable", "manual", "nonresponsive"])
+def test_peaks_only_stays_idle_without_a_controllable_battery(reason):
+    ctrl = _fleet((100, 100), threshold=100)
+    battery = ctrl.coordinators[0]
+    if reason == "empty":
+        ctrl.coordinators = []
+    elif reason == "unavailable":
+        battery.is_available = False
+    elif reason == "manual":
+        battery.battery_manual_mode_enabled = True
+    else:
+        ctrl._non_responsive = _non_responsive(battery)
+    target, _ = ctrl._apply_capacity_protection(450, active_target=0)
+    assert target == 0
+    assert ctrl._capacity_protection_active is False
+    assert ctrl._is_capacity_protection_soc_limited() is False
+
+
+def test_ordinary_threshold_still_releases_at_equality():
+    ctrl = _fleet((25, 100), threshold=25)
+    assert ctrl._apply_capacity_protection(450, active_target=0)[0] == 0
+    assert ctrl._is_capacity_protection_soc_limited() is False

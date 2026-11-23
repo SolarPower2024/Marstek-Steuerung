@@ -3117,7 +3117,7 @@ class ChargeDischargeController:
                 self.set_setpoint_override("capacity_protection", limit, priority=10)
                 active_target = self.compute_active_target()
                 _LOGGER.info(
-                    "Capacity Protection ACTIVE: SOC=%.1f%% < %d%%, house_load=%.0fW > limit=%dW -> target=%dW",
+                    "Capacity Protection ACTIVE: SOC=%.1f%%, threshold=%d%%, house_load=%.0fW > limit=%dW -> target=%dW",
                     avg_soc,
                     self.capacity_protection_soc_threshold,
                     estimated_house_load,
@@ -3153,7 +3153,7 @@ class ChargeDischargeController:
                 # exit hold keeps its discharge on purpose.
                 self._capacity_protection_block_discharge = not peak_exit_hold
                 _LOGGER.info(
-                    "Capacity Protection ACTIVE: SOC=%.1f%% < %d%%, house_load=%.0fW <= limit=%dW -> idle (target=%.0fW)",
+                    "Capacity Protection ACTIVE: SOC=%.1f%%, threshold=%d%%, house_load=%.0fW <= limit=%dW -> idle (target=%.0fW)",
                     avg_soc,
                     self.capacity_protection_soc_threshold,
                     estimated_house_load,
@@ -3318,6 +3318,16 @@ class ChargeDischargeController:
         """
         threshold = self.capacity_protection_soc_threshold
         if avg_soc < threshold:
+            return True
+        # A threshold no SOC can rise above is a "peaks only" switch (#843): it
+        # holds a full battery too, instead of releasing it at equality (#913).
+        # Only with a controllable battery: with none, protection stays idle.
+        pool = ChargeDischargeController._capacity_protection_coordinators(self)
+        max_socs = [
+            float(c.max_soc) for c in pool
+            if isinstance(getattr(c, "max_soc", None), (int, float))
+        ]
+        if max_socs and threshold >= sum(max_socs) / len(max_socs):
             return True
         try:
             hysteresis = max(0.0, float(getattr(self, "capacity_protection_soc_hysteresis", 0) or 0))
