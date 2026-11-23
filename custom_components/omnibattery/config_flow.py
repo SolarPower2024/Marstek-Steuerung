@@ -1792,6 +1792,33 @@ class MarstekVenusConfigFlow(LegacyDomainMigrationMixin, ConfigFlow, domain=DOMA
 
 
 @_preserve_values_in_error_forms
+def _live_power_limits(flow) -> dict:
+    """The power limits the loaded battery works with now (upstream #72a1c742).
+
+    The number entities change them after setup (stored as ``user_max_*``), so
+    the options form must open with them, not with the old ``max_*`` figures.
+    Empty when the entry is not loaded.
+    """
+    try:
+        entry = flow.config_entry
+        coordinators = (
+            flow.hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("coordinators")
+            or ()
+        )
+        coordinator = coordinators[flow.battery_index]
+        return {
+            "max_charge_power": int(coordinator.configured_max_charge_power),
+            "max_discharge_power": int(coordinator.configured_max_discharge_power),
+        }
+    except (AttributeError, IndexError, KeyError, TypeError, ValueError):
+        return {}
+
+
+def _configured_power(battery: dict, live: dict, key: str, fallback: int) -> int:
+    """The user's power limit: the loaded one, the slider's stored one, the form's."""
+    return int(live.get(key, battery.get(f"user_{key}", battery.get(key, fallback))))
+
+
 class OptionsFlowHandler(OptionsFlow):
     def __init__(self, config_entry: ConfigEntry) -> None:
         """Initialize options flow."""
@@ -2327,6 +2354,11 @@ class OptionsFlowHandler(OptionsFlow):
                     merged = dict(self._current_battery_data)
                 merged["max_charge_power"] = int(user_input["max_charge_power"])
                 merged["max_discharge_power"] = int(user_input["max_discharge_power"])
+                # The slider's value, when it has one, wins at setup: write it too,
+                # or a change made in this form would be ignored.
+                for _key in ("max_charge_power", "max_discharge_power"):
+                    if f"user_{_key}" in merged:
+                        merged[f"user_{_key}"] = merged[_key]
                 merged["max_soc"] = int(user_input["max_soc"])
                 merged["min_soc"] = int(user_input["min_soc"])
                 if self.config_entry.data.get(
@@ -2361,9 +2393,10 @@ class OptionsFlowHandler(OptionsFlow):
             if self.battery_index < len(current_batteries):
                 current_battery = dict(current_batteries[self.battery_index])
                 current_battery.update(self._current_battery_data)
+                live = _live_power_limits(self)
                 defaults = {
-                    "max_charge_power": min(current_battery.get("max_charge_power", max_charge_power), max_charge_power),
-                    "max_discharge_power": min(current_battery.get("max_discharge_power", max_discharge_power), max_discharge_power),
+                    "max_charge_power": min(_configured_power(current_battery, live, "max_charge_power", max_charge_power), max_charge_power),
+                    "max_discharge_power": min(_configured_power(current_battery, live, "max_discharge_power", max_discharge_power), max_discharge_power),
                     "max_soc": current_battery.get("max_soc", soc_max_default),
                     "min_soc": current_battery.get("min_soc", soc_min_default),
                     "charge_hysteresis_percent": max(
@@ -2415,10 +2448,10 @@ class OptionsFlowHandler(OptionsFlow):
 
         _schema: dict = {}
         _schema[vol.Required("max_charge_power", default=defaults["max_charge_power"])] = NumberSelector(
-            NumberSelectorConfig(min=100, max=max_charge_power, step=50, unit_of_measurement="W", mode=NumberSelectorMode.SLIDER)
+            NumberSelectorConfig(min=min(100, defaults["max_charge_power"]), max=max_charge_power, step=50, unit_of_measurement="W", mode=NumberSelectorMode.SLIDER)
         )
         _schema[vol.Required("max_discharge_power", default=defaults["max_discharge_power"])] = NumberSelector(
-            NumberSelectorConfig(min=100, max=max_discharge_power, step=50, unit_of_measurement="W", mode=NumberSelectorMode.SLIDER)
+            NumberSelectorConfig(min=min(100, defaults["max_discharge_power"]), max=max_discharge_power, step=50, unit_of_measurement="W", mode=NumberSelectorMode.SLIDER)
         )
         _schema.update({
             vol.Required("max_soc", default=max(soc_max_lo, min(soc_max_hi, defaults["max_soc"]))):
