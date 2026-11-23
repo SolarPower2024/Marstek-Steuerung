@@ -1065,7 +1065,7 @@ def test_a_battery_on_its_floor_is_not_held_by_the_reserve():
     """
     coordinators = [
         _coordinator(soc=12.0, min_soc=12.0, capacity=5.12, name="Venus 1"),
-        _coordinator(soc=60.0, min_soc=5.0, capacity=8.16, name="Zendure 1"),
+        _coordinator(soc=60.0, min_soc=5.0, capacity=8.16, name="Hybrid 1"),
     ]
     registry, manager = _fleet_blocks(coordinators, evening_kwh=2.0)
     assert manager.get_status()["battery_reserve_soc_pct"]["Venus 1"] == 0.0
@@ -1076,10 +1076,10 @@ def test_a_battery_on_its_floor_is_not_held_by_the_reserve():
 def test_a_battery_on_its_floor_is_not_held_next_to_one_that_is():
     coordinators = [
         _coordinator(soc=12.0, min_soc=12.0, capacity=5.12, name="Venus 1"),
-        _coordinator(soc=30.0, min_soc=5.0, capacity=8.16, name="Zendure 1"),
+        _coordinator(soc=30.0, min_soc=5.0, capacity=8.16, name="Hybrid 1"),
     ]
     registry, _ = _fleet_blocks(coordinators, evening_kwh=50.0)
-    assert set(registry) == {("Zendure 1", "price_reserve")}
+    assert set(registry) == {("Hybrid 1", "price_reserve")}
 
 
 def test_the_status_shows_each_battery_s_share():

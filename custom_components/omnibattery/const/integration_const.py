@@ -46,11 +46,6 @@ SERIAL_BAUDRATE = 115200
 # spacing to MESSAGE_WAIT_MS_RS485_GATEWAY for any Marstek firmware version.
 CONF_RS485_GATEWAY = "rs485_gateway"
 
-# Per-battery Indevolt request speed (maximum / fast / normal / conservative): how
-# often the driver may talk to the battery. The slot per speed, the default and
-# the floors live in infra/indevolt_client.py; backoff applies on top of every speed.
-CONF_INDEVOLT_REQUEST_SPEED = "indevolt_request_speed"
-
 # Maximum power (W) per battery version — used by config_flow to set slider limits
 MAX_POWER_BY_VERSION = {
     "v2": 2500,
@@ -480,7 +475,7 @@ MISSING_SENSOR_ISSUE_DELAY_S = 900.0
 # hot-path ACK readback so they cannot block the shared control loop.
 HOT_PATH_READBACK_MAX_LATENCY_S = 1.5
 
-# Discharge engage grace: a slow inverter (e.g. Zendure HTTP) takes seconds to
+# Discharge engage grace: a slow inverter takes seconds to
 # reverse from charge/idle into discharge — measured up to ~20-30 s on a cold
 # charge→discharge transition. During that window an ACK'd command legitimately
 # reads back 0 W out, which is engage latency, not a fault. Suppress non-delivery
@@ -515,7 +510,7 @@ PD_QUALITY_RESTART_SETTLE_S = float(DISCHARGE_ENGAGE_GRACE_S)
 # Top-of-charge tail: the last stretch before 100% often tapers hard (CC/CV
 # tail current) well before is_battery_full() reports the battery full or
 # tick_bms_cutoff() confirms a cutoff (which needs power <= 10 W *and*
-# Standby). Observed on a Huawei LUNA2000: 48-189 W of a 7000 W command for
+# Standby). Observed on a hybrid inverter: 48-189 W of a 7000 W command for
 # ~15 minutes while SOC climbed 99% -> 100%, inverter never reporting
 # Standby. That gap was recorded as non-delivery and drove wake nudges
 # (RS485 re-assert) despite SOC genuinely still rising. Matches
@@ -831,7 +826,7 @@ def effective_battery_power_limits(battery) -> tuple[int, int]:
 
     New entries may persist the normalized ``device_max_*`` and
     ``configured_max_*`` fields. Legacy entries use ``max_*_power`` and soft-max
-    drivers (for example Zendure and Anker) keep the user's additional ceiling
+    entries keep the user's additional ceiling
     in ``user_max_*_power``. Missing normalized/soft-limit keys preserve legacy
     entries while applying the same ``min(device, configured)`` rule.
     """
@@ -926,7 +921,7 @@ def total_battery_capacity_kwh(data, reported_kwh=None) -> float:
     """Return the fleet's capacity in kWh: each battery's configured value, or what it reports.
 
     A battery without a configured capacity -- one whose driver reads it (Marstek
-    over Modbus) or one left at 0 for auto-detection (Zendure, Hoymiles) -- counts
+    over Modbus) or one left at 0 for auto-detection -- counts
     with ``reported_kwh[name]``, the capacity its coordinator reports, when known.
     """
     reported_kwh = reported_kwh or {}

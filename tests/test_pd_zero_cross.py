@@ -108,7 +108,7 @@ def test_charge_to_discharge_flip_also_gated():
 
 
 def test_window_stretches_for_slow_actuators():
-    # Zendure/ESPHome fleet (latency 4.0s): window = 2*4 = 8s, so a request
+    # slow fleet (latency 4.0s): window = 2*4 = 8s, so a request
     # 6s old is still clamped; the same age passes on a fast Marstek fleet.
     since = dt_util.utcnow() - timedelta(seconds=6)
     slow = _ctrl(last_output_sign=-1, zero_cross_since=since, latencies=(0.8, 4.0))

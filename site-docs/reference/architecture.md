@@ -22,12 +22,6 @@ flowchart TD
     DIST --> COORD[MarstekVenusDataUpdateCoordinator per battery]
     COORD --> DRIVER[BatteryDriver semantic contract]
     DRIVER --> M[MarstekModbusDriver]
-    DRIVER --> Z[ZendureLocalDriver]
-    DRIVER --> A[AnkerModbusDriver]
-    DRIVER --> E[EsphomeEntityDriver]
-    DRIVER --> S[SessyLocalDriver]
-    DRIVER --> Y[HoymilesMqttDriver]
-    DRIVER --> H[HuaweiSolarDriver]
 
     DRIVER -->|read_telemetry| COORD
     COORD --> ENT[Home Assistant entities]
@@ -98,16 +92,8 @@ The package exports seven concrete drivers, and `MarstekVenusDataUpdateCoordinat
 | File | Class | Hardware and transport |
 |---|---|---|
 | `drivers/marstek.py` | `MarstekModbusDriver` | Marstek Venus families over Modbus TCP or Modbus RTU. |
-| `drivers/zendure.py` | `ZendureLocalDriver` | Zendure SolarFlow families through the local HTTP API. |
-| `drivers/anker.py` | `AnkerModbusDriver` | Anker SOLIX Solarbank families over Modbus TCP. |
-| `drivers/esphome.py` | `EsphomeEntityDriver` | Marstek hardware behind a LilyGo RS-485 bridge, using ESPHome entities in Home Assistant. |
-| `drivers/sessy.py` | `SessyLocalDriver` | Sessy through its authenticated local HTTP API. |
-| `drivers/hoymiles.py` | `HoymilesMqttDriver` | Hoymiles MS-A2 through Home Assistant MQTT entities. |
-| `drivers/huawei.py` | `HuaweiSolarDriver` | Huawei SUN2000 with LUNA2000: native Modbus telemetry and service-based or direct setpoint writes. |
 
 Each driver also owns its platform definition lists: `sensor_definitions`, `number_definitions`, `select_definitions`, `switch_definitions`, `binary_sensor_definitions`, `button_definitions`, and `all_definitions`. The coordinator exposes these lists to `sensor.py`, `number.py`, `select.py`, `switch.py`, `binary_sensor.py`, and `button.py`. This keeps unsupported entities out of the registry and keeps hardware metadata beside its decoder.
-
-See [Add a battery driver](driver-requirements-template.md) for the implementation and review checklist.
 
 ## Coordinator and telemetry flow
 

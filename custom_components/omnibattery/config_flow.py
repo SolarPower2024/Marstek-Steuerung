@@ -17,8 +17,6 @@ from homeassistant.const import (
     CONF_HOST,
     CONF_NAME,
     CONF_PORT,
-    CONF_USERNAME,
-    CONF_PASSWORD,
 )
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import device_registry as dr, entity_registry as er
@@ -105,7 +103,6 @@ from .const import (
     DEFAULT_SLAVE_ID,
     CONF_SERIAL_PORT,
     CONF_RS485_GATEWAY,
-    CONF_INDEVOLT_REQUEST_SPEED,
     DEFAULT_VERSION,
     REGISTER_MAP,
     MAX_POWER_BY_VERSION,
@@ -154,26 +151,7 @@ from .const import (
     MAX_TIME_SLOTS,
 )
 from .drivers.base import DriverCapabilities
-from .drivers.esphome import EsphomeEntityDriver
 from .drivers.marstek import MarstekModbusDriver
-from .drivers.zendure import (
-    ZendureLocalDriver,
-    detect_model as _detect_zendure_model,
-    zendure_power_limits as _zendure_power_limits,
-)
-from .drivers.anker import AnkerModbusDriver
-from .drivers.sessy import SessyLocalDriver
-from .drivers.indevolt import IndevoltDriver
-from .drivers.indevolt_settings import SYNCED_PREFIX as INDEVOLT_SYNCED_PREFIX
-from .infra.indevolt_client import DEFAULT_REQUEST_SPEED, REQUEST_SPEED_SLOT_S, IndevoltAuthenticationError
-from .drivers.huawei import HuaweiSolarDriver
-from .drivers.hoymiles import (
-    DEFAULT_HOYMILES_MODEL,
-    HOYMILES_MODEL_PROFILES,
-    HoymilesMqttDriver,
-    hoymiles_capacity_kwh,
-    hoymiles_model_profile,
-)
 from .pricing.nordpool import is_official_nordpool_sensor
 from .pricing.calculations import (
     parse_be_electricity_prices,
@@ -185,34 +163,6 @@ from .pricing.energyzero import (
     ENERGYZERO_GET_PRICES_SERVICE,
     is_energyzero_sensor,
 )
-
-_ANKER_MAX_POWER_W = 3500
-_SESSY_MAX_CHARGE_POWER_W = 2200
-_SESSY_MAX_DISCHARGE_POWER_W = 1700
-_SESSY_DEFAULT_MIN_SOC = 5
-_INDEVOLT_DEFAULT_PORT = 8080
-_INDEVOLT_DEFAULT_MAX_POWER_W = 2400
-_INDEVOLT_DEFAULT_MIN_SOC = 20  # Indevolt's own default reserve, for a battery that reports none
-_HOYMILES_MODEL_AUTO = "auto"
-
-
-def _hoymiles_model_selector(default: str = _HOYMILES_MODEL_AUTO):
-    """Build the MQTT model selector, retaining automatic discovery by default."""
-    options = [_HOYMILES_MODEL_AUTO, *(profile.key for profile in HOYMILES_MODEL_PROFILES)]
-    return vol.Required("hoymiles_model", default=default), SelectSelector(
-        SelectSelectorConfig(
-            options=options,
-            translation_key="hoymiles_model",
-            mode=SelectSelectorMode.DROPDOWN,
-        )
-    )
-
-
-def _hoymiles_model_hint(user_input: dict[str, Any]) -> str | None:
-    """Return an explicit model override or None for retained-topic discovery."""
-    selected = user_input.get("hoymiles_model", _HOYMILES_MODEL_AUTO)
-    return None if selected == _HOYMILES_MODEL_AUTO else selected
-
 
 def _parse_optional_float(value: Any) -> float | None:
     """Parse a localized optional number while preserving an explicit zero."""
@@ -575,352 +525,23 @@ def _phase_assignment_is_valid(value: Any) -> bool:
 
 
 def _soc_selector_limits(
-    brand: str, battery_version: str = DEFAULT_VERSION
+    battery_version: str = DEFAULT_VERSION,
 ) -> tuple[int, int, int, int, int, int]:
     """Return minimum and maximum SOC selector bounds and defaults."""
     max_lo = 80
-    if brand == "zendure":
-        min_lo, min_hi, min_default = 5, 50, 12
-    elif brand == "anker":
-        min_lo, min_hi, min_default = 0, 20, 10
-    elif brand == "sessy":
-        min_lo, min_hi, min_default = 0, 30, _SESSY_DEFAULT_MIN_SOC
-    elif brand == "indevolt":
-        # The minimum SOC is the battery's own reserve, kept in sync both ways
-        # (drivers/indevolt_settings.py). 5% is the API's hard minimum; the
-        # upper bound matches the driver's discharge_cutoff_range, so saving the
-        # form unchanged never clamps (and so rewrites) the device's value.
-        min_lo, min_hi, min_default = 5, 50, _INDEVOLT_DEFAULT_MIN_SOC
-    elif brand == "hoymiles":
-        min_lo, min_hi, min_default = 0, 30, 10
-    elif brand == "huawei":
-        # The inverter keeps its own discharge cutoff as a backstop; this window
-        # is what Omnibattery enforces on top of it.
-        min_lo, min_hi, min_default = 0, 30, 10
-    else:
-        min_lo, min_hi, min_default = 12, 30, 12
-        # v3/vA/vD enforce this in software, so the 30 % of the v2 register
-        # doesn't apply. The form offers what the SOC limit entities offer:
-        # otherwise saving it moves a value set on those entities.
-        if brand == "marstek" and REGISTER_MAP.get(battery_version, {}).get("discharging_cutoff_capacity") is None:
-            min_hi = int(DriverCapabilities.discharge_cutoff_range[1])
-            max_lo = int(DriverCapabilities.charge_cutoff_range[0])
+    min_lo, min_hi, min_default = 12, 30, 12
+    # v3/vA/vD enforce this in software, so the 30 % of the v2 register
+    # doesn't apply. The form offers what the SOC limit entities offer:
+    # otherwise saving it moves a value set on those entities.
+    if REGISTER_MAP.get(battery_version, {}).get("discharging_cutoff_capacity") is None:
+        min_hi = int(DriverCapabilities.discharge_cutoff_range[1])
+        max_lo = int(DriverCapabilities.charge_cutoff_range[0])
 
-    # Omnibattery enforces the charge ceiling in software. Sessy's reported SOC
-    # spans 0–100 %, so the standard 100 % ceiling is valid for this driver.
+    # Omnibattery enforces the charge ceiling in software.
     return min_lo, min_hi, min_default, max_lo, 100, 100
 
 
-def _indevolt_connection_schema(defaults: dict, battery_num: int) -> vol.Schema:
-    """Connection form shared by setup, options and reconfigure."""
-    return vol.Schema({
-        vol.Required(CONF_NAME, default=defaults.get(CONF_NAME, f"Indevolt {battery_num}")): str,
-        vol.Required(CONF_HOST, default=defaults.get(CONF_HOST, "")): str,
-        vol.Optional(CONF_PORT, default=defaults.get(CONF_PORT, _INDEVOLT_DEFAULT_PORT)): int,
-    })
-
-
-def _indevolt_request_speed_schema(defaults: dict) -> vol.Schema:
-    """Request speed form, the screen after the connection.
-
-    It has a screen of its own so the explanation of the speeds fits above the
-    field instead of disappearing below the fold.
-    """
-    return vol.Schema({
-        vol.Required(CONF_INDEVOLT_REQUEST_SPEED, default=_indevolt_request_speed(defaults)): SelectSelector(
-            SelectSelectorConfig(
-                options=list(REQUEST_SPEED_SLOT_S),
-                translation_key="indevolt_request_speed",
-                mode=SelectSelectorMode.DROPDOWN,
-            )
-        ),
-    })
-
-
-def _indevolt_request_speed(values: dict) -> str:
-    """The battery's request speed; an older entry without one gets the default."""
-    speed = values.get(CONF_INDEVOLT_REQUEST_SPEED)
-    return speed if speed in REQUEST_SPEED_SLOT_S else DEFAULT_REQUEST_SPEED
-
-
-async def _indevolt_probe(user_input: dict) -> tuple[dict, dict] | str:
-    """Probe an Indevolt (read-only): its battery config and probe info, or an error key."""
-    host = (user_input.get(CONF_HOST) or "").strip()
-    port = int(user_input.get(CONF_PORT, _INDEVOLT_DEFAULT_PORT))
-    _LOGGER.info("Probing Indevolt device at %s:%s", host, port)
-    try:
-        info = await IndevoltDriver.probe(host, port)
-    except IndevoltAuthenticationError:
-        # The local API is set to HTTP Digest; Omnibattery uses plain HTTP.
-        return "indevolt_http_digest"
-    except ValueError:
-        return "cannot_connect"
-    if info is None:
-        return "cannot_connect"
-    data = {
-        CONF_NAME: user_input[CONF_NAME],
-        CONF_HOST: host,
-        CONF_PORT: port,
-        "brand": "indevolt",
-    }
-    for source, target in (("max_charge_power", "device_max_charge_power"),
-                           ("max_discharge_power", "device_max_discharge_power")):
-        if info.get(source):
-            data[target] = int(info[source])
-    return data, info
-
-
-def _indevolt_prefill(battery_data: dict, info: dict, stored: dict | None = None) -> None:
-    """Pre-fill the limits form with the reserve, power limits and MAC the battery reports.
-
-    On its first start the driver adopts the battery's own settings and writes
-    nothing (drivers/indevolt_settings.py), so a form value that differs would
-    be replaced without notice. A setting that Omnibattery and the battery
-    already agreed on (``stored``) keeps its configured value.
-    """
-    stored = stored or {}
-    for key, value in (info.get("settings") or {}).items():
-        if stored.get(INDEVOLT_SYNCED_PREFIX + key) is None:
-            battery_data[key] = value
-    if info.get("mac") and not battery_data.get(CONF_MAC):
-        battery_data[CONF_MAC] = info["mac"]
-
-
-def _indevolt_power_ceilings(battery_data: dict) -> tuple[int, int]:
-    """Device-reported power ceilings, or the SF2000's 2400 W before a probe."""
-    return (
-        int(battery_data.get("device_max_charge_power") or _INDEVOLT_DEFAULT_MAX_POWER_W),
-        int(battery_data.get("device_max_discharge_power") or _INDEVOLT_DEFAULT_MAX_POWER_W),
-    )
-
-
-def _hoymiles_apply_probe_caps(
-    battery_data: dict, caps: dict, *, upgrade_legacy_defaults: bool = False
-) -> None:
-    previous_model = battery_data.get("hoymiles_model")
-    detected_model = caps.get("hoymiles_model")
-    if detected_model:
-        battery_data["hoymiles_model"] = detected_model
-    if caps.get("hoymiles_model_label"):
-        battery_data["hoymiles_model_label"] = caps["hoymiles_model_label"]
-    for source, target in (("device_max_charge_power", "device_max_charge_power"),
-                           ("device_max_discharge_power", "device_max_discharge_power")):
-        if isinstance(caps.get(source), (int, float)) and caps[source] > 0:
-            battery_data[target] = int(caps[source])
-
-    capacity = caps.get("battery_capacity_kwh")
-    if (
-        (not isinstance(capacity, (int, float)) or capacity <= 0)
-        and (detected_model or previous_model)
-    ):
-        capacity = hoymiles_capacity_kwh(
-            detected_model or previous_model,
-            battery_data.get("device_max_charge_power"),
-            battery_data.get("device_max_discharge_power"),
-        )
-    if not isinstance(capacity, (int, float)) or capacity <= 0:
-        capacity = None
-
-    # Entries created by the original MS-A2-only flow have no model marker and
-    # persist its 1000 W / 2.24 kWh defaults. When reconfiguration identifies a
-    # different product, replace only those indistinguishable legacy defaults.
-    detected_profile = hoymiles_model_profile(detected_model)
-    if upgrade_legacy_defaults and previous_model is None and detected_profile:
-        for key, device_key, legacy_default, profile_default in (
-            ("max_charge_power", "device_max_charge_power", 1000, detected_profile.max_charge_power_w),
-            ("max_discharge_power", "device_max_discharge_power", 1000, detected_profile.max_discharge_power_w),
-        ):
-            if int(battery_data.get(key, legacy_default) or 0) == legacy_default:
-                battery_data[key] = int(
-                    battery_data.get(device_key) or profile_default
-                )
-        if float(battery_data.get("battery_capacity_kwh", 2.24) or 0) == 2.24:
-            battery_data["battery_capacity_kwh"] = capacity
-    elif "battery_capacity_kwh" not in battery_data and capacity:
-        battery_data["battery_capacity_kwh"] = capacity
-
-
-def _hoymiles_power_ceilings(battery_data: dict) -> tuple[int, int]:
-    profile = hoymiles_model_profile(
-        battery_data.get("hoymiles_model") or DEFAULT_HOYMILES_MODEL
-    )
-    default_charge = profile.max_charge_power_w if profile else 1000
-    default_discharge = profile.max_discharge_power_w if profile else 1000
-    charge_maximum = profile.max_system_charge_power_w if profile else 10000
-    discharge_maximum = profile.max_system_discharge_power_w if profile else 10000
-    return (
-        max(100, min(charge_maximum, int(battery_data.get("device_max_charge_power") or default_charge))),
-        max(100, min(discharge_maximum, int(battery_data.get("device_max_discharge_power") or default_discharge))),
-    )
-
-
-def _hoymiles_capacity_default(battery_data: dict) -> float:
-    capacity = battery_data.get("battery_capacity_kwh")
-    if isinstance(capacity, (int, float)) and capacity > 0:
-        return round(float(capacity), 2)
-    model = battery_data.get("hoymiles_model")
-    if model:
-        return hoymiles_capacity_kwh(
-            model,
-            battery_data.get("device_max_charge_power"),
-            battery_data.get("device_max_discharge_power"),
-        ) or 2.24
-    return 2.24
-
-
-def _anker_apply_probe_caps(battery_data: dict, caps: dict) -> None:
-    """Store Anker hardware ceilings from probe for config seeding."""
-    for src, dst in (
-        ("device_max_charge_power", "device_max_charge_power"),
-        ("device_max_discharge_power", "device_max_discharge_power"),
-    ):
-        if src in caps:
-            battery_data[dst] = int(caps[src])
-
-
-_HUAWEI_MAX_POWER_W = 15000
-
-
-def _huawei_power_ceilings(battery_data: dict) -> tuple[int, int]:
-    """Upper bound the limits form allows for a Huawei battery.
-
-    Registers 37046/37048 report what the battery permits *right now*, and that
-    moves with the pack count — a third pack raises it. Treating a momentary
-    reading as a hard ceiling locks the user out of a figure their installation
-    can genuinely reach, so it serves as the starting value instead.
-
-    What the installation cannot exceed is the inverter's own maximum active
-    power (30075): everything, charge and discharge alike, passes through it.
-    Where that is unknown the probe's own figure stands in, and the constant is
-    only a sanity bound against a malformed reading.
-    """
-    inverter_max = int(battery_data.get("device_inverter_max_power") or 0)
-    charge = int(battery_data.get("device_max_charge_power") or 5000)
-    discharge = int(battery_data.get("device_max_discharge_power") or 5000)
-    return (
-        max(100, min(_HUAWEI_MAX_POWER_W, inverter_max or charge, _HUAWEI_MAX_POWER_W)),
-        max(100, min(_HUAWEI_MAX_POWER_W, inverter_max or discharge, _HUAWEI_MAX_POWER_W)),
-    )
-
-
-def _huawei_inverter_serial(hass, device_id: str) -> str | None:
-    """Serial of the inverter a huawei_solar battery device belongs to.
-
-    The battery device hangs off its inverter via ``via_device``, and
-    huawei_solar identifies that inverter by its serial — the same string the
-    inverter reports over Modbus.
-    """
-    registry = dr.async_get(hass)
-    device = registry.async_get(device_id)
-    if device is None:
-        return None
-    parent = registry.async_get(device.via_device_id) if device.via_device_id else None
-    for candidate in (parent, device):
-        if candidate is None:
-            continue
-        if candidate.serial_number:
-            return candidate.serial_number
-        for domain, identifier in candidate.identifiers:
-            if domain == HUAWEI_SOLAR_DOMAIN:
-                return identifier
-    return None
-
-
-def _huawei_device_matches_inverter(
-    hass: Any,
-    device_id: str | None,
-    serial: str | None,
-    slave_id: int | None,
-) -> bool:
-    """Whether the selected huawei_solar device belongs to the probed inverter.
-
-    Missing serials are treated as unknown rather than contradictory: older
-    huawei_solar versions and some firmware do not expose one. A known
-    disagreement, however, must stop both setup and reconfiguration before the
-    telemetry/command paths can be paired with different inverters.
-    """
-    if not device_id or not serial:
-        return True
-    device_serial = _huawei_inverter_serial(hass, device_id)
-    if not device_serial or serial.upper() in device_serial.upper():
-        return True
-    _LOGGER.warning(
-        "Huawei device %s belongs to inverter %s, but slave %s is %s",
-        device_id, device_serial, slave_id, serial,
-    )
-    return False
-
-
-def _anker_power_ceilings(battery_data: dict) -> tuple[int, int]:
-    """Hardware max charge/discharge from probe, falling back to the static envelope."""
-    charge = int(battery_data.get("device_max_charge_power") or _ANKER_MAX_POWER_W)
-    discharge = int(battery_data.get("device_max_discharge_power") or _ANKER_MAX_POWER_W)
-    return (
-        max(100, min(_ANKER_MAX_POWER_W, charge)),
-        max(100, min(_ANKER_MAX_POWER_W, discharge)),
-    )
-
-
-async def _validate_anker_connection(
-    hass: Any,
-    entry_id: str,
-    host: str,
-    port: int,
-    slave_id: int,
-) -> tuple[bool, dict[str, int]]:
-    """Validate Anker connection without probing an already-active endpoint.
-
-    Reconfigure/options flows run while the entry coordinator still owns its
-    persistent Modbus connection. When that exact Anker endpoint is healthy,
-    its live telemetry is stronger evidence than opening a second connection.
-    A changed or unavailable endpoint still receives a normal probe.
-    """
-    entry_data = getattr(hass, "data", {}).get(DOMAIN, {}).get(entry_id, {})
-    for coordinator in entry_data.get("coordinators", []):
-        if (
-            getattr(coordinator, "brand", None) == "anker"
-            and getattr(coordinator, "host", None) == host
-            and int(getattr(coordinator, "port", 502)) == port
-            and int(getattr(coordinator, "slave_id", DEFAULT_SLAVE_ID)) == slave_id
-            and bool(getattr(coordinator, "is_available", False))
-        ):
-            data = getattr(coordinator, "data", None) or {}
-            caps: dict[str, int] = {}
-            for src, dst in (
-                ("max_charge_power", "device_max_charge_power"),
-                ("max_discharge_power", "device_max_discharge_power"),
-            ):
-                value = data.get(src)
-                if isinstance(value, (int, float)) and int(value) > 0:
-                    caps[dst] = int(value)
-            _LOGGER.info(
-                "Reusing active Anker coordinator for connection validation at "
-                "%s:%s slave %s",
-                host,
-                port,
-                slave_id,
-            )
-            return True, caps
-
-    return await AnkerModbusDriver.probe(host, port, slave_id)
-
-
-def _seed_software_power_limits(merged: dict, brand: str) -> None:
-    """Persist soft-max keys for Zendure (read-only chargeMaxLimit + software ceiling)."""
-    if brand != "zendure":
-        return
-    merged["user_max_charge_power"] = int(merged["max_charge_power"])
-
 _LOGGER = logging.getLogger(__name__)
-
-# The integration that provides the Huawei control services, and the domain it
-# identifies its devices under.
-HUAWEI_SOLAR_DOMAIN = "huawei_solar"
-
-# A Huawei inverter accepts one Modbus connection, so a second client needs a
-# proxy in front. Supplied as a placeholder rather than written into the strings:
-# hassfest rejects a literal URL in a translation.
-_MODBUS_PROXY_URL = "https://github.com/Akulatraxas/ha-modbusproxy"
 
 _ALL_WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 # How many predictive-charging windows the user may configure.
@@ -1056,27 +677,12 @@ def _scope_value_in_options(scope: str, opts: list[dict]) -> bool:
 def _battery_hardware_max(bcfg: dict, power_key: str | None = None) -> int:
     """Return the battery's hardware max power (W) for slot selectors.
 
-    Marstek batteries identify their hardware envelope through
-    ``battery_version``. Other drivers persist their discovered/configured
-    charge and discharge ceilings instead, so falling back to the Marstek v2
-    value would incorrectly cap their time-slot overrides at 2500 W.
+    The hardware envelope follows from ``battery_version`` (and, on a Venus D,
+    its EMS firmware). ``power_key`` is accepted for call-site symmetry.
     """
     version = bcfg.get(CONF_BATTERY_VERSION)
     if version in MAX_POWER_BY_VERSION:
         return max_power_for_battery_version(version, bcfg.get("ems_version"))
-
-    configured_limits: list[int] = []
-    keys = (power_key,) if power_key else ("max_charge_power", "max_discharge_power")
-    for key in keys:
-        try:
-            value = int(bcfg.get(key) or 0)
-        except (TypeError, ValueError):
-            continue
-        if value > 0:
-            configured_limits.append(value)
-    if configured_limits:
-        return max(configured_limits)
-
     return int(MAX_POWER_BY_VERSION.get(DEFAULT_VERSION, 2500))
 
 
@@ -1342,7 +948,7 @@ def _finalize_slot(
 def _mac_tracking_schema(defaults: dict) -> dict:
     """Schema entries for the per-battery "find me again by MAC" opt-in.
 
-    Offered only for batteries addressed by IP; serial, ESPHome and MQTT are
+    Offered only for batteries addressed by IP; a serial port is
     reached by a device path or device id, so they have no address that can
     drift. Defaults to off, so an install that never touches it is unaffected.
     """
@@ -1506,36 +1112,11 @@ class MarstekVenusConfigFlow(LegacyDomainMigrationMixin, ConfigFlow, domain=DOMA
         port: int,
         version: str = "v2",
         slave_id: int = DEFAULT_SLAVE_ID,
-        brand: str = "marstek",
         serial_port: str | None = None,
-        username: str = "",
-        password: str = "",
     ) -> bool:
-        """Test connection to a battery.
-
-        ``username`` and ``password`` are only read for Sessy, whose local API
-        can require authentication: probing it with empty credentials returns a
-        refusal that is indistinguishable from an absent device (#289).
-        """
+        """Test connection to a battery."""
         self._last_marstek_ems_version = None
-        if brand == "zendure":
-            _LOGGER.info("Probing Zendure device at %s:%s", host, port)
-            result, _ = await ZendureLocalDriver.probe(host, port)
-        elif brand == "sessy":
-            _LOGGER.info("Probing Sessy device at %s:%s", host, port)
-            result = await SessyLocalDriver.probe(host, port, username, password)
-        elif brand == "anker":
-            _LOGGER.info("Probing Anker Solarbank at %s:%s slave %s", host, port, slave_id)
-            result, _ = await AnkerModbusDriver.probe(host, port, slave_id)
-        elif brand == "indevolt":
-            _LOGGER.info("Probing Indevolt device at %s:%s", host, port)
-            try:
-                result = await IndevoltDriver.probe(host, port) is not None
-            except (IndevoltAuthenticationError, ValueError):
-                # A local API set to HTTP Digest, or a reply that is not an
-                # Indevolt's, does not count as this battery answering.
-                result = False
-        elif serial_port:
+        if serial_port:
             _LOGGER.info("Probing Marstek %s over serial %s slave %s", version, serial_port, slave_id)
             if version == "vD":
                 result, self._last_marstek_ems_version = await MarstekModbusDriver.probe_details(
@@ -1554,7 +1135,7 @@ class MarstekVenusConfigFlow(LegacyDomainMigrationMixin, ConfigFlow, domain=DOMA
             else:
                 result = await MarstekModbusDriver.probe(host, port, version, slave_id)
         if not result:
-            _LOGGER.error("Failed to connect to %s:%s (brand=%s)", host, port, brand)
+            _LOGGER.error("Failed to connect to %s:%s", host, port)
         return result
 
     async def async_step_user(
@@ -1732,58 +1313,12 @@ class MarstekVenusConfigFlow(LegacyDomainMigrationMixin, ConfigFlow, domain=DOMA
         """Step 2: Ask for the number of batteries."""
         if user_input is not None:
             self.config_data["num_batteries"] = int(user_input["num_batteries"])
-            return await self.async_step_battery_brand()
+            self._current_battery_data = {"brand": "marstek"}
+            return await self.async_step_battery_connection()
 
         return self.async_show_form(
             step_id="batteries",
             data_schema=_battery_count_schema(),
-        )
-
-    async def async_step_battery_brand(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Step 3a: Select battery brand."""
-        battery_num = self.battery_index + 1
-        if user_input is not None:
-            brand = user_input["brand"]
-            self._current_battery_data = {"brand": brand}
-            if brand == "zendure":
-                return await self.async_step_battery_connection_zendure()
-            if brand == "esphome":
-                return await self.async_step_battery_connection_esphome()
-            if brand == "anker":
-                return await self.async_step_battery_connection_anker()
-            if brand == "hoymiles":
-                return await self.async_step_battery_connection_hoymiles()
-            if brand == "sessy":
-                return await self.async_step_battery_connection_sessy()
-            if brand == "indevolt":
-                return await self.async_step_battery_connection_indevolt()
-            if brand == "huawei":
-                return await self.async_step_battery_connection_huawei()
-            return await self.async_step_battery_connection()
-
-        return self.async_show_form(
-            step_id="battery_brand",
-            data_schema=vol.Schema(
-                {
-                    vol.Required("brand", default="marstek"):
-                        SelectSelector(SelectSelectorConfig(
-                            options=[
-                                {"value": "marstek", "label": "Marstek Venus"},
-                                {"value": "zendure", "label": "Zendure SolarFlow"},
-                                {"value": "esphome", "label": "Marstek via LilyGo RS485 (ESPHome)"},
-                                {"value": "anker", "label": "Anker SOLIX Solarbank Max AC / 4 E5000 Pro"},
-                                {"value": "sessy", "label": "Sessy"},
-                                {"value": "indevolt", "label": "Indevolt SolidFlex / PowerFlex"},
-                                {"value": "hoymiles", "label": "Hoymiles MQTT"},
-                                {"value": "huawei", "label": "Huawei SUN2000 + LUNA2000"},
-                            ],
-                            mode=SelectSelectorMode.DROPDOWN,
-                        )),
-                }
-            ),
-            description_placeholders={"battery_num": str(battery_num)},
         )
 
     async def async_step_battery_connection(
@@ -1818,7 +1353,6 @@ class MarstekVenusConfigFlow(LegacyDomainMigrationMixin, ConfigFlow, domain=DOMA
                     port,
                     battery_version,
                     slave_id,
-                    brand="marstek",
                     serial_port=serial_port or None,
                 )
                 if not connection_result:
@@ -1864,489 +1398,16 @@ class MarstekVenusConfigFlow(LegacyDomainMigrationMixin, ConfigFlow, domain=DOMA
             description_placeholders={"battery_num": str(battery_num)},
         )
 
-    async def async_step_battery_connection_zendure(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Step 3b (Zendure): Connection details for a Zendure SolarFlow device."""
-        errors = {}
-        battery_num = self.battery_index + 1
-
-        if user_input is not None:
-            host = user_input[CONF_HOST]
-            port = int(user_input.get(CONF_PORT, 80))
-            ok, product = await ZendureLocalDriver.probe(host, port)
-            if not ok:
-                errors["base"] = "cannot_connect"
-            else:
-                self._current_battery_data.update({
-                    CONF_NAME: user_input[CONF_NAME],
-                    CONF_HOST: host,
-                    CONF_PORT: port,
-                    "brand": "zendure",
-                    "zendure_model": _detect_zendure_model(product),
-                })
-                return await self.async_step_battery_limits()
-
-        return self.async_show_form(
-            step_id="battery_connection_zendure",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_NAME, default=f"Zendure SolarFlow {battery_num}"): str,
-                    vol.Required(CONF_HOST): str,
-                    vol.Optional(CONF_PORT, default=80): int,
-                }
-            ),
-            errors=errors,
-            description_placeholders={"battery_num": str(battery_num)},
-        )
-
-    async def async_step_battery_connection_esphome(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Step 3b (ESPHome): pick the LilyGo/ESPHome device bridging the battery."""
-        errors = {}
-        placeholders: dict[str, str] = {"battery_num": str(self.battery_index + 1)}
-
-        if user_input is not None:
-            device_id = user_input["esphome_device"]
-            _, missing = EsphomeEntityDriver.resolve(self.hass, device_id)
-            if missing:
-                errors["base"] = "esphome_entities_missing"
-                placeholders["missing"] = ", ".join(missing)
-            else:
-                self._current_battery_data.update({
-                    CONF_NAME: user_input[CONF_NAME],
-                    # The registry device id doubles as the battery identity
-                    # (device_key, persistence matching); there is no IP:port.
-                    CONF_HOST: device_id,
-                    CONF_PORT: 0,
-                    "brand": "esphome",
-                    "esphome_device_id": device_id,
-                })
-                return await self.async_step_battery_limits()
-
-        return self.async_show_form(
-            step_id="battery_connection_esphome",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_NAME, default=f"Marstek Venus {self.battery_index + 1}"): str,
-                    vol.Required("esphome_device"):
-                        DeviceSelector(DeviceSelectorConfig(integration="esphome")),
-                }
-            ),
-            errors=errors,
-            description_placeholders=placeholders,
-        )
-
-    async def async_step_battery_connection_sessy(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Configure a Sessy through its local dongle HTTP API."""
-        errors = {}
-        if user_input is not None:
-            host, port = user_input[CONF_HOST], int(user_input.get(CONF_PORT, 80))
-            username = user_input[CONF_USERNAME]
-            password = user_input[CONF_PASSWORD]
-            _LOGGER.info("Probing Sessy device at %s:%s", host, port)
-            if await SessyLocalDriver.probe(host, port, username, password):
-                self._current_battery_data.update({
-                    CONF_NAME: user_input[CONF_NAME],
-                    CONF_HOST: host,
-                    CONF_PORT: port,
-                    CONF_USERNAME: username,
-                    CONF_PASSWORD: password,
-                    "brand": "sessy",
-                })
-                return await self.async_step_battery_limits()
-            errors["base"] = "cannot_connect"
-        return self.async_show_form(step_id="battery_connection_sessy", data_schema=vol.Schema({
-            vol.Required(CONF_NAME, default=f"Sessy {self.battery_index + 1}"): str,
-            vol.Required(CONF_HOST): str,
-            vol.Optional(CONF_PORT, default=80): int,
-            vol.Required(CONF_USERNAME): str,
-            vol.Required(CONF_PASSWORD): TextSelector(
-                TextSelectorConfig(type=TextSelectorType.PASSWORD)
-            ),
-        }), errors=errors, description_placeholders={"battery_num": str(self.battery_index + 1)})
-
-    async def async_step_battery_connection_indevolt(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Configure an Indevolt battery through its local HTTP API (read-only probe)."""
-        errors = {}
-        battery_num = self.battery_index + 1
-        if user_input is not None:
-            probed = await _indevolt_probe(user_input)
-            if isinstance(probed, str):
-                errors["base"] = probed
-            else:
-                data, info = probed
-                self._current_battery_data.update(data)
-                _indevolt_prefill(self._current_battery_data, info)
-                if not info["realtime_mode"]:
-                    return await self.async_step_indevolt_mode_notice()
-                return await self.async_step_indevolt_request_speed()
-        return self.async_show_form(
-            step_id="battery_connection_indevolt",
-            data_schema=_indevolt_connection_schema(user_input or {}, battery_num),
-            errors=errors,
-            description_placeholders={"battery_num": str(battery_num)},
-        )
-
-    async def async_step_indevolt_mode_notice(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Realtime mode is required; setup continues and control starts once it is set."""
-        if user_input is not None:
-            return await self.async_step_indevolt_request_speed()
-        return self.async_show_form(
-            step_id="indevolt_mode_notice",
-            data_schema=vol.Schema({}),
-            description_placeholders={"battery_num": str(self.battery_index + 1)},
-        )
-
-    async def async_step_indevolt_request_speed(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Choose how fast Omnibattery may send requests to the Indevolt battery."""
-        if user_input is not None:
-            self._current_battery_data[CONF_INDEVOLT_REQUEST_SPEED] = _indevolt_request_speed(user_input)
-            return await self.async_step_battery_limits()
-        return self.async_show_form(
-            step_id="indevolt_request_speed",
-            data_schema=_indevolt_request_speed_schema(self._current_battery_data),
-            description_placeholders={"battery_num": str(self.battery_index + 1)},
-        )
-
-    async def async_step_battery_connection_huawei(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Configure a Huawei SUN2000 + LUNA2000.
-
-        Control takes one of two paths. By default set-points go through the
-        Huawei Solar integration's services, which address the battery by
-        device. With direct Modbus writes the driver addresses the inverter
-        itself and needs nothing from that integration — which is why the device
-        field is optional and only checked when it is actually used.
-        """
-        errors = {}
-        battery_num = self.battery_index + 1
-        entry = getattr(self, "config_entry", None)
-        current_batteries = entry.data.get("batteries", []) if entry else []
-        current_battery = (
-            current_batteries[self.battery_index]
-            if self.battery_index < len(current_batteries)
-            else {}
-        )
-
-        if user_input is not None:
-            host = (user_input[CONF_HOST] or "").strip()
-            port = int(user_input.get(CONF_PORT, 502))
-            raw_slave = user_input.get(CONF_SLAVE_ID)
-            slave_id = None if raw_slave in (None, "") else int(raw_slave)
-            device_id = user_input.get("huawei_battery_device") or ""
-            direct_write = bool(user_input.get("huawei_direct_write", False))
-            self._huawei_pending = {
-                CONF_NAME: user_input[CONF_NAME],
-                CONF_HOST: host,
-                CONF_PORT: port,
-                "huawei_battery_device_id": device_id,
-                "huawei_direct_write": direct_write,
-            }
-            if not direct_write and not device_id:
-                # Without direct writes every set-point is a service call, and
-                # those address the battery by device. A missing integration is
-                # a different problem than an unanswered question, so say which.
-                errors["huawei_battery_device"] = (
-                    "huawei_device_required"
-                    if self.hass.config_entries.async_entries(HUAWEI_SOLAR_DOMAIN)
-                    else "huawei_solar_missing"
-                )
-            elif slave_id is not None:
-                _LOGGER.info(
-                    "Probing Huawei inverter at %s:%s (slave %s)", host, port, slave_id
-                )
-                ok, model, max_charge, max_discharge, serial, inverter_max = await HuaweiSolarDriver.probe(
-                    self.hass, host, port, slave_id
-                )
-                if ok:
-                    result = await self._huawei_store(
-                        slave_id, model, max_charge, max_discharge, serial,
-                        inverter_max, errors,
-                    )
-                    if result is not None:
-                        return result
-                else:
-                    # An id that does not answer is a guess worth replacing, not
-                    # a reason to send the user away.
-                    result = await self._huawei_search(host, port, errors)
-                    if result is not None:
-                        return result
-            else:
-                result = await self._huawei_search(host, port, errors)
-                if result is not None:
-                    return result
-
-        return self.async_show_form(
-            step_id="battery_connection_huawei",
-            data_schema=self._huawei_schema(current_battery, battery_num),
-            errors=errors,
-            description_placeholders={
-                "battery_num": str(battery_num),
-                "proxy_url": _MODBUS_PROXY_URL,
-            },
-        )
-
-    async def _huawei_search(self, host: str, port: int, errors: dict) -> FlowResult | None:
-        """Look for inverters on the bus; returns None when nothing usable was found.
-
-        One match is taken straight away. Several mean a cascade, which only the
-        user can resolve — a battery belongs to one of them.
-        """
-        _LOGGER.info("Scanning %s:%s for Huawei inverters", host, port)
-        found = await HuaweiSolarDriver.scan_slave_ids(self.hass, host, port)
-        with_battery = [candidate for candidate in found if candidate[2]]
-        if len(with_battery) == 1:
-            sid = with_battery[0][0]
-            ok, model, max_charge, max_discharge, serial, inverter_max = await HuaweiSolarDriver.probe(
-                self.hass, host, port, sid
-            )
-            if ok:
-                _LOGGER.info("Found a Huawei battery on slave %s", sid)
-                # A mismatch leaves its own error behind and must not be
-                # papered over by the scan verdict below.
-                return await self._huawei_store(
-                    sid, model, max_charge, max_discharge, serial, inverter_max, errors
-                )
-        if len(with_battery) > 1:
-            self._huawei_candidates = with_battery
-            return await self.async_step_battery_connection_huawei_slave()
-        # A reachable inverter with no SOC means no battery is attached, which is
-        # a different mistake than an unreachable address.
-        errors["base"] = "no_battery" if found else "cannot_connect"
-        return None
-
-    async def async_step_battery_connection_huawei_slave(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Pick which inverter on the bus this battery belongs to."""
-        candidates = getattr(self, "_huawei_candidates", [])
-        if user_input is not None:
-            slave_id = int(user_input[CONF_SLAVE_ID])
-            pending = self._huawei_pending
-            ok, model, max_charge, max_discharge, serial, inverter_max = await HuaweiSolarDriver.probe(
-                self.hass, pending[CONF_HOST], pending[CONF_PORT], slave_id
-            )
-            errors: dict[str, str] = {}
-            if ok:
-                result = await self._huawei_store(
-                    slave_id, model, max_charge, max_discharge, serial, inverter_max,
-                    errors, "base",
-                )
-                if result is not None:
-                    return result
-            return self.async_show_form(
-                step_id="battery_connection_huawei_slave",
-                data_schema=self._huawei_slave_schema(candidates),
-                errors=errors or {"base": "cannot_connect"},
-                description_placeholders={"count": str(len(candidates))},
-            )
-
-        return self.async_show_form(
-            step_id="battery_connection_huawei_slave",
-            data_schema=self._huawei_slave_schema(candidates),
-            description_placeholders={"count": str(len(candidates))},
-        )
-
-    async def _huawei_store(
-        self, slave_id, model, max_charge, max_discharge, serial, inverter_max,
-        errors, error_key: str = "huawei_battery_device",
-    ) -> FlowResult | None:
-        """Commit a validated Huawei battery, or refuse a mismatched pairing.
-
-        On the service path the battery is named twice over: once as a Modbus
-        address and once as a device in the registry. Nothing forces those to be
-        the same inverter, and on a cascade they easily are not — telemetry would
-        then come from one unit while the commands went to another. The inverter
-        serial shows up on both sides, so the pairing can be checked. Returns
-        None with ``errors`` filled when it does not hold.
-        """
-        device_id = self._huawei_pending.get("huawei_battery_device_id")
-        if not _huawei_device_matches_inverter(
-            self.hass, device_id, serial, slave_id
-        ):
-            errors[error_key] = "huawei_device_mismatch"
-            return None
-        self._current_battery_data.update({
-            **self._huawei_pending,
-            CONF_SLAVE_ID: slave_id,
-            "brand": "huawei",
-            "huawei_model": model,
-        })
-        if max_charge:
-            self._current_battery_data["device_max_charge_power"] = int(max_charge)
-        if max_discharge:
-            self._current_battery_data["device_max_discharge_power"] = int(max_discharge)
-        if inverter_max:
-            self._current_battery_data["device_inverter_max_power"] = int(inverter_max)
-        # An EMMA on the same bus carries the installation's grid meter. Finding
-        # it here means a user with one gets a grid reading fast enough to
-        # control against without configuring anything.
-        emma = await HuaweiSolarDriver.find_emma_slave_id(
-            self.hass, self._huawei_pending[CONF_HOST], self._huawei_pending[CONF_PORT]
-        )
-        if emma is not None:
-            self._current_battery_data["huawei_emma_slave_id"] = emma
-        # What the battery reports today is the sensible starting value; the
-        # form's ceiling is wider, because adding a pack raises it.
-        for key, probed in (
-            ("max_charge_power", max_charge),
-            ("max_discharge_power", max_discharge),
-        ):
-            if probed and not self._current_battery_data.get(key):
-                self._current_battery_data[key] = int(probed)
-        return await self.async_step_battery_limits()
-
-    @staticmethod
-    def _huawei_slave_schema(candidates: list) -> vol.Schema:
-        return vol.Schema({
-            vol.Required(CONF_SLAVE_ID, default=str(candidates[0][0]) if candidates else "1"):
-                SelectSelector(SelectSelectorConfig(
-                    options=[
-                        {"value": str(sid), "label": f"{model} — Slave {sid}"}
-                        for sid, model, _battery in candidates
-                    ],
-                    mode=SelectSelectorMode.LIST,
-                )),
-        })
-
-    @staticmethod
-    def _huawei_schema(current_battery: dict, battery_num: int) -> vol.Schema:
-        """Form for a Huawei battery.
-
-        The battery device is optional because it is only needed for the service
-        control path; with direct writes the driver addresses the inverter over
-        Modbus and needs nothing from huawei_solar. Requiring it there would make
-        the form impossible to submit on an installation that does not run that
-        integration at all. Which of the two is missing is checked on submit.
-        """
-        return vol.Schema({
-            vol.Required(
-                CONF_NAME,
-                default=current_battery.get(CONF_NAME, f"Huawei LUNA2000 {battery_num}"),
-            ): str,
-            vol.Required(CONF_HOST, default=current_battery.get(CONF_HOST, "")): str,
-            vol.Optional(CONF_PORT, default=current_battery.get(CONF_PORT, 502)): int,
-            # No default: an empty field means "go and find it". The id is not
-            # derivable, so prefilling a guess would only invite the user to
-            # accept a wrong one.
-            # A selector, not a bare vol.Any: the frontend is handed a
-            # serialised schema, and vol.Any has no serialised form — a form
-            # containing one cannot be drawn at all.
-            vol.Optional(
-                CONF_SLAVE_ID,
-                description={"suggested_value": current_battery.get(CONF_SLAVE_ID)},
-            ): NumberSelector(
-                NumberSelectorConfig(min=0, max=247, step=1, mode=NumberSelectorMode.BOX)
-            ),
-            vol.Optional(
-                "huawei_direct_write",
-                default=current_battery.get("huawei_direct_write", False),
-            ): bool,
-            vol.Optional(
-                "huawei_battery_device",
-                description={
-                    "suggested_value": current_battery.get("huawei_battery_device_id")
-                },
-            ): DeviceSelector(
-                DeviceSelectorConfig(integration=HUAWEI_SOLAR_DOMAIN, model="Batteries")
-            ),
-        })
-
-    async def async_step_battery_connection_hoymiles(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Configure a Hoymiles battery through Home Assistant's MQTT broker."""
-        errors = {}
-        if user_input is not None:
-            device_id = user_input["device_id"].strip()
-            ok, caps = await HoymilesMqttDriver.probe(
-                self.hass,
-                device_id,
-                model_hint=_hoymiles_model_hint(user_input),
-            )
-            if not ok:
-                errors["base"] = caps.get("error", "cannot_connect")
-            else:
-                self._current_battery_data.update({CONF_NAME: user_input[CONF_NAME], CONF_HOST: device_id,
-                    CONF_PORT: 0, "device_id": device_id, "brand": "hoymiles"})
-                _hoymiles_apply_probe_caps(self._current_battery_data, caps)
-                return await self.async_step_battery_limits()
-        model_field, model_selector = _hoymiles_model_selector()
-        return self.async_show_form(step_id="battery_connection_hoymiles", data_schema=vol.Schema({
-            vol.Required(CONF_NAME, default=f"Hoymiles {self.battery_index + 1}"): str,
-            vol.Required("device_id"): str,
-            model_field: model_selector,
-        }), errors=errors, description_placeholders={"battery_num": str(self.battery_index + 1)})
-
-
-    async def async_step_battery_connection_anker(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Step 3b (Anker): Connection details for Solarbank Max AC / 4 E5000 Pro."""
-        errors = {}
-        battery_num = self.battery_index + 1
-
-        if user_input is not None:
-            host = user_input[CONF_HOST]
-            port = int(user_input.get(CONF_PORT, 502))
-            slave_id = int(user_input.get(CONF_SLAVE_ID, DEFAULT_SLAVE_ID))
-            ok, caps = await AnkerModbusDriver.probe(host, port, slave_id)
-            if not ok:
-                errors["base"] = "cannot_connect"
-            else:
-                self._current_battery_data.update({
-                    CONF_NAME: user_input[CONF_NAME],
-                    CONF_HOST: host,
-                    CONF_PORT: port,
-                    CONF_SLAVE_ID: slave_id,
-                    "brand": "anker",
-                })
-                _anker_apply_probe_caps(self._current_battery_data, caps)
-                return await self.async_step_battery_limits()
-
-        return self.async_show_form(
-            step_id="battery_connection_anker",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_NAME, default=f"Anker Solarbank {battery_num}"): str,
-                    vol.Required(CONF_HOST): str,
-                    vol.Optional(CONF_PORT, default=502): int,
-                    vol.Required(CONF_SLAVE_ID, default=DEFAULT_SLAVE_ID):
-                        vol.All(NumberSelector(NumberSelectorConfig(min=1, max=247, step=1, mode=NumberSelectorMode.BOX)), vol.Coerce(int)),
-                }
-            ),
-            errors=errors,
-            description_placeholders={"battery_num": str(battery_num)},
-        )
-
     async def async_step_battery_limits(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Step 3c: Power and SOC limits for the current battery."""
         errors: dict[str, str] = {}
         battery_num = self.battery_index + 1
-        brand = self._current_battery_data.get("brand", "marstek")
-        if brand == "zendure":
-            max_charge_power, max_discharge_power = _zendure_power_limits(
-                self._current_battery_data.get("zendure_model", "2400ac_pro")
-            )
-        elif brand == "anker":
-            max_charge_power, max_discharge_power = _anker_power_ceilings(
-                self._current_battery_data
-            )
-        elif brand == "sessy":
-            max_charge_power = _SESSY_MAX_CHARGE_POWER_W
-            max_discharge_power = _SESSY_MAX_DISCHARGE_POWER_W
-        elif brand == "indevolt":
-            max_charge_power, max_discharge_power = _indevolt_power_ceilings(self._current_battery_data)
-        elif brand == "hoymiles":
-            max_charge_power, max_discharge_power = _hoymiles_power_ceilings(self._current_battery_data)
-        elif brand == "huawei":
-            max_charge_power, max_discharge_power = _huawei_power_ceilings(self._current_battery_data)
-        else:
-            battery_version = self._current_battery_data.get(CONF_BATTERY_VERSION, DEFAULT_VERSION)
-            max_charge_power = max_discharge_power = max_power_for_battery_version(
-                battery_version, self._current_battery_data.get("ems_version")
-            )
+        battery_version = self._current_battery_data.get(CONF_BATTERY_VERSION, DEFAULT_VERSION)
+        max_charge_power = max_discharge_power = max_power_for_battery_version(
+            battery_version, self._current_battery_data.get("ems_version")
+        )
         (
             soc_min_lo,
             soc_min_hi,
@@ -2354,7 +1415,7 @@ class MarstekVenusConfigFlow(LegacyDomainMigrationMixin, ConfigFlow, domain=DOMA
             soc_max_lo,
             soc_max_hi,
             soc_max_default,
-        ) = _soc_selector_limits(brand, self._current_battery_data.get(CONF_BATTERY_VERSION, DEFAULT_VERSION))
+        ) = _soc_selector_limits(battery_version)
 
         if user_input is not None:
             phase = user_input.get(CONF_BATTERY_PHASE, "")
@@ -2366,19 +1427,12 @@ class MarstekVenusConfigFlow(LegacyDomainMigrationMixin, ConfigFlow, domain=DOMA
                 user_input = None
             else:
                 merged = dict(self._current_battery_data)
-                if brand == "anker":
-                    # Power caps are device sensors (10036/10038), not setup inputs.
-                    charge_w, discharge_w = _anker_power_ceilings(self._current_battery_data)
-                    merged["max_charge_power"] = charge_w
-                    merged["max_discharge_power"] = discharge_w
-                else:
-                    merged["max_charge_power"] = int(user_input["max_charge_power"])
-                    merged["max_discharge_power"] = int(user_input["max_discharge_power"])
+                merged["max_charge_power"] = int(user_input["max_charge_power"])
+                merged["max_discharge_power"] = int(user_input["max_discharge_power"])
                 merged["max_soc"] = int(user_input["max_soc"])
                 merged["min_soc"] = int(user_input["min_soc"])
                 if self.config_data.get(CONF_THREE_PHASE_ENABLED):
                     merged[CONF_BATTERY_PHASE] = normalize_battery_phase(phase)
-                _seed_software_power_limits(merged, brand)
                 # Hysteresis is mandatory; floor the percent against SOC drift.
                 merged["enable_charge_hysteresis"] = True
                 merged["charge_hysteresis_percent"] = max(
@@ -2389,16 +1443,9 @@ class MarstekVenusConfigFlow(LegacyDomainMigrationMixin, ConfigFlow, domain=DOMA
                 merged[CONF_DC_PV_CONNECTED] = bool(
                     user_input.get(CONF_DC_PV_CONNECTED, True)
                 ) if merged.get(CONF_BATTERY_VERSION) in ("vA", "vD") else False
-                merged[CONF_FULL_CHARGE_VOLTAGE_TAPER_ENABLED] = (
-                    False if brand in ("zendure", "anker", "sessy", "hoymiles", "huawei", "indevolt")
-                    else user_input.get(CONF_FULL_CHARGE_VOLTAGE_TAPER_ENABLED, DEFAULT_FULL_CHARGE_VOLTAGE_TAPER_ENABLED)
+                merged[CONF_FULL_CHARGE_VOLTAGE_TAPER_ENABLED] = user_input.get(
+                    CONF_FULL_CHARGE_VOLTAGE_TAPER_ENABLED, DEFAULT_FULL_CHARGE_VOLTAGE_TAPER_ENABLED
                 )
-                if brand in ("zendure", "sessy", "hoymiles"):
-                    capacity_default = (
-                        _hoymiles_capacity_default(self._current_battery_data)
-                        if brand == "hoymiles" else 0.0
-                    )
-                    merged["battery_capacity_kwh"] = round(float(user_input.get("battery_capacity_kwh", capacity_default)), 2)
                 _apply_mac_tracking(user_input, merged)
                 self.battery_configs.append(merged)
                 self.battery_index += 1
@@ -2406,24 +1453,24 @@ class MarstekVenusConfigFlow(LegacyDomainMigrationMixin, ConfigFlow, domain=DOMA
                 if self.battery_index >= self.config_data["num_batteries"]:
                     self.config_data["batteries"] = self.battery_configs
                     return await self.async_step_time_slots()
-                return await self.async_step_battery_brand()
+                self._current_battery_data = {"brand": "marstek"}
+                return await self.async_step_battery_connection()
 
         _schema: dict = {}
-        if brand != "anker":
-            default_charge = max(
-                100,
-                min(max_charge_power, int(self._current_battery_data.get("max_charge_power", max_charge_power))),
-            )
-            default_discharge = max(
-                100,
-                min(max_discharge_power, int(self._current_battery_data.get("max_discharge_power", max_discharge_power))),
-            )
-            _schema[vol.Required("max_charge_power", default=default_charge)] = NumberSelector(
-                NumberSelectorConfig(min=100, max=max_charge_power, step=50, unit_of_measurement="W", mode=NumberSelectorMode.SLIDER)
-            )
-            _schema[vol.Required("max_discharge_power", default=default_discharge)] = NumberSelector(
-                NumberSelectorConfig(min=100, max=max_discharge_power, step=50, unit_of_measurement="W", mode=NumberSelectorMode.SLIDER)
-            )
+        default_charge = max(
+            100,
+            min(max_charge_power, int(self._current_battery_data.get("max_charge_power", max_charge_power))),
+        )
+        default_discharge = max(
+            100,
+            min(max_discharge_power, int(self._current_battery_data.get("max_discharge_power", max_discharge_power))),
+        )
+        _schema[vol.Required("max_charge_power", default=default_charge)] = NumberSelector(
+            NumberSelectorConfig(min=100, max=max_charge_power, step=50, unit_of_measurement="W", mode=NumberSelectorMode.SLIDER)
+        )
+        _schema[vol.Required("max_discharge_power", default=default_discharge)] = NumberSelector(
+            NumberSelectorConfig(min=100, max=max_discharge_power, step=50, unit_of_measurement="W", mode=NumberSelectorMode.SLIDER)
+        )
         _schema.update({
             vol.Required("max_soc", default=soc_max_default):
                 NumberSelector(NumberSelectorConfig(min=soc_max_lo, max=soc_max_hi, step=1, mode=NumberSelectorMode.SLIDER)),
@@ -2436,28 +1483,9 @@ class MarstekVenusConfigFlow(LegacyDomainMigrationMixin, ConfigFlow, domain=DOMA
             vol.Required("backup_offgrid_threshold", default=50):
                 NumberSelector(NumberSelectorConfig(min=0, max=2500, step=10, unit_of_measurement="W", mode=NumberSelectorMode.SLIDER)),
         })
-        if (
-            brand == "marstek"
-            and self._current_battery_data.get(CONF_BATTERY_VERSION) in ("vA", "vD")
-        ):
+        if self._current_battery_data.get(CONF_BATTERY_VERSION) in ("vA", "vD"):
             _schema[vol.Required(CONF_DC_PV_CONNECTED, default=True)] = BooleanSelector()
-        if brand not in ("zendure", "anker", "sessy", "hoymiles", "huawei", "indevolt"):
-            _schema[vol.Required(CONF_FULL_CHARGE_VOLTAGE_TAPER_ENABLED, default=DEFAULT_FULL_CHARGE_VOLTAGE_TAPER_ENABLED)] = bool
-        if brand == "sessy":
-            # Sessy does not report a nominal capacity or identifiable packs.
-            _schema[vol.Required("battery_capacity_kwh")] = NumberSelector(
-                NumberSelectorConfig(min=0.01, max=100, step=0.01, unit_of_measurement="kWh", mode=NumberSelectorMode.BOX)
-            )
-        elif brand in ("zendure", "hoymiles"):
-            _schema[
-                vol.Optional(
-                    "battery_capacity_kwh",
-                    default=(_hoymiles_capacity_default(self._current_battery_data)
-                             if brand == "hoymiles" else 0.0),
-                )
-            ] = NumberSelector(
-                NumberSelectorConfig(min=0, max=100, step=0.01, unit_of_measurement="kWh", mode=NumberSelectorMode.BOX)
-            )
+        _schema[vol.Required(CONF_FULL_CHARGE_VOLTAGE_TAPER_ENABLED, default=DEFAULT_FULL_CHARGE_VOLTAGE_TAPER_ENABLED)] = bool
         if self.config_data.get(CONF_THREE_PHASE_ENABLED):
             # Keep the established L1 suggestion for a brand-new setup while
             # allowing the explicit Unassigned option when needed.
@@ -3122,21 +2150,6 @@ class MarstekVenusConfigFlow(LegacyDomainMigrationMixin, ConfigFlow, domain=DOMA
             else {}
         )
 
-        if current.get("brand", "marstek") == "zendure":
-            return await self.async_step_reconfigure_battery_zendure(user_input)
-        if current.get("brand", "marstek") == "esphome":
-            return await self.async_step_reconfigure_battery_esphome(user_input)
-        if current.get("brand", "marstek") == "anker":
-            return await self.async_step_reconfigure_battery_anker(user_input)
-        if current.get("brand", "marstek") == "sessy":
-            return await self.async_step_reconfigure_battery_sessy(user_input)
-        if current.get("brand", "marstek") == "indevolt":
-            return await self.async_step_reconfigure_battery_indevolt(user_input)
-        if current.get("brand", "marstek") == "hoymiles":
-            return await self.async_step_reconfigure_battery_hoymiles(user_input)
-        if current.get("brand", "marstek") == "huawei":
-            return await self.async_step_reconfigure_battery_huawei(user_input)
-
         errors = {}
 
         if user_input is not None:
@@ -3238,555 +2251,6 @@ class MarstekVenusConfigFlow(LegacyDomainMigrationMixin, ConfigFlow, domain=DOMA
             description_placeholders={"battery_num": str(battery_num)},
         )
 
-    async def async_step_reconfigure_battery_zendure(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Update connection settings for a Zendure battery during reconfiguration."""
-        entry = self._get_reconfigure_entry()
-        current_batteries = entry.data.get("batteries", [])
-        battery_num = self.battery_index + 1
-        current = (
-            current_batteries[self.battery_index]
-            if self.battery_index < len(current_batteries)
-            else {}
-        )
-        errors = {}
-
-        if user_input is not None:
-            new_host = user_input[CONF_HOST]
-            new_port = user_input[CONF_PORT]
-            ok, product = await ZendureLocalDriver.probe(new_host, new_port)
-            if not ok:
-                errors["base"] = "cannot_connect"
-            else:
-                old_host = current.get(CONF_HOST)
-                old_port = current.get(CONF_PORT)
-
-                if old_host and old_port and (old_host != new_host or old_port != new_port):
-                    self._migrate_battery_registry_ids(
-                        entry, old_host, old_port, new_host, new_port
-                    )
-
-                updated = dict(current)
-                updated[CONF_NAME] = user_input[CONF_NAME]
-                updated[CONF_HOST] = new_host
-                updated[CONF_PORT] = new_port
-                updated["zendure_model"] = _detect_zendure_model(product)
-                self._reconfigure_batteries.append(updated)
-                self.battery_index += 1
-
-                if self.battery_index >= len(current_batteries):
-                    return self.async_update_reload_and_abort(
-                        entry,
-                        data_updates={"batteries": self._reconfigure_batteries},
-                    )
-                return await self.async_step_reconfigure_battery()
-
-        defaults = {
-            CONF_NAME: current.get(CONF_NAME, f"Zendure SolarFlow {battery_num}"),
-            CONF_HOST: current.get(CONF_HOST, ""),
-            CONF_PORT: current.get(CONF_PORT, 80),
-        }
-
-        return self.async_show_form(
-            step_id="reconfigure_battery_zendure",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_NAME, default=defaults[CONF_NAME]): str,
-                    vol.Required(CONF_HOST, default=defaults[CONF_HOST]): str,
-                    vol.Required(CONF_PORT, default=defaults[CONF_PORT]): int,
-                }
-            ),
-            errors=errors,
-            description_placeholders={"battery_num": str(battery_num)},
-        )
-
-    async def async_step_reconfigure_battery_sessy(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Update connection settings for a Sessy battery during reconfiguration."""
-        entry = self._get_reconfigure_entry()
-        current_batteries = entry.data.get("batteries", [])
-        battery_num = self.battery_index + 1
-        current = (
-            current_batteries[self.battery_index]
-            if self.battery_index < len(current_batteries)
-            else {}
-        )
-        errors = {}
-
-        if user_input is not None:
-            new_host = user_input[CONF_HOST]
-            new_port = int(user_input.get(CONF_PORT, 80))
-            username = user_input[CONF_USERNAME]
-            password = user_input[CONF_PASSWORD]
-            _LOGGER.info("Probing Sessy device at %s:%s", new_host, new_port)
-            if not await SessyLocalDriver.probe(
-                new_host, new_port, username, password
-            ):
-                errors["base"] = "cannot_connect"
-            else:
-                old_host = current.get(CONF_HOST)
-                old_port = current.get(CONF_PORT)
-                if old_host and old_port and (old_host != new_host or old_port != new_port):
-                    self._migrate_battery_registry_ids(
-                        entry, old_host, old_port, new_host, new_port
-                    )
-
-                updated = dict(current)
-                updated.update({
-                    CONF_NAME: user_input[CONF_NAME],
-                    CONF_HOST: new_host,
-                    CONF_PORT: new_port,
-                    CONF_USERNAME: username,
-                    CONF_PASSWORD: password,
-                    "brand": "sessy",
-                })
-                self._reconfigure_batteries.append(updated)
-                self.battery_index += 1
-                if self.battery_index >= len(current_batteries):
-                    return self.async_update_reload_and_abort(
-                        entry, data_updates={"batteries": self._reconfigure_batteries}
-                    )
-                return await self.async_step_reconfigure_battery()
-
-        return self.async_show_form(
-            step_id="reconfigure_battery_sessy",
-            data_schema=vol.Schema({
-                vol.Required(CONF_NAME, default=current.get(CONF_NAME, f"Sessy {battery_num}")): str,
-                vol.Required(CONF_HOST, default=current.get(CONF_HOST, "")): str,
-                vol.Required(CONF_PORT, default=current.get(CONF_PORT, 80)): int,
-                vol.Required(
-                    CONF_USERNAME, default=current.get(CONF_USERNAME, "")
-                ): str,
-                vol.Required(
-                    CONF_PASSWORD, default=current.get(CONF_PASSWORD, "")
-                ): TextSelector(
-                    TextSelectorConfig(type=TextSelectorType.PASSWORD)
-                ),
-            }),
-            errors=errors,
-            description_placeholders={"battery_num": str(battery_num)},
-        )
-
-    async def async_step_reconfigure_battery_indevolt(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Update connection settings for an Indevolt battery during reconfiguration."""
-        entry = self._get_reconfigure_entry()
-        current_batteries = entry.data.get("batteries", [])
-        battery_num = self.battery_index + 1
-        current = (
-            current_batteries[self.battery_index]
-            if self.battery_index < len(current_batteries)
-            else {}
-        )
-        errors = {}
-
-        if user_input is not None:
-            probed = await _indevolt_probe(user_input)
-            if isinstance(probed, str):
-                errors["base"] = probed
-            else:
-                data, _info = probed
-                self._reconfigure_indevolt = {**current, **data}
-                return await self.async_step_reconfigure_battery_indevolt_request_speed()
-
-        return self.async_show_form(
-            step_id="reconfigure_battery_indevolt",
-            data_schema=_indevolt_connection_schema(user_input or current, battery_num),
-            errors=errors,
-            description_placeholders={"battery_num": str(battery_num)},
-        )
-
-    async def async_step_reconfigure_battery_indevolt_request_speed(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Update the request speed of an Indevolt battery during reconfiguration."""
-        entry = self._get_reconfigure_entry()
-        current_batteries = entry.data.get("batteries", [])
-        current = current_batteries[self.battery_index]
-        updated = self._reconfigure_indevolt
-
-        if user_input is not None:
-            updated[CONF_INDEVOLT_REQUEST_SPEED] = _indevolt_request_speed(user_input)
-            # Migrated only now, so leaving the flow on this screen changes nothing.
-            old_host = current.get(CONF_HOST)
-            old_port = current.get(CONF_PORT)
-            if old_host and old_port and (old_host != updated[CONF_HOST] or old_port != updated[CONF_PORT]):
-                self._migrate_battery_registry_ids(
-                    entry, old_host, old_port, updated[CONF_HOST], updated[CONF_PORT]
-                )
-            self._reconfigure_batteries.append(updated)
-            self.battery_index += 1
-            if self.battery_index >= len(current_batteries):
-                return self.async_update_reload_and_abort(
-                    entry, data_updates={"batteries": self._reconfigure_batteries}
-                )
-            return await self.async_step_reconfigure_battery()
-
-        return self.async_show_form(
-            step_id="reconfigure_battery_indevolt_request_speed",
-            data_schema=_indevolt_request_speed_schema(updated),
-            description_placeholders={"battery_num": str(self.battery_index + 1)},
-        )
-
-    async def async_step_reconfigure_battery_esphome(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Update the ESPHome bridge device for a battery during reconfiguration."""
-        entry = self._get_reconfigure_entry()
-        current_batteries = entry.data.get("batteries", [])
-        battery_num = self.battery_index + 1
-        current = (
-            current_batteries[self.battery_index]
-            if self.battery_index < len(current_batteries)
-            else {}
-        )
-        errors = {}
-        placeholders: dict[str, str] = {"battery_num": str(battery_num)}
-
-        if user_input is not None:
-            device_id = user_input["esphome_device"]
-            _, missing = EsphomeEntityDriver.resolve(self.hass, device_id)
-            if missing:
-                errors["base"] = "esphome_entities_missing"
-                placeholders["missing"] = ", ".join(missing)
-            else:
-                old_host = current.get(CONF_HOST)
-                old_port = current.get(CONF_PORT)
-                if old_host and old_host != device_id:
-                    self._migrate_battery_registry_ids(
-                        entry, old_host, old_port, device_id, 0
-                    )
-
-                updated = dict(current)
-                updated[CONF_NAME] = user_input[CONF_NAME]
-                updated[CONF_HOST] = device_id
-                updated[CONF_PORT] = 0
-                updated["esphome_device_id"] = device_id
-                self._reconfigure_batteries.append(updated)
-                self.battery_index += 1
-
-                if self.battery_index >= len(current_batteries):
-                    return self.async_update_reload_and_abort(
-                        entry,
-                        data_updates={"batteries": self._reconfigure_batteries},
-                    )
-                return await self.async_step_reconfigure_battery()
-
-        schema: dict = {
-            vol.Required(CONF_NAME, default=current.get(CONF_NAME, f"Marstek Venus {battery_num}")): str,
-        }
-        current_device = current.get("esphome_device_id")
-        if current_device:
-            schema[vol.Required("esphome_device", default=current_device)] = DeviceSelector(
-                DeviceSelectorConfig(integration="esphome")
-            )
-        else:
-            schema[vol.Required("esphome_device")] = DeviceSelector(
-                DeviceSelectorConfig(integration="esphome")
-            )
-
-        return self.async_show_form(
-            step_id="reconfigure_battery_esphome",
-            data_schema=vol.Schema(schema),
-            errors=errors,
-            description_placeholders=placeholders,
-        )
-
-
-    async def async_step_reconfigure_battery_anker(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Update connection settings for an Anker battery during reconfiguration."""
-        entry = self._get_reconfigure_entry()
-        current_batteries = entry.data.get("batteries", [])
-        battery_num = self.battery_index + 1
-        current = (
-            current_batteries[self.battery_index]
-            if self.battery_index < len(current_batteries)
-            else {}
-        )
-        errors = {}
-
-        if user_input is not None:
-            new_host = user_input[CONF_HOST]
-            new_port = int(user_input.get(CONF_PORT, 502))
-            slave_id = int(user_input.get(CONF_SLAVE_ID, DEFAULT_SLAVE_ID))
-            ok, _ = await _validate_anker_connection(
-                self.hass,
-                entry.entry_id,
-                new_host,
-                new_port,
-                slave_id,
-            )
-            if not ok:
-                errors["base"] = "cannot_connect"
-            else:
-                old_host = current.get(CONF_HOST)
-                old_port = current.get(CONF_PORT)
-
-                if old_host and old_port and (old_host != new_host or old_port != new_port):
-                    self._migrate_battery_registry_ids(
-                        entry, old_host, old_port, new_host, new_port
-                    )
-
-                updated = dict(current)
-                updated[CONF_NAME] = user_input[CONF_NAME]
-                updated[CONF_HOST] = new_host
-                updated[CONF_PORT] = new_port
-                updated[CONF_SLAVE_ID] = slave_id
-                updated["brand"] = "anker"
-                self._reconfigure_batteries.append(updated)
-                self.battery_index += 1
-
-                if self.battery_index >= len(current_batteries):
-                    return self.async_update_reload_and_abort(
-                        entry,
-                        data_updates={"batteries": self._reconfigure_batteries},
-                    )
-                return await self.async_step_reconfigure_battery()
-
-        defaults = {
-            CONF_NAME: current.get(CONF_NAME, f"Anker Solarbank {battery_num}"),
-            CONF_HOST: current.get(CONF_HOST, ""),
-            CONF_PORT: current.get(CONF_PORT, 502),
-            CONF_SLAVE_ID: current.get(CONF_SLAVE_ID, DEFAULT_SLAVE_ID),
-        }
-
-        return self.async_show_form(
-            step_id="reconfigure_battery_anker",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_NAME, default=defaults[CONF_NAME]): str,
-                    vol.Required(CONF_HOST, default=defaults[CONF_HOST]): str,
-                    vol.Required(CONF_PORT, default=defaults[CONF_PORT]): int,
-                    vol.Required(CONF_SLAVE_ID, default=defaults[CONF_SLAVE_ID]):
-                        vol.All(NumberSelector(NumberSelectorConfig(min=1, max=247, step=1, mode=NumberSelectorMode.BOX)), vol.Coerce(int)),
-                }
-            ),
-            errors=errors,
-            description_placeholders={"battery_num": str(battery_num)},
-        )
-
-    async def async_step_reconfigure_battery_huawei(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Update a Huawei battery's connection without asking Marstek questions.
-
-        Without this branch the reconfigure flow offered the Marstek form and
-        probe: a battery version, a slave id meaning something else, and no way
-        to reach the fields this brand actually needs.
-        """
-        entry = self._get_reconfigure_entry()
-        current = entry.data.get("batteries", [])[self.battery_index]
-        errors: dict[str, str] = {}
-
-        if user_input is not None:
-            host = (user_input[CONF_HOST] or "").strip()
-            port = int(user_input.get(CONF_PORT, 502))
-            raw_slave = user_input.get(CONF_SLAVE_ID)
-            slave_id = None if raw_slave in (None, "") else int(raw_slave)
-            device_id = user_input.get("huawei_battery_device") or ""
-            direct_write = bool(user_input.get("huawei_direct_write", False))
-
-            if not direct_write and not device_id:
-                errors["huawei_battery_device"] = (
-                    "huawei_device_required"
-                    if self.hass.config_entries.async_entries(HUAWEI_SOLAR_DOMAIN)
-                    else "huawei_solar_missing"
-                )
-            else:
-                found = slave_id
-                cascade = []
-                if found is None:
-                    candidates = await HuaweiSolarDriver.scan_slave_ids(self.hass, host, port)
-                    with_battery = [candidate for candidate in candidates if candidate[2]]
-                    if len(with_battery) > 1:
-                        # A cascade is not a failure to connect; only the user
-                        # can say which inverter this battery belongs to.
-                        cascade = with_battery
-                    elif with_battery:
-                        found = with_battery[0][0]
-                ok, model, max_charge, max_discharge, serial, inverter_max = (
-                    await HuaweiSolarDriver.probe(self.hass, host, port, found)
-                    if found is not None
-                    else (False, None, None, None, None, None)
-                )
-                if cascade:
-                    self._huawei_candidates = cascade
-                    self._huawei_pending = {
-                        CONF_NAME: user_input[CONF_NAME],
-                        CONF_HOST: host,
-                        CONF_PORT: port,
-                        "huawei_battery_device_id": device_id,
-                        "huawei_direct_write": direct_write,
-                    }
-                    self._huawei_reconfigure_current = current
-                    return await self.async_step_reconfigure_battery_huawei_slave()
-                if not ok:
-                    errors["base"] = "cannot_connect"
-                elif not _huawei_device_matches_inverter(
-                    self.hass, device_id, serial, found
-                ):
-                    # Same check the setup flow makes: telemetry and commands
-                    # must reach the same inverter, which a cascade can break.
-                    errors["huawei_battery_device"] = "huawei_device_mismatch"
-                else:
-                    return await self._huawei_reconfigure_store(
-                        entry, current, user_input, host, port, found,
-                        model, max_charge, max_discharge, inverter_max,
-                    )
-        return self.async_show_form(
-            step_id="reconfigure_battery_huawei",
-            data_schema=self._huawei_schema(current, self.battery_index + 1),
-            errors=errors,
-            description_placeholders={"battery_num": str(self.battery_index + 1)},
-        )
-
-    async def async_step_reconfigure_battery_huawei_slave(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Pick which inverter of a cascade this battery belongs to."""
-        candidates = getattr(self, "_huawei_candidates", [])
-        if user_input is not None:
-            entry = self._get_reconfigure_entry()
-            current = self._huawei_reconfigure_current
-            pending = self._huawei_pending
-            slave_id = int(user_input[CONF_SLAVE_ID])
-            ok, model, max_charge, max_discharge, serial, inverter_max = (
-                await HuaweiSolarDriver.probe(
-                    self.hass, pending[CONF_HOST], pending[CONF_PORT], slave_id
-                )
-            )
-            if ok:
-                if not _huawei_device_matches_inverter(
-                    self.hass,
-                    pending.get("huawei_battery_device_id"),
-                    serial,
-                    slave_id,
-                ):
-                    # The selected device is not editable on the cascade form;
-                    # return to the Huawei form so the user can choose the
-                    # matching device or switch to direct writes.
-                    return self.async_show_form(
-                        step_id="reconfigure_battery_huawei",
-                        data_schema=self._huawei_schema(
-                            current, self.battery_index + 1
-                        ),
-                        errors={"huawei_battery_device": "huawei_device_mismatch"},
-                        description_placeholders={
-                            "battery_num": str(self.battery_index + 1)
-                        },
-                    )
-                return await self._huawei_reconfigure_store(
-                    entry, current, pending, pending[CONF_HOST], pending[CONF_PORT],
-                    slave_id, model, max_charge, max_discharge, inverter_max,
-                )
-            return self.async_show_form(
-                step_id="reconfigure_battery_huawei_slave",
-                data_schema=self._huawei_slave_schema(candidates),
-                errors={"base": "cannot_connect"},
-                description_placeholders={"count": str(len(candidates))},
-            )
-        return self.async_show_form(
-            step_id="reconfigure_battery_huawei_slave",
-            data_schema=self._huawei_slave_schema(candidates),
-            description_placeholders={"count": str(len(candidates))},
-        )
-
-    async def _huawei_reconfigure_store(
-        self, entry, current, values, host, port, slave_id,
-        model, max_charge, max_discharge, inverter_max,
-    ) -> FlowResult:
-        """Write the updated battery back, carrying its history with it."""
-        old_host = current.get(CONF_HOST)
-        old_port = current.get(CONF_PORT, 502)
-        old_slave = current.get(CONF_SLAVE_ID, DEFAULT_SLAVE_ID)
-        # The slave id is part of a battery's identity, so changing it renames
-        # every entity and the device itself unless the registry follows.
-        if old_host and (old_host != host or old_port != port or old_slave != slave_id):
-            self._migrate_battery_registry_ids(
-                entry, old_host, old_port, host, port, old_slave, slave_id
-            )
-
-        device_id = (
-            values.get("huawei_battery_device_id")
-            or values.get("huawei_battery_device")
-            or ""
-        )
-        updated = dict(current)
-        updated.update({
-            CONF_NAME: values[CONF_NAME],
-            CONF_HOST: host,
-            CONF_PORT: port,
-            CONF_SLAVE_ID: slave_id,
-            "brand": "huawei",
-            "huawei_battery_device_id": device_id,
-            "huawei_direct_write": bool(values.get("huawei_direct_write", False)),
-            "huawei_model": model,
-        })
-        if max_charge:
-            updated["device_max_charge_power"] = int(max_charge)
-        if max_discharge:
-            updated["device_max_discharge_power"] = int(max_discharge)
-        if inverter_max:
-            updated["device_inverter_max_power"] = int(inverter_max)
-
-        # Re-detect rather than carry over: pointed at a different endpoint, a
-        # remembered unit id would have the driver reading a grid meter that is
-        # not there, or worse, some other device answering on that id.
-        emma = await HuaweiSolarDriver.find_emma_slave_id(self.hass, host, port)
-        if emma is not None:
-            updated["huawei_emma_slave_id"] = emma
-        else:
-            updated.pop("huawei_emma_slave_id", None)
-
-        self._reconfigure_batteries.append(updated)
-        self.battery_index += 1
-        if self.battery_index >= len(entry.data.get("batteries", [])):
-            return self.async_update_reload_and_abort(
-                entry, data_updates={"batteries": self._reconfigure_batteries}
-            )
-        return await self.async_step_reconfigure_battery()
-
-    async def async_step_reconfigure_battery_hoymiles(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Update the MQTT device id without asking for broker credentials."""
-        entry = self._get_reconfigure_entry()
-        current = entry.data.get("batteries", [])[self.battery_index]
-        errors = {}
-        if user_input is not None:
-            device_id = user_input["device_id"].strip()
-            ok, caps = await HoymilesMqttDriver.probe(
-                self.hass,
-                device_id,
-                model_hint=_hoymiles_model_hint(user_input),
-            )
-            if not ok:
-                errors["base"] = caps.get("error", "cannot_connect")
-            else:
-                old_host, old_port = current.get(CONF_HOST), current.get(CONF_PORT, 0)
-                if old_host and old_host != device_id:
-                    self._migrate_battery_registry_ids(entry, old_host, old_port, device_id, 0)
-                updated = dict(current)
-                updated.update({CONF_NAME: user_input[CONF_NAME], CONF_HOST: device_id, CONF_PORT: 0,
-                                "device_id": device_id, "brand": "hoymiles"})
-                _hoymiles_apply_probe_caps(
-                    updated, caps, upgrade_legacy_defaults=True
-                )
-                self._reconfigure_batteries.append(updated)
-                self.battery_index += 1
-                if self.battery_index >= len(entry.data.get("batteries", [])):
-                    return self.async_update_reload_and_abort(entry, data_updates={"batteries": self._reconfigure_batteries})
-                return await self.async_step_reconfigure_battery()
-        model_field, model_selector = _hoymiles_model_selector(
-            current.get("hoymiles_model", _HOYMILES_MODEL_AUTO)
-        )
-        return self.async_show_form(step_id="reconfigure_battery_hoymiles", data_schema=vol.Schema({
-            vol.Required(CONF_NAME, default=current.get(CONF_NAME, "Hoymiles")): str,
-            vol.Required("device_id", default=current.get("device_id", current.get(CONF_HOST, ""))): str,
-            model_field: model_selector,
-        }), errors=errors, description_placeholders={"battery_num": str(self.battery_index + 1)})
-
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
@@ -3838,9 +2302,6 @@ class MarstekVenusConfigFlow(LegacyDomainMigrationMixin, ConfigFlow, domain=DOMA
             battery.get(CONF_PORT),
             battery.get(CONF_BATTERY_VERSION, DEFAULT_VERSION),
             battery.get(CONF_SLAVE_ID, DEFAULT_SLAVE_ID),
-            brand=battery.get("brand", "marstek"),
-            username=battery.get(CONF_USERNAME, ""),
-            password=battery.get(CONF_PASSWORD, ""),
         )
 
     async def _async_probe_candidate(
@@ -3958,28 +2419,16 @@ class OptionsFlowHandler(OptionsFlow):
         port: int,
         version: str = "v2",
         slave_id: int = DEFAULT_SLAVE_ID,
-        brand: str = "marstek",
         serial_port: str | None = None,
     ) -> bool:
         """Test connection to a battery.
 
-        For Zendure: simple HTTP probe (no single-slot constraint).
-        For Marstek: temporarily closes any existing coordinator connection to
+        Temporarily closes any existing coordinator connection to
         free the single Modbus TCP slot (or the serial port), probes, then
         reconnects. ``serial_port`` probes over Modbus RTU instead of TCP (#350).
         """
         self._last_marstek_ems_version = None
-        if brand == "zendure":
-            _LOGGER.info("Probing Zendure device at %s:%s", host, port)
-            ok, _ = await ZendureLocalDriver.probe(host, port)
-            return ok
-
-        if brand == "anker":
-            _LOGGER.info("Probing Anker Solarbank at %s:%s slave %s", host, port, slave_id)
-            ok, _ = await AnkerModbusDriver.probe(host, port, slave_id)
-            return ok
-
-        # Marstek: handle single-connection-slot constraint.
+        # Handle the single-connection-slot constraint.
         entry_data = self.hass.data.get(DOMAIN, {}).get(self.config_entry.entry_id, {})
         coordinators = entry_data.get("coordinators", [])
         existing_coordinator = None
@@ -4022,6 +2471,24 @@ class OptionsFlowHandler(OptionsFlow):
                     host, port, version, slave_id, serial_port=serial_port
                 )
             return result
+
+    def _initial_battery_data(self) -> dict:
+        """Seed for the current battery slot's connection/limits steps.
+
+        No connection step asks for MAC tracking, so the stored opt-in and MAC
+        ride along to battery_limits, the form that shows them.
+        """
+        current_batteries = self.config_entry.data.get("batteries", [])
+        current_battery = (
+            current_batteries[self.battery_index]
+            if self.battery_index < len(current_batteries)
+            else {}
+        )
+        return {
+            "brand": "marstek",
+            CONF_TRACK_MAC: current_battery.get(CONF_TRACK_MAC, False),
+            CONF_MAC: current_battery.get(CONF_MAC, ""),
+        }
 
     async def _save_and_finish(self) -> FlowResult:
         """Merge config_data into existing entry data, save, and reload."""
@@ -4344,7 +2811,8 @@ class OptionsFlowHandler(OptionsFlow):
         try:
             if user_input is not None:
                 self.config_data["num_batteries"] = int(user_input["num_batteries"])
-                return await self.async_step_battery_brand()
+                self._current_battery_data = self._initial_battery_data()
+                return await self.async_step_battery_connection()
 
             # Load current number of batteries with defensive handling
             batteries = self.config_entry.data.get("batteries", [])
@@ -4356,65 +2824,6 @@ class OptionsFlowHandler(OptionsFlow):
         return self.async_show_form(
             step_id="battery_count",
             data_schema=_battery_count_schema(current_batteries),
-        )
-
-    async def async_step_battery_brand(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Select battery brand for the current battery slot."""
-        battery_num = self.battery_index + 1
-        current_batteries = self.config_entry.data.get("batteries", [])
-        current_battery = (
-            current_batteries[self.battery_index]
-            if self.battery_index < len(current_batteries)
-            else {}
-        )
-        current_brand = current_battery.get("brand", "marstek")
-
-        if user_input is not None:
-            brand = user_input["brand"]
-            # No connection step asks for MAC tracking, so the stored opt-in and
-            # MAC ride along to battery_limits, the form that shows them.
-            self._current_battery_data = {
-                "brand": brand,
-                CONF_TRACK_MAC: current_battery.get(CONF_TRACK_MAC, False),
-                CONF_MAC: current_battery.get(CONF_MAC, ""),
-            }
-            if brand == "zendure":
-                return await self.async_step_battery_connection_zendure()
-            if brand == "esphome":
-                return await self.async_step_battery_connection_esphome()
-            if brand == "anker":
-                return await self.async_step_battery_connection_anker()
-            if brand == "sessy":
-                return await self.async_step_battery_connection_sessy()
-            if brand == "indevolt":
-                return await self.async_step_battery_connection_indevolt()
-            if brand == "huawei":
-                return await self.async_step_battery_connection_huawei()
-            if brand == "hoymiles":
-                return await self.async_step_battery_connection_hoymiles()
-            return await self.async_step_battery_connection()
-
-        return self.async_show_form(
-            step_id="battery_brand",
-            data_schema=vol.Schema(
-                {
-                    vol.Required("brand", default=current_brand):
-                        SelectSelector(SelectSelectorConfig(
-                            options=[
-                                {"value": "marstek", "label": "Marstek Venus"},
-                                {"value": "zendure", "label": "Zendure SolarFlow"},
-                                {"value": "esphome", "label": "Marstek via LilyGo RS485 (ESPHome)"},
-                                {"value": "anker", "label": "Anker SOLIX Solarbank Max AC / 4 E5000 Pro"},
-                                {"value": "sessy", "label": "Sessy"},
-                                {"value": "indevolt", "label": "Indevolt SolidFlex / PowerFlex"},
-                                {"value": "hoymiles", "label": "Hoymiles MQTT"},
-                                {"value": "huawei", "label": "Huawei SUN2000 + LUNA2000"},
-                            ],
-                            mode=SelectSelectorMode.DROPDOWN,
-                        )),
-                }
-            ),
-            description_placeholders={"battery_num": str(battery_num)},
         )
 
     async def async_step_battery_connection(self, user_input: dict[str, Any] | None = None) -> FlowResult:
@@ -4444,7 +2853,7 @@ class OptionsFlowHandler(OptionsFlow):
                     errors["base"] = "host_or_serial_required"
                 elif not await self._test_connection(
                     host, port, battery_version, slave_id,
-                    brand="marstek", serial_port=serial_port or None,
+                    serial_port=serial_port or None,
                 ):
                     errors["base"] = "cannot_connect"
                 else:
@@ -4517,592 +2926,15 @@ class OptionsFlowHandler(OptionsFlow):
             description_placeholders={"battery_num": str(battery_num)},
         )
 
-    async def async_step_battery_connection_zendure(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Configure connection details for a Zendure SolarFlow device."""
-        errors = {}
-
-        try:
-            battery_num = self.battery_index + 1
-            current_batteries = self.config_entry.data.get("batteries", [])
-
-            if user_input is not None:
-                host = user_input[CONF_HOST]
-                port = int(user_input.get(CONF_PORT, 80))
-                ok, product = await ZendureLocalDriver.probe(host, port)
-                if not ok:
-                    errors["base"] = "cannot_connect"
-                else:
-                    self._current_battery_data.update({
-                        CONF_NAME: user_input[CONF_NAME],
-                        CONF_HOST: host,
-                        CONF_PORT: port,
-                        "brand": "zendure",
-                        "zendure_model": _detect_zendure_model(product),
-                    })
-                    return await self.async_step_battery_limits()
-
-            if self.battery_index < len(current_batteries):
-                current_battery = current_batteries[self.battery_index]
-                defaults = {
-                    CONF_NAME: current_battery.get(CONF_NAME, f"Zendure SolarFlow {battery_num}"),
-                    CONF_HOST: current_battery.get(CONF_HOST, ""),
-                    CONF_PORT: current_battery.get(CONF_PORT, 80),
-                }
-            else:
-                defaults = {
-                    CONF_NAME: f"Zendure SolarFlow {battery_num}",
-                    CONF_HOST: "",
-                    CONF_PORT: 80,
-                }
-        except Exception as e:
-            _LOGGER.error("Error in options flow battery_connection_zendure step: %s", e, exc_info=True)
-            return self.async_abort(reason="unknown_error")
-
-        return self.async_show_form(
-            step_id="battery_connection_zendure",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_NAME, default=defaults[CONF_NAME]): str,
-                    vol.Required(CONF_HOST, default=defaults[CONF_HOST]): str,
-                    vol.Optional(CONF_PORT, default=defaults[CONF_PORT]): int,
-                }
-            ),
-            errors=errors,
-            description_placeholders={"battery_num": str(battery_num)},
-        )
-
-    async def async_step_battery_connection_sessy(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Configure a Sessy through its local dongle HTTP API."""
-        errors = {}
-        battery_num = self.battery_index + 1
-        current_batteries = self.config_entry.data.get("batteries", [])
-        current_battery = (
-            current_batteries[self.battery_index]
-            if self.battery_index < len(current_batteries)
-            else {}
-        )
-
-        if user_input is not None:
-            host = user_input[CONF_HOST]
-            port = int(user_input.get(CONF_PORT, 80))
-            username = user_input[CONF_USERNAME]
-            password = user_input[CONF_PASSWORD]
-            _LOGGER.info("Probing Sessy device at %s:%s", host, port)
-            if await SessyLocalDriver.probe(host, port, username, password):
-                self._current_battery_data.update({
-                    CONF_NAME: user_input[CONF_NAME],
-                    CONF_HOST: host,
-                    CONF_PORT: port,
-                    CONF_USERNAME: username,
-                    CONF_PASSWORD: password,
-                    "brand": "sessy",
-                })
-                return await self.async_step_battery_limits()
-            errors["base"] = "cannot_connect"
-
-        return self.async_show_form(
-            step_id="battery_connection_sessy",
-            data_schema=vol.Schema({
-                vol.Required(
-                    CONF_NAME,
-                    default=current_battery.get(CONF_NAME, f"Sessy {battery_num}"),
-                ): str,
-                vol.Required(CONF_HOST, default=current_battery.get(CONF_HOST, "")): str,
-                vol.Optional(CONF_PORT, default=current_battery.get(CONF_PORT, 80)): int,
-                vol.Required(
-                    CONF_USERNAME,
-                    default=current_battery.get(CONF_USERNAME, ""),
-                ): str,
-                vol.Required(
-                    CONF_PASSWORD,
-                    default=current_battery.get(CONF_PASSWORD, ""),
-                ): TextSelector(
-                    TextSelectorConfig(type=TextSelectorType.PASSWORD)
-                ),
-            }),
-            errors=errors,
-            description_placeholders={"battery_num": str(battery_num)},
-        )
-
-    async def async_step_battery_connection_esphome(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Pick the LilyGo/ESPHome device bridging a Marstek battery."""
-        errors = {}
-        battery_num = self.battery_index + 1
-        placeholders: dict[str, str] = {"battery_num": str(battery_num)}
-
-        try:
-            current_batteries = self.config_entry.data.get("batteries", [])
-
-            if user_input is not None:
-                device_id = user_input["esphome_device"]
-                _, missing = EsphomeEntityDriver.resolve(self.hass, device_id)
-                if missing:
-                    errors["base"] = "esphome_entities_missing"
-                    placeholders["missing"] = ", ".join(missing)
-                else:
-                    self._current_battery_data.update({
-                        CONF_NAME: user_input[CONF_NAME],
-                        CONF_HOST: device_id,
-                        CONF_PORT: 0,
-                        "brand": "esphome",
-                        "esphome_device_id": device_id,
-                    })
-                    return await self.async_step_battery_limits()
-
-            if self.battery_index < len(current_batteries):
-                current_battery = current_batteries[self.battery_index]
-                defaults = {
-                    CONF_NAME: current_battery.get(CONF_NAME, f"Marstek Venus {battery_num}"),
-                    "esphome_device": current_battery.get("esphome_device_id"),
-                }
-            else:
-                defaults = {
-                    CONF_NAME: f"Marstek Venus {battery_num}",
-                    "esphome_device": None,
-                }
-        except Exception as e:
-            _LOGGER.error("Error in options flow battery_connection_esphome step: %s", e, exc_info=True)
-            return self.async_abort(reason="unknown_error")
-
-        device_selector = DeviceSelector(DeviceSelectorConfig(integration="esphome"))
-        schema: dict = {vol.Required(CONF_NAME, default=defaults[CONF_NAME]): str}
-        if defaults["esphome_device"]:
-            schema[vol.Required("esphome_device", default=defaults["esphome_device"])] = device_selector
-        else:
-            schema[vol.Required("esphome_device")] = device_selector
-
-        return self.async_show_form(
-            step_id="battery_connection_esphome",
-            data_schema=vol.Schema(schema),
-            errors=errors,
-            description_placeholders=placeholders,
-        )
-
-
-    async def async_step_battery_connection_indevolt(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Configure an Indevolt battery through its local HTTP API (read-only probe)."""
-        errors = {}
-        battery_num = self.battery_index + 1
-        current_batteries = self.config_entry.data.get("batteries", [])
-        current_battery = (
-            current_batteries[self.battery_index]
-            if self.battery_index < len(current_batteries)
-            else {}
-        )
-        if user_input is not None:
-            probed = await _indevolt_probe(user_input)
-            if isinstance(probed, str):
-                errors["base"] = probed
-            else:
-                data, info = probed
-                self._current_battery_data.update(data)
-                _indevolt_prefill(self._current_battery_data, info, current_battery)
-                if not info["realtime_mode"]:
-                    return await self.async_step_indevolt_mode_notice()
-                return await self.async_step_indevolt_request_speed()
-        return self.async_show_form(
-            step_id="battery_connection_indevolt",
-            data_schema=_indevolt_connection_schema(user_input or current_battery, battery_num),
-            errors=errors,
-            description_placeholders={"battery_num": str(battery_num)},
-        )
-
-    async def async_step_indevolt_mode_notice(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Realtime mode is required; setup continues and control starts once it is set."""
-        if user_input is not None:
-            return await self.async_step_indevolt_request_speed()
-        return self.async_show_form(
-            step_id="indevolt_mode_notice",
-            data_schema=vol.Schema({}),
-            description_placeholders={"battery_num": str(self.battery_index + 1)},
-        )
-
-    async def async_step_indevolt_request_speed(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Choose how fast Omnibattery may send requests to the Indevolt battery."""
-        if user_input is not None:
-            self._current_battery_data[CONF_INDEVOLT_REQUEST_SPEED] = _indevolt_request_speed(user_input)
-            return await self.async_step_battery_limits()
-        current_batteries = self.config_entry.data.get("batteries", [])
-        current_battery = (
-            current_batteries[self.battery_index]
-            if self.battery_index < len(current_batteries)
-            else {}
-        )
-        return self.async_show_form(
-            step_id="indevolt_request_speed",
-            data_schema=_indevolt_request_speed_schema(current_battery),
-            description_placeholders={"battery_num": str(self.battery_index + 1)},
-        )
-
-    async def async_step_battery_connection_huawei(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Configure a Huawei SUN2000 + LUNA2000.
-
-        Control takes one of two paths. By default set-points go through the
-        Huawei Solar integration's services, which address the battery by
-        device. With direct Modbus writes the driver addresses the inverter
-        itself and needs nothing from that integration — which is why the device
-        field is optional and only checked when it is actually used.
-        """
-        errors = {}
-        battery_num = self.battery_index + 1
-        entry = getattr(self, "config_entry", None)
-        current_batteries = entry.data.get("batteries", []) if entry else []
-        current_battery = (
-            current_batteries[self.battery_index]
-            if self.battery_index < len(current_batteries)
-            else {}
-        )
-
-        if user_input is not None:
-            host = (user_input[CONF_HOST] or "").strip()
-            port = int(user_input.get(CONF_PORT, 502))
-            raw_slave = user_input.get(CONF_SLAVE_ID)
-            slave_id = None if raw_slave in (None, "") else int(raw_slave)
-            device_id = user_input.get("huawei_battery_device") or ""
-            direct_write = bool(user_input.get("huawei_direct_write", False))
-            self._huawei_pending = {
-                CONF_NAME: user_input[CONF_NAME],
-                CONF_HOST: host,
-                CONF_PORT: port,
-                "huawei_battery_device_id": device_id,
-                "huawei_direct_write": direct_write,
-            }
-            if not direct_write and not device_id:
-                # Without direct writes every set-point is a service call, and
-                # those address the battery by device. A missing integration is
-                # a different problem than an unanswered question, so say which.
-                errors["huawei_battery_device"] = (
-                    "huawei_device_required"
-                    if self.hass.config_entries.async_entries(HUAWEI_SOLAR_DOMAIN)
-                    else "huawei_solar_missing"
-                )
-            elif slave_id is not None:
-                _LOGGER.info(
-                    "Probing Huawei inverter at %s:%s (slave %s)", host, port, slave_id
-                )
-                ok, model, max_charge, max_discharge, serial, inverter_max = await HuaweiSolarDriver.probe(
-                    self.hass, host, port, slave_id
-                )
-                if ok:
-                    result = await self._huawei_store(
-                        slave_id, model, max_charge, max_discharge, serial,
-                        inverter_max, errors,
-                    )
-                    if result is not None:
-                        return result
-                else:
-                    # An id that does not answer is a guess worth replacing, not
-                    # a reason to send the user away.
-                    result = await self._huawei_search(host, port, errors)
-                    if result is not None:
-                        return result
-            else:
-                result = await self._huawei_search(host, port, errors)
-                if result is not None:
-                    return result
-
-        return self.async_show_form(
-            step_id="battery_connection_huawei",
-            data_schema=self._huawei_schema(current_battery, battery_num),
-            errors=errors,
-            description_placeholders={
-                "battery_num": str(battery_num),
-                "proxy_url": _MODBUS_PROXY_URL,
-            },
-        )
-
-    async def _huawei_search(self, host: str, port: int, errors: dict) -> FlowResult | None:
-        """Look for inverters on the bus; returns None when nothing usable was found.
-
-        One match is taken straight away. Several mean a cascade, which only the
-        user can resolve — a battery belongs to one of them.
-        """
-        _LOGGER.info("Scanning %s:%s for Huawei inverters", host, port)
-        found = await HuaweiSolarDriver.scan_slave_ids(self.hass, host, port)
-        with_battery = [candidate for candidate in found if candidate[2]]
-        if len(with_battery) == 1:
-            sid = with_battery[0][0]
-            ok, model, max_charge, max_discharge, serial, inverter_max = await HuaweiSolarDriver.probe(
-                self.hass, host, port, sid
-            )
-            if ok:
-                _LOGGER.info("Found a Huawei battery on slave %s", sid)
-                # A mismatch leaves its own error behind and must not be
-                # papered over by the scan verdict below.
-                return await self._huawei_store(
-                    sid, model, max_charge, max_discharge, serial, inverter_max, errors
-                )
-        if len(with_battery) > 1:
-            self._huawei_candidates = with_battery
-            return await self.async_step_battery_connection_huawei_slave()
-        # A reachable inverter with no SOC means no battery is attached, which is
-        # a different mistake than an unreachable address.
-        errors["base"] = "no_battery" if found else "cannot_connect"
-        return None
-
-    async def async_step_battery_connection_huawei_slave(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Pick which inverter on the bus this battery belongs to."""
-        candidates = getattr(self, "_huawei_candidates", [])
-        if user_input is not None:
-            slave_id = int(user_input[CONF_SLAVE_ID])
-            pending = self._huawei_pending
-            ok, model, max_charge, max_discharge, serial, inverter_max = await HuaweiSolarDriver.probe(
-                self.hass, pending[CONF_HOST], pending[CONF_PORT], slave_id
-            )
-            errors: dict[str, str] = {}
-            if ok:
-                result = await self._huawei_store(
-                    slave_id, model, max_charge, max_discharge, serial, inverter_max,
-                    errors, "base",
-                )
-                if result is not None:
-                    return result
-            return self.async_show_form(
-                step_id="battery_connection_huawei_slave",
-                data_schema=self._huawei_slave_schema(candidates),
-                errors=errors or {"base": "cannot_connect"},
-                description_placeholders={"count": str(len(candidates))},
-            )
-
-        return self.async_show_form(
-            step_id="battery_connection_huawei_slave",
-            data_schema=self._huawei_slave_schema(candidates),
-            description_placeholders={"count": str(len(candidates))},
-        )
-
-    async def _huawei_store(
-        self, slave_id, model, max_charge, max_discharge, serial, inverter_max,
-        errors, error_key: str = "huawei_battery_device",
-    ) -> FlowResult | None:
-        """Commit a validated Huawei battery, or refuse a mismatched pairing.
-
-        On the service path the battery is named twice over: once as a Modbus
-        address and once as a device in the registry. Nothing forces those to be
-        the same inverter, and on a cascade they easily are not — telemetry would
-        then come from one unit while the commands went to another. The inverter
-        serial shows up on both sides, so the pairing can be checked. Returns
-        None with ``errors`` filled when it does not hold.
-        """
-        device_id = self._huawei_pending.get("huawei_battery_device_id")
-        if not _huawei_device_matches_inverter(
-            self.hass, device_id, serial, slave_id
-        ):
-            errors[error_key] = "huawei_device_mismatch"
-            return None
-        self._current_battery_data.update({
-            **self._huawei_pending,
-            CONF_SLAVE_ID: slave_id,
-            "brand": "huawei",
-            "huawei_model": model,
-        })
-        if max_charge:
-            self._current_battery_data["device_max_charge_power"] = int(max_charge)
-        if max_discharge:
-            self._current_battery_data["device_max_discharge_power"] = int(max_discharge)
-        if inverter_max:
-            self._current_battery_data["device_inverter_max_power"] = int(inverter_max)
-        # An EMMA on the same bus carries the installation's grid meter. Finding
-        # it here means a user with one gets a grid reading fast enough to
-        # control against without configuring anything.
-        emma = await HuaweiSolarDriver.find_emma_slave_id(
-            self.hass, self._huawei_pending[CONF_HOST], self._huawei_pending[CONF_PORT]
-        )
-        if emma is not None:
-            self._current_battery_data["huawei_emma_slave_id"] = emma
-        # What the battery reports today is the sensible starting value; the
-        # form's ceiling is wider, because adding a pack raises it.
-        for key, probed in (
-            ("max_charge_power", max_charge),
-            ("max_discharge_power", max_discharge),
-        ):
-            if probed and not self._current_battery_data.get(key):
-                self._current_battery_data[key] = int(probed)
-        return await self.async_step_battery_limits()
-
-    @staticmethod
-    def _huawei_slave_schema(candidates: list) -> vol.Schema:
-        return vol.Schema({
-            vol.Required(CONF_SLAVE_ID, default=str(candidates[0][0]) if candidates else "1"):
-                SelectSelector(SelectSelectorConfig(
-                    options=[
-                        {"value": str(sid), "label": f"{model} — Slave {sid}"}
-                        for sid, model, _battery in candidates
-                    ],
-                    mode=SelectSelectorMode.LIST,
-                )),
-        })
-
-    @staticmethod
-    def _huawei_schema(current_battery: dict, battery_num: int) -> vol.Schema:
-        """Form for a Huawei battery.
-
-        The battery device is optional because it is only needed for the service
-        control path; with direct writes the driver addresses the inverter over
-        Modbus and needs nothing from huawei_solar. Requiring it there would make
-        the form impossible to submit on an installation that does not run that
-        integration at all. Which of the two is missing is checked on submit.
-        """
-        return vol.Schema({
-            vol.Required(
-                CONF_NAME,
-                default=current_battery.get(CONF_NAME, f"Huawei LUNA2000 {battery_num}"),
-            ): str,
-            vol.Required(CONF_HOST, default=current_battery.get(CONF_HOST, "")): str,
-            vol.Optional(CONF_PORT, default=current_battery.get(CONF_PORT, 502)): int,
-            # No default: an empty field means "go and find it". The id is not
-            # derivable, so prefilling a guess would only invite the user to
-            # accept a wrong one.
-            # A selector, not a bare vol.Any: the frontend is handed a
-            # serialised schema, and vol.Any has no serialised form — a form
-            # containing one cannot be drawn at all.
-            vol.Optional(
-                CONF_SLAVE_ID,
-                description={"suggested_value": current_battery.get(CONF_SLAVE_ID)},
-            ): NumberSelector(
-                NumberSelectorConfig(min=0, max=247, step=1, mode=NumberSelectorMode.BOX)
-            ),
-            vol.Optional(
-                "huawei_direct_write",
-                default=current_battery.get("huawei_direct_write", False),
-            ): bool,
-            vol.Optional(
-                "huawei_battery_device",
-                description={
-                    "suggested_value": current_battery.get("huawei_battery_device_id")
-                },
-            ): DeviceSelector(
-                DeviceSelectorConfig(integration=HUAWEI_SOLAR_DOMAIN, model="Batteries")
-            ),
-        })
-
-    async def async_step_battery_connection_hoymiles(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Configure a Hoymiles MQTT device id in the options flow."""
-        errors = {}
-        current_batteries = self.config_entry.data.get("batteries", [])
-        current = current_batteries[self.battery_index] if self.battery_index < len(current_batteries) else {}
-        if user_input is not None:
-            device_id = user_input["device_id"].strip()
-            ok, caps = await HoymilesMqttDriver.probe(
-                self.hass,
-                device_id,
-                model_hint=_hoymiles_model_hint(user_input),
-            )
-            if not ok:
-                errors["base"] = caps.get("error", "cannot_connect")
-            else:
-                self._current_battery_data.update({CONF_NAME: user_input[CONF_NAME], CONF_HOST: device_id,
-                    CONF_PORT: 0, "device_id": device_id, "brand": "hoymiles"})
-                _hoymiles_apply_probe_caps(
-                    self._current_battery_data,
-                    caps,
-                    upgrade_legacy_defaults=bool(current),
-                )
-                return await self.async_step_battery_limits()
-        model_field, model_selector = _hoymiles_model_selector(
-            current.get("hoymiles_model", _HOYMILES_MODEL_AUTO)
-        )
-        return self.async_show_form(step_id="battery_connection_hoymiles", data_schema=vol.Schema({
-            vol.Required(CONF_NAME, default=current.get(CONF_NAME, f"Hoymiles {self.battery_index + 1}")): str,
-            vol.Required("device_id", default=current.get("device_id", current.get(CONF_HOST, ""))): str,
-            model_field: model_selector,
-        }), errors=errors, description_placeholders={"battery_num": str(self.battery_index + 1)})
-
-    async def async_step_battery_connection_anker(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Configure connection details for an Anker Solarbank Max AC / 4 E5000 Pro."""
-        errors = {}
-
-        try:
-            battery_num = self.battery_index + 1
-            current_batteries = self.config_entry.data.get("batteries", [])
-
-            if user_input is not None:
-                host = user_input[CONF_HOST]
-                port = int(user_input.get(CONF_PORT, 502))
-                slave_id = int(user_input.get(CONF_SLAVE_ID, DEFAULT_SLAVE_ID))
-                ok, caps = await _validate_anker_connection(
-                    self.hass,
-                    self.config_entry.entry_id,
-                    host,
-                    port,
-                    slave_id,
-                )
-                if not ok:
-                    errors["base"] = "cannot_connect"
-                else:
-                    self._current_battery_data.update({
-                        CONF_NAME: user_input[CONF_NAME],
-                        CONF_HOST: host,
-                        CONF_PORT: port,
-                        CONF_SLAVE_ID: slave_id,
-                        "brand": "anker",
-                    })
-                    _anker_apply_probe_caps(self._current_battery_data, caps)
-                    return await self.async_step_battery_limits()
-
-            if self.battery_index < len(current_batteries):
-                current_battery = current_batteries[self.battery_index]
-                defaults = {
-                    CONF_NAME: current_battery.get(CONF_NAME, f"Anker Solarbank {battery_num}"),
-                    CONF_HOST: current_battery.get(CONF_HOST, ""),
-                    CONF_PORT: current_battery.get(CONF_PORT, 502),
-                    CONF_SLAVE_ID: current_battery.get(CONF_SLAVE_ID, DEFAULT_SLAVE_ID),
-                }
-            else:
-                defaults = {
-                    CONF_NAME: f"Anker Solarbank {battery_num}",
-                    CONF_HOST: "",
-                    CONF_PORT: 502,
-                    CONF_SLAVE_ID: DEFAULT_SLAVE_ID,
-                }
-        except Exception as e:
-            _LOGGER.error("Error in options flow battery_connection_anker step: %s", e, exc_info=True)
-            return self.async_abort(reason="unknown_error")
-
-        return self.async_show_form(
-            step_id="battery_connection_anker",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_NAME, default=defaults[CONF_NAME]): str,
-                    vol.Required(CONF_HOST, default=defaults[CONF_HOST]): str,
-                    vol.Optional(CONF_PORT, default=defaults[CONF_PORT]): int,
-                    vol.Required(CONF_SLAVE_ID, default=defaults[CONF_SLAVE_ID]):
-                        vol.All(NumberSelector(NumberSelectorConfig(min=1, max=247, step=1, mode=NumberSelectorMode.BOX)), vol.Coerce(int)),
-                }
-            ),
-            errors=errors,
-            description_placeholders={"battery_num": str(battery_num)},
-        )
-
     async def async_step_battery_limits(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Configure power and SOC limits for the current battery."""
         errors: dict[str, str] = {}
         try:
             battery_num = self.battery_index + 1
-            brand = self._current_battery_data.get("brand", "marstek")
-            if brand == "zendure":
-                max_charge_power, max_discharge_power = _zendure_power_limits(
-                    self._current_battery_data.get("zendure_model", "2400ac_pro")
-                )
-            elif brand == "anker":
-                max_charge_power, max_discharge_power = _anker_power_ceilings(
-                    self._current_battery_data
-                )
-            elif brand == "sessy":
-                max_charge_power = _SESSY_MAX_CHARGE_POWER_W
-                max_discharge_power = _SESSY_MAX_DISCHARGE_POWER_W
-            elif brand == "indevolt":
-                max_charge_power, max_discharge_power = _indevolt_power_ceilings(self._current_battery_data)
-            elif brand == "hoymiles":
-                max_charge_power, max_discharge_power = _hoymiles_power_ceilings(self._current_battery_data)
-            elif brand == "huawei":
-                max_charge_power, max_discharge_power = _huawei_power_ceilings(self._current_battery_data)
-            else:
-                battery_version = self._current_battery_data.get(CONF_BATTERY_VERSION, DEFAULT_VERSION)
-                max_charge_power = max_discharge_power = max_power_for_battery_version(
-                    battery_version, self._current_battery_data.get("ems_version")
-                )
+            battery_version = self._current_battery_data.get(CONF_BATTERY_VERSION, DEFAULT_VERSION)
+            max_charge_power = max_discharge_power = max_power_for_battery_version(
+                battery_version, self._current_battery_data.get("ems_version")
+            )
             (
                 soc_min_lo,
                 soc_min_hi,
@@ -5110,7 +2942,7 @@ class OptionsFlowHandler(OptionsFlow):
                 soc_max_lo,
                 soc_max_hi,
                 soc_max_default,
-            ) = _soc_selector_limits(brand, self._current_battery_data.get(CONF_BATTERY_VERSION, DEFAULT_VERSION))
+            ) = _soc_selector_limits(battery_version)
             current_batteries = self.config_entry.data.get("batteries", [])
 
             if user_input is not None:
@@ -5134,13 +2966,8 @@ class OptionsFlowHandler(OptionsFlow):
                     merged.update(self._current_battery_data)
                 else:
                     merged = dict(self._current_battery_data)
-                if brand == "anker":
-                    charge_w, discharge_w = _anker_power_ceilings(merged)
-                    merged["max_charge_power"] = charge_w
-                    merged["max_discharge_power"] = discharge_w
-                else:
-                    merged["max_charge_power"] = int(user_input["max_charge_power"])
-                    merged["max_discharge_power"] = int(user_input["max_discharge_power"])
+                merged["max_charge_power"] = int(user_input["max_charge_power"])
+                merged["max_discharge_power"] = int(user_input["max_discharge_power"])
                 merged["max_soc"] = int(user_input["max_soc"])
                 merged["min_soc"] = int(user_input["min_soc"])
                 if self.config_entry.data.get(
@@ -5148,7 +2975,6 @@ class OptionsFlowHandler(OptionsFlow):
                     self.config_data.get(CONF_THREE_PHASE_ENABLED, DEFAULT_THREE_PHASE_ENABLED),
                 ):
                     merged[CONF_BATTERY_PHASE] = normalize_battery_phase(phase)
-                _seed_software_power_limits(merged, brand)
                 # Hysteresis is mandatory; floor the percent against SOC drift.
                 merged["enable_charge_hysteresis"] = True
                 merged["charge_hysteresis_percent"] = max(
@@ -5159,16 +2985,9 @@ class OptionsFlowHandler(OptionsFlow):
                 merged[CONF_DC_PV_CONNECTED] = bool(
                     user_input.get(CONF_DC_PV_CONNECTED, True)
                 ) if merged.get(CONF_BATTERY_VERSION) in ("vA", "vD") else False
-                merged[CONF_FULL_CHARGE_VOLTAGE_TAPER_ENABLED] = (
-                    False if brand in ("zendure", "anker", "sessy", "hoymiles", "huawei", "indevolt")
-                    else user_input.get(CONF_FULL_CHARGE_VOLTAGE_TAPER_ENABLED, DEFAULT_FULL_CHARGE_VOLTAGE_TAPER_ENABLED)
+                merged[CONF_FULL_CHARGE_VOLTAGE_TAPER_ENABLED] = user_input.get(
+                    CONF_FULL_CHARGE_VOLTAGE_TAPER_ENABLED, DEFAULT_FULL_CHARGE_VOLTAGE_TAPER_ENABLED
                 )
-                if brand in ("zendure", "sessy", "hoymiles"):
-                    capacity_default = (
-                        _hoymiles_capacity_default(self._current_battery_data)
-                        if brand == "hoymiles" else 0.0
-                    )
-                    merged["battery_capacity_kwh"] = round(float(user_input.get("battery_capacity_kwh", capacity_default)), 2)
                 _apply_mac_tracking(user_input, merged)
                 self.battery_configs.append(merged)
                 self.battery_index += 1
@@ -5177,7 +2996,8 @@ class OptionsFlowHandler(OptionsFlow):
                 if self.battery_index >= num_batteries:
                     self.config_data["batteries"] = self.battery_configs
                     return await self._save_and_finish()
-                return await self.async_step_battery_brand()
+                self._current_battery_data = self._initial_battery_data()
+                return await self.async_step_battery_connection()
 
             if self.battery_index < len(current_batteries):
                 current_battery = dict(current_batteries[self.battery_index])
@@ -5199,11 +3019,6 @@ class OptionsFlowHandler(OptionsFlow):
                     CONF_FULL_CHARGE_VOLTAGE_TAPER_ENABLED: current_battery.get(
                         CONF_FULL_CHARGE_VOLTAGE_TAPER_ENABLED,
                         DEFAULT_FULL_CHARGE_VOLTAGE_TAPER_ENABLED,
-                    ),
-                    "battery_capacity_kwh": current_battery.get(
-                        "battery_capacity_kwh",
-                        _hoymiles_capacity_default(self._current_battery_data)
-                        if brand == "hoymiles" else 0.0,
                     ),
                     CONF_BATTERY_PHASE: normalize_battery_phase(
                         current_battery.get(CONF_BATTERY_PHASE, PHASE_UNASSIGNED)
@@ -5233,10 +3048,6 @@ class OptionsFlowHandler(OptionsFlow):
                         CONF_BATTERY_VERSION
                     ) in ("vA", "vD"),
                     CONF_FULL_CHARGE_VOLTAGE_TAPER_ENABLED: DEFAULT_FULL_CHARGE_VOLTAGE_TAPER_ENABLED,
-                    "battery_capacity_kwh": (
-                        _hoymiles_capacity_default(self._current_battery_data)
-                        if brand == "hoymiles" else 0.0
-                    ),
                     CONF_BATTERY_PHASE: PHASE_UNASSIGNED,
                 }
         except Exception as e:
@@ -5244,13 +3055,12 @@ class OptionsFlowHandler(OptionsFlow):
             return self.async_abort(reason="unknown_error")
 
         _schema: dict = {}
-        if brand != "anker":
-            _schema[vol.Required("max_charge_power", default=defaults["max_charge_power"])] = NumberSelector(
-                NumberSelectorConfig(min=100, max=max_charge_power, step=50, unit_of_measurement="W", mode=NumberSelectorMode.SLIDER)
-            )
-            _schema[vol.Required("max_discharge_power", default=defaults["max_discharge_power"])] = NumberSelector(
-                NumberSelectorConfig(min=100, max=max_discharge_power, step=50, unit_of_measurement="W", mode=NumberSelectorMode.SLIDER)
-            )
+        _schema[vol.Required("max_charge_power", default=defaults["max_charge_power"])] = NumberSelector(
+            NumberSelectorConfig(min=100, max=max_charge_power, step=50, unit_of_measurement="W", mode=NumberSelectorMode.SLIDER)
+        )
+        _schema[vol.Required("max_discharge_power", default=defaults["max_discharge_power"])] = NumberSelector(
+            NumberSelectorConfig(min=100, max=max_discharge_power, step=50, unit_of_measurement="W", mode=NumberSelectorMode.SLIDER)
+        )
         _schema.update({
             vol.Required("max_soc", default=max(soc_max_lo, min(soc_max_hi, defaults["max_soc"]))):
                 NumberSelector(NumberSelectorConfig(min=soc_max_lo, max=soc_max_hi, step=1, mode=NumberSelectorMode.SLIDER)),
@@ -5261,32 +3071,14 @@ class OptionsFlowHandler(OptionsFlow):
             vol.Required("backup_offgrid_threshold", default=defaults["backup_offgrid_threshold"]):
                 NumberSelector(NumberSelectorConfig(min=0, max=2500, step=10, unit_of_measurement="W", mode=NumberSelectorMode.SLIDER)),
         })
-        if (
-            brand == "marstek"
-            and self._current_battery_data.get(CONF_BATTERY_VERSION) in ("vA", "vD")
-        ):
+        if self._current_battery_data.get(CONF_BATTERY_VERSION) in ("vA", "vD"):
             _schema[
                 vol.Required(
                     CONF_DC_PV_CONNECTED,
                     default=defaults[CONF_DC_PV_CONNECTED],
                 )
             ] = BooleanSelector()
-        if brand not in ("zendure", "anker", "sessy", "hoymiles", "huawei", "indevolt"):
             _schema[vol.Required(CONF_FULL_CHARGE_VOLTAGE_TAPER_ENABLED, default=defaults[CONF_FULL_CHARGE_VOLTAGE_TAPER_ENABLED])] = bool
-        if brand == "sessy":
-            saved_capacity = float(defaults["battery_capacity_kwh"])
-            capacity_field = (
-                vol.Required("battery_capacity_kwh", default=saved_capacity)
-                if saved_capacity > 0
-                else vol.Required("battery_capacity_kwh")
-            )
-            _schema[capacity_field] = NumberSelector(
-                NumberSelectorConfig(min=0.01, max=100, step=0.01, unit_of_measurement="kWh", mode=NumberSelectorMode.BOX)
-            )
-        elif brand in ("zendure", "hoymiles"):
-            _schema[vol.Optional("battery_capacity_kwh", default=defaults["battery_capacity_kwh"])] = NumberSelector(
-                NumberSelectorConfig(min=0, max=100, step=0.01, unit_of_measurement="kWh", mode=NumberSelectorMode.BOX)
-            )
         if self.config_entry.data.get(
             CONF_THREE_PHASE_ENABLED,
             self.config_data.get(CONF_THREE_PHASE_ENABLED, DEFAULT_THREE_PHASE_ENABLED),

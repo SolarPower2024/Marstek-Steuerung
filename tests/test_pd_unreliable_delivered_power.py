@@ -1,7 +1,7 @@
-"""Regression for #522: lagging delivered-power telemetry (Anker) must not
+"""Regression for #522: lagging delivered-power telemetry must not
 re-anchor the PD base through the timed anti-windup fallback.
 
-Anker reports 0 W / stale values for seconds after a setpoint change. The 15 s
+A device may report 0 W / stale values for seconds after a setpoint change. The 15 s
 fallback read that as unexplained shortfall and yanked the base from -1616 W to
 the stale -510 W while the grid still imported ~1 kW, making the loop hunt.
 The saturation fast path (a real limit) is unaffected.
@@ -29,7 +29,7 @@ def _ctrl(reliable, *, saturated=False):
     ctrl = SimpleNamespace(
         coordinators=[_coord(reliable)],
         previous_power=-1616.0,
-        _measured_battery_power=lambda: -510.0,  # stale Anker reading
+        _measured_battery_power=lambda: -510.0,  # stale reading
         _backcalc_is_saturated=lambda is_charging: saturated,
         saturation_backcalc_threshold=150.0,
         saturation_backcalc_cycles=3,

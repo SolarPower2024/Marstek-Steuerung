@@ -140,7 +140,7 @@ def test_active_power_rearms_timer():
 def test_stale_recalc_keeps_armed_timer():
     # A pass without a new meter sample replays previous_power (the held 400W).
     # That is not a fresh "active" decision: the timer must survive it, or the
-    # dwell restarts at 0s on every repeat and holds forever (Zendure, 2026-10-02).
+    # dwell restarts at 0s on every repeat and holds forever (2026-10-02).
     since = dt_util.utcnow() - timedelta(seconds=7)
     ctrl = _ctrl(previous_power=400, min_charge=400, shutoff_since=since)
     out = ChargeDischargeController._apply_relay_dwell(

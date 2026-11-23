@@ -10,9 +10,8 @@ The cell balance monitor compares the highest and lowest cell near the top of a 
 
 ## Before you start
 
+- Cell balance is available for Marstek Venus E v2/v3 and Venus A/D.
 - Look for **Balance - Status**, **Balance - Cell Delta (at 100%)**, and **Balance - Last Reading** on the battery device.
-- Cell balance is available for Marstek Venus E v2/v3 and Venus A/D, Zendure batteries that publish cell extremes, and ESPHome/LilyGo devices when the upstream entities exist.
-- Anker, Hoymiles, Huawei, and Sessy drivers do not currently provide both readings required by this monitor.
 - Enable **100% Charge Voltage Taper** on the battery, or use [Weekly full charge](weekly-full-charge.md), to obtain a comparable top-of-charge reading.
 
 ## How to enable it

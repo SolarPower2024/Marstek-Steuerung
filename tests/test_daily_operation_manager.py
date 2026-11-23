@@ -164,8 +164,8 @@ def test_runtime_diary_composes_grid_and_dc_solar_charge():
     assert decision["simultaneous"] is True
 
 
-def test_runtime_diary_anker_aggregate_pv_is_not_added_to_pack_power():
-    # Anker SB4: ac_power = -pack power, which already includes PV (#738).
+def test_runtime_diary_aggregate_pv_is_not_added_to_pack_power():
+    # ac_power = -pack power, which already includes PV (#738).
     coordinator = SimpleNamespace(
         capabilities=SimpleNamespace(has_mppt_pv=False, has_solar_telemetry=True),
         data={"ac_power": -300, "solar_power": 500},

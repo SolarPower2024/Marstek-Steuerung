@@ -123,38 +123,38 @@ def test_ev_charger_type_notice_until_every_device_is_resaved(monkeypatch):
     assert check([]) == "delete"
 
 
-def test_panel_solar_capability_excludes_max_ac():
-    max_ac = SimpleNamespace(
+def test_panel_solar_capability_excludes_ac_only():
+    ac_only = SimpleNamespace(
         capabilities=SimpleNamespace(has_mppt_pv=False, has_solar_telemetry=False)
     )
-    compatible_anker = SimpleNamespace(
+    aggregate_pv_unit = SimpleNamespace(
         capabilities=SimpleNamespace(has_mppt_pv=False, has_solar_telemetry=True)
     )
 
-    assert _has_battery_reported_solar([max_ac]) is False
-    assert _has_battery_reported_solar([compatible_anker]) is True
+    assert _has_battery_reported_solar([ac_only]) is False
+    assert _has_battery_reported_solar([aggregate_pv_unit]) is True
 
 
 def test_panel_solar_falls_back_to_external_without_internal_pv_entity():
-    max_ac = SimpleNamespace(
+    ac_only = SimpleNamespace(
         capabilities=SimpleNamespace(has_mppt_pv=False, has_solar_telemetry=False)
     )
-    compatible_anker = SimpleNamespace(
+    aggregate_pv_unit = SimpleNamespace(
         capabilities=SimpleNamespace(has_mppt_pv=False, has_solar_telemetry=True)
     )
 
-    # Max AC must not select a stale/system aggregate, and an E5000 setup must
+    # An AC-only unit must not select a stale/system aggregate, and an aggregate-PV setup must
     # still use the configured meter until its aggregate entity is registered.
     assert _panel_solar_entity(
-        [max_ac],
+        [ac_only],
         _SolarEntityRegistry("sensor.omnibattery_system_solar_power"),
         "sensor.pv",
     ) == "sensor.pv"
     assert _panel_solar_entity(
-        [compatible_anker], _SolarEntityRegistry(), "sensor.pv"
+        [aggregate_pv_unit], _SolarEntityRegistry(), "sensor.pv"
     ) == "sensor.pv"
     assert _panel_solar_entity(
-        [compatible_anker],
+        [aggregate_pv_unit],
         _SolarEntityRegistry("sensor.omnibattery_system_solar_power"),
         "sensor.pv",
     ) == "sensor.omnibattery_system_solar_power"

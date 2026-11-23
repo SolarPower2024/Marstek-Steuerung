@@ -164,7 +164,7 @@ async def test_push_driver_reconnect_skips_the_probe():
         read_telemetry=AsyncMock(return_value={}),
     )
     coordinator = SimpleNamespace(
-        name="Zendure",
+        name="Pusher",
         host="192.0.2.11",
         port=80,
         lock=asyncio.Lock(),
@@ -192,7 +192,7 @@ async def test_push_driver_reconnect_skips_the_probe():
 async def test_liveness_checked_push_driver_still_probes():
     """A push driver that dates its cache must not skip the probe (#452).
 
-    The ESPHome bridge's connect() only re-resolves registry entries, so it
+    A bridge's connect() may only re-resolve registry entries, so it
     succeeds against a wedged Modbus bus. Taking that at its word cleared the
     failure counter every third poll, so the suspend back-off never engaged and
     each reconnect re-asserted RS485 — adding writes to the jammed bus it was

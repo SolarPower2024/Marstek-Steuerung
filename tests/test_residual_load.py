@@ -93,7 +93,7 @@ def _controller(
 def test_after_dark_the_uncovered_load_is_the_house_load():
     controller = _controller([
         _battery("Marstek", ac_power=665),
-        _battery("Huawei", ac_power=44),
+        _battery("Hybrid", ac_power=44),
     ])
     assert uncovered_load_w(controller, -40.0) == 669.0
 
@@ -102,7 +102,7 @@ def test_another_battery_charging_is_not_a_load_to_cover():
     """Its charging shows up at the meter, but nobody must chase it."""
     controller = _controller([
         _battery("Marstek", ac_power=0),
-        _battery("Huawei", ac_power=-500),   # charging 500 W from the grid
+        _battery("Hybrid", ac_power=-500),   # charging 500 W from the grid
     ])
     # Meter reads the 600 W house plus that 500 W. Only the 600 is the fleet's job.
     assert uncovered_load_w(controller, 1100.0) == 600.0
@@ -115,7 +115,7 @@ def test_pv_covering_the_house_shows_as_a_negative_load():
     discharges one battery into the other."""
     controller = _controller([
         _battery("Marstek", battery_power=-350),
-        _battery("Huawei", battery_power=920),
+        _battery("Hybrid", battery_power=920),
     ])
     assert uncovered_load_w(controller, 16.0) == pytest.approx(-554.0)
     # So the primary is asked for no discharge at all -- if anything, a charge.
@@ -129,7 +129,7 @@ def test_one_unreadable_battery_makes_the_whole_reconstruction_unusable():
     out of the sum. A partial reconstruction is not a weaker version of the
     quantity, it is a wrong one."""
     controller = _controller([
-        _battery("Huawei", ac_power=800, available=False),   # still delivering
+        _battery("Hybrid", ac_power=800, available=False),   # still delivering
         _battery("Marstek", ac_power=200),
     ])
     assert uncovered_load_w(controller, -200.0) is None
@@ -144,7 +144,7 @@ def test_nothing_is_trimmed_while_the_fleet_cannot_be_reconstructed():
     """Which is the point of the None: the ceiling would otherwise trim the
     healthy battery down to a demand short by the silent one's output."""
     controller = _controller([
-        _battery("Huawei", ac_power=800, available=False),
+        _battery("Hybrid", ac_power=800, available=False),
         _battery("Marstek", ac_power=900),
     ])
     assert apply_guards(controller, -900.0, 100.0) == -900.0
@@ -156,7 +156,7 @@ def test_a_missing_meter_reading_is_not_a_zero_load():
 
 # --- defect: cell power stood in for the AC port on a DC-coupled battery ---
 def test_a_battery_charging_from_its_own_pv_is_read_at_its_ac_port():
-    """Hoymiles 4020 X, issue #399: 543 W of panels on the battery's own DC bus,
+    """A DC-coupled battery, issue #399: 543 W of panels on the battery's own DC bus,
     the house importing 637 W. The cells read +728 W "charging" whatever the AC
     port does, so the fleet term came out 728 W too low, the uncovered load went
     negative and the surplus guard refused every discharge while the sun was up.
@@ -173,7 +173,7 @@ def test_a_battery_charging_from_its_own_pv_is_read_at_its_ac_port():
 def test_a_dc_coupled_battery_with_no_ac_reading_is_unreadable():
     """Negating cell power is not a weaker AC figure, it is a wrong one, and a
     wrong one vetoes. Same verdict as a silent battery: no reconstruction."""
-    controller = _controller([_battery("Zendure", battery_power=900, mppt_pv=True)])
+    controller = _controller([_battery("Hybrid", battery_power=900, mppt_pv=True)])
     assert uncovered_load_w(controller, 100.0) is None
     assert apply_guards(controller, -800.0, 100.0) == -800.0
 
@@ -228,7 +228,7 @@ def test_a_deliberate_predischarge_survives_the_surplus_guard_under_sun():
 def _round_trip():
     return _controller([
         _battery("Marstek", battery_power=-205),   # discharging, commanded by us
-        _battery("Huawei", battery_power=1110),    # charging, commanded by nobody
+        _battery("Hybrid", battery_power=1110),    # charging, commanded by nobody
     ], enabled=False)
 
 
@@ -247,7 +247,7 @@ def test_a_real_deficit_still_discharges():
     """After dark the guard has to keep out of the way."""
     controller = _controller([
         _battery("Marstek", ac_power=665),
-        _battery("Huawei", ac_power=44),
+        _battery("Hybrid", ac_power=44),
     ], deadband=40, enabled=False)
     assert surplus_blocks_discharge(controller, -40.0) is False
     assert apply_guards(controller, -700.0, -40.0) == -700.0
@@ -341,7 +341,7 @@ def test_a_slow_actuator_stretches_the_window(monkeypatch):
     monkeypatch.setattr(residual_load, "SURPLUS_GUARD_MIN_HOLD_S", 5.0)
     now = _clock(monkeypatch, datetime(2026, 10, 5, 12, 0, tzinfo=timezone.utc))
     controller = _round_trip()
-    controller.coordinators[1].capabilities.actuator_latency_s = 3.0   # Zendure
+    controller.coordinators[1].capabilities.actuator_latency_s = 3.0   # Hybrid
     assert surplus_blocks_discharge(controller, 3.0) is False
     now[0] += timedelta(seconds=5)
     assert surplus_blocks_discharge(controller, 3.0) is False
@@ -368,7 +368,7 @@ def test_a_missing_reading_leaves_the_verdict_where_it_was():
 def _at_2139(marstek_ac=912):
     return _controller([
         _battery("Marstek", ac_power=marstek_ac),   # discharging
-        _battery("Huawei", ac_power=-211),          # charged by its own manager
+        _battery("Hybrid", ac_power=-211),          # charged by its own manager
     ], enabled=False)
 
 
@@ -431,7 +431,7 @@ def test_the_quiet_meter_does_not_hide_a_standing_discharge_into_surplus():
 
 def test_the_quiet_meter_does_not_hide_an_unmet_feedforward_floor():
     controller = _controller([
-        _battery("Huawei", battery_power=-800),
+        _battery("Hybrid", battery_power=-800),
         _battery("Marstek", ac_power=0),
     ], primary="Marstek")
     assert guards_pending(controller, 0.0) is True
@@ -443,7 +443,7 @@ def test_the_quiet_meter_does_not_hide_an_unmet_feedforward_floor():
 def test_a_small_shortfall_does_not_reopen_the_cycle():
     """Below the tolerance a correction is not worth a write."""
     controller = _controller([
-        _battery("Huawei", battery_power=-850),
+        _battery("Hybrid", battery_power=-850),
         _battery("Marstek", ac_power=0),
     ], primary="Marstek")
     controller.previous_power = -800.0
@@ -452,7 +452,7 @@ def test_a_small_shortfall_does_not_reopen_the_cycle():
 
 def test_the_switch_being_off_leaves_the_feedforward_out_of_the_pending():
     controller = _controller(
-        [_battery("Huawei", battery_power=-800), _battery("Marstek", ac_power=0)],
+        [_battery("Hybrid", battery_power=-800), _battery("Marstek", ac_power=0)],
         primary="Marstek",
         enabled=False,
     )
@@ -466,7 +466,7 @@ def test_without_a_nomination_the_ordinary_choice_is_used():
     """Switching the feedforward on alone changes when a battery is asked, not
     which one: it addresses the battery the ladder would have picked anyway."""
     fuller = _battery("Marstek", ac_power=0, soc=70)
-    emptier = _battery("Huawei", battery_power=-800, soc=30)
+    emptier = _battery("Hybrid", battery_power=-800, soc=30)
     controller = _controller([emptier, fuller], primary="")
     assert primary_coordinator(controller) is fuller
     assert feedforward_w(controller, 0.0) == -800.0
@@ -476,7 +476,7 @@ def test_the_automatic_choice_reads_the_ladder_key_not_the_raw_soc():
     """The ladder gives the running battery a 5 % edge so a pair sitting close
     together does not swap every cycle. Picking the primary on raw SOC would
     outrank that edge and bring the swapping straight back."""
-    running = _battery("Huawei", battery_power=-800, soc=58)
+    running = _battery("Hybrid", battery_power=-800, soc=58)
     fuller = _battery("Marstek", ac_power=0, soc=60)
     controller = _controller([running, fuller], primary="")
     controller._active_discharge_batteries = [running]
@@ -484,7 +484,7 @@ def test_the_automatic_choice_reads_the_ladder_key_not_the_raw_soc():
 
 
 def test_the_edge_is_only_an_edge_and_a_clearly_fuller_battery_still_wins():
-    running = _battery("Huawei", battery_power=-800, soc=58)
+    running = _battery("Hybrid", battery_power=-800, soc=58)
     fuller = _battery("Marstek", ac_power=0, soc=70)
     controller = _controller([running, fuller], primary="")
     controller._active_discharge_batteries = [running]
@@ -503,7 +503,7 @@ def test_a_battery_in_manual_mode_is_never_the_primary_even_when_nominated():
     that were left."""
     manual = _battery("Marstek", ac_power=0, soc=90)
     manual.battery_manual_mode_enabled = True
-    automatic = _battery("Huawei", battery_power=-800, soc=40)
+    automatic = _battery("Hybrid", battery_power=-800, soc=40)
     controller = _controller([manual, automatic], primary="Marstek")
     assert primary_coordinator(controller) is automatic
 
@@ -511,7 +511,7 @@ def test_a_battery_in_manual_mode_is_never_the_primary_even_when_nominated():
 def test_manual_mode_also_keeps_a_battery_out_of_the_automatic_choice():
     manual = _battery("Marstek", ac_power=0, soc=90)
     manual.battery_manual_mode_enabled = True
-    automatic = _battery("Huawei", battery_power=-800, soc=40)
+    automatic = _battery("Hybrid", battery_power=-800, soc=40)
     controller = _controller([manual, automatic], primary="")
     assert primary_coordinator(controller) is automatic
 
@@ -527,7 +527,7 @@ def test_a_fleet_that_cannot_discharge_has_no_primary():
 # ----------------------------------------------------------------------
 def test_the_floor_never_exceeds_what_the_primary_can_deliver():
     controller = _controller([
-        _battery("Huawei", battery_power=-4000),
+        _battery("Hybrid", battery_power=-4000),
         _battery("Marstek", ac_power=0),
     ], primary="Marstek", limit=2500)
     assert feedforward_w(controller, 0.0) == -2500.0
@@ -537,7 +537,7 @@ def test_only_the_shortfall_is_fed_forward():
     """Half-covered by the roof means half from the battery, not all of it."""
     controller = _controller([
         _battery("Marstek", ac_power=0),
-        _battery("Huawei", ac_power=0),
+        _battery("Hybrid", ac_power=0),
     ], primary="Marstek")
     assert feedforward_w(controller, 600.0) == -600.0
 
@@ -545,7 +545,7 @@ def test_only_the_shortfall_is_fed_forward():
 def test_the_switch_gates_the_command_but_not_the_reading():
     """The figure has to be inspectable before it is acted on."""
     controller = _controller([
-        _battery("Huawei", battery_power=-800),
+        _battery("Hybrid", battery_power=-800),
         _battery("Marstek", ac_power=0),
     ], primary="Marstek", enabled=False)
     assert feedforward_candidate_w(controller, 0.0) == -800.0
@@ -554,7 +554,7 @@ def test_the_switch_gates_the_command_but_not_the_reading():
 
 def test_the_command_is_floored_but_a_larger_discharge_is_left_alone():
     controller = _controller([
-        _battery("Huawei", battery_power=-800),
+        _battery("Hybrid", battery_power=-800),
         _battery("Marstek", ac_power=0),
     ], primary="Marstek")
     # An idle loop is raised to cover the demand...
@@ -577,7 +577,7 @@ def test_the_command_is_floored_but_a_larger_discharge_is_left_alone():
 def _surplus_taken_by_the_other():
     controller = _controller([
         _battery("Marstek", ac_power=13),       # idle
-        _battery("Huawei", ac_power=-5187),     # charging, commanded by nobody
+        _battery("Hybrid", ac_power=-5187),     # charging, commanded by nobody
     ], primary="Marstek")
     controller._battery_power_limit = lambda coordinator, is_charging: (
         2500 if coordinator.name == "Marstek" else 7000
@@ -609,7 +609,7 @@ def test_no_surplus_means_nothing_is_asked_for_however_much_room_there_is():
     charge command is never refused."""
     controller = _controller([
         _battery("Marstek", ac_power=0),        # empty and idle
-        _battery("Huawei", ac_power=250),       # discharging to cover the house
+        _battery("Hybrid", ac_power=250),       # discharging to cover the house
     ], primary="Marstek")
     assert uncovered_load_w(controller, 0.0) == 250.0
     assert feedforward_w(controller, 0.0) == -250.0
@@ -619,7 +619,7 @@ def test_only_the_uncovered_part_of_the_surplus_is_claimed():
     """The other battery's own absorption must not be counted as available."""
     controller = _controller([
         _battery("Marstek", ac_power=0),
-        _battery("Huawei", ac_power=-1500),     # already absorbing 1500 W
+        _battery("Hybrid", ac_power=-1500),     # already absorbing 1500 W
     ], primary="Marstek")
     # Meter exports 2000 W on top of the 1500 W the other battery is taking.
     assert uncovered_load_w(controller, -2000.0) == -3500.0
@@ -630,7 +630,7 @@ def test_only_the_uncovered_part_of_the_surplus_is_claimed():
 def test_a_manual_battery_adds_no_room_to_the_surplus_offer():
     """It is outside the ladder, so its rating would be offered to batteries
     that never had it."""
-    manual = _battery("Huawei", ac_power=0)
+    manual = _battery("Hybrid", ac_power=0)
     manual.battery_manual_mode_enabled = True
     controller = _controller([_battery("Marstek", ac_power=0), manual], limit=2500)
     assert feedforward_w(controller, -6000.0) == 2500.0

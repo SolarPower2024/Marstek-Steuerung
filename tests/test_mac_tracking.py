@@ -177,9 +177,9 @@ def test_a_lease_for_the_address_already_configured_changes_nothing():
 # --- 6. brands that have no IP to track ------------------------------------
 
 
-@pytest.mark.parametrize("brand", ["esphome", "hoymiles"])
+@pytest.mark.parametrize("brand", ["other"])
 def test_non_ip_brands_are_left_alone(brand):
-    """ESPHome and Hoymiles are addressed by device id, not by IP."""
+    """A brand that is not addressed by IP is left alone."""
     batteries = [battery(brand=brand, host="some-device-id")]
     assert not is_ip_based(batteries[0])
     assert evaluate_lease(batteries, MAC_A, "192.168.1.180").reason == NOT_IP_BASED
@@ -192,7 +192,7 @@ def test_a_serial_marstek_is_left_alone():
     assert evaluate_lease(batteries, MAC_A, "192.168.1.180").reason == NOT_IP_BASED
 
 
-@pytest.mark.parametrize("brand", ["marstek", "zendure", "anker", "sessy", "indevolt"])
+@pytest.mark.parametrize("brand", ["marstek"])
 def test_the_ip_brands_are_tracked(brand):
     assert is_ip_based(battery(brand=brand))
 

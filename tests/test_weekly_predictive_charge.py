@@ -511,14 +511,14 @@ def _hours_manager(*batteries, max_charge_capacity=None):
 
 
 def test_weekly_hours_cover_the_slow_end_of_the_slowest_battery():
-    """7 Nov: Marstek 11 % of 5.12 kWh (100 % voltage taper on), Zendure 4 %
+    """7 Nov: Marstek 11 % of 5.12 kWh (100 % voltage taper on), Venus B 4 %
     of 8.16 kWh, 2.4 kW each. The fleet's 4.8 kW suggested 3.5 h for 12.39
-    kWh. The Zendure alone needs 7.43 kWh at 2.4 kW and its last 5 % (0.41
+    kWh. The Venus B alone needs 7.43 kWh at 2.4 kW and its last 5 % (0.41
     kWh) at half power: 3.64 + 0.40 = 4.04 h. The Marstek, its last 5 % at
     200 W: 2.11 + 1.51 = 3.61 h. Plus a quarter as margin: 5.05 h, so 5.5 h."""
     manager = _hours_manager(
         ("Marstek", 11.0, 5.12, 2400.0, True),
-        ("Zendure", 4.0, 8.16, 2400.0, False),
+        ("Venus B", 4.0, 8.16, 2400.0, False),
     )
 
     assert manager._weekly_charge_hours_needed(12.39) == 5.5

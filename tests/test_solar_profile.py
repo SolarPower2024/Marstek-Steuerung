@@ -213,7 +213,7 @@ def test_direct_power_reader_accepts_aggregate_battery_pv():
     assert tracker._read_total_solar_power_kw() == pytest.approx(0.9)
 
 
-def test_solar_profile_excludes_anker_ac_derived_pv():
+def test_solar_profile_excludes_ac_derived_pv():
     profile = _profile()
     profile._controller.coordinators = [
         SimpleNamespace(
@@ -227,7 +227,7 @@ def test_solar_profile_excludes_anker_ac_derived_pv():
     assert profile.telemetry_source() == "external"
 
 
-def test_solar_profile_keeps_verified_anker_aggregate_pv():
+def test_solar_profile_keeps_aggregate_pv():
     profile = _profile()
     profile._controller.coordinators = [
         SimpleNamespace(

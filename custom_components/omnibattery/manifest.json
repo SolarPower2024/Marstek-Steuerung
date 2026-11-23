@@ -2,9 +2,7 @@
   "domain": "omnibattery",
   "name": "Omnibattery",
   "after_dependencies": [
-    "recorder",
-    "esphome",
-    "mqtt"
+    "recorder"
   ],
   "codeowners": [
     "@SolarPower2024"

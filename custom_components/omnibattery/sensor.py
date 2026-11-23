@@ -55,11 +55,7 @@ from .sensors.calculated_sensors import (
     MarstekVenusCycleSensor,
     MarstekVenusSolarPowerSensor,
     MarstekVenusBatteryCellPowerSensor,
-    SyntheticEnergySensor,
     CumulativeDailyEnergySensor,
-    SyntheticCapacitySensor,
-    ZendurePackSensor,
-    SYNTHETIC_ENERGY_SENSOR_DEFINITIONS,
     CUMULATIVE_DAILY_ENERGY_SENSOR_DEFINITIONS,
 )
 
@@ -74,17 +70,15 @@ def _remove_obsolete_solar_entities(
     """Remove PV entities that no longer belong to the configured topology.
 
     Entity setup is additive from Home Assistant's point of view: omitting a
-    definition on reload does not remove an old registry entry. Clean model-
-    incompatible Anker solar entities and Venus A/D calculated PV entities when
-    the user declares that no panels are connected.
+    definition on reload does not remove an old registry entry. Clean Venus A/D
+    calculated PV entities when the user declares that no panels are connected.
     """
     from homeassistant.helpers import entity_registry as er
 
     registry = er.async_get(hass)
     for coordinator in coordinators:
         if (
-            getattr(coordinator, "brand", None) == "marstek"
-            and getattr(coordinator.capabilities, "has_mppt_pv", False)
+            getattr(coordinator.capabilities, "has_mppt_pv", False)
             and not has_connected_mppt_pv(coordinator)
         ):
             for suffix in ("solar_power", "battery_cell_power"):
@@ -93,24 +87,11 @@ def _remove_obsolete_solar_entities(
                 registered = registry.async_get(entity_id) if entity_id else None
                 if registered and registered.config_entry_id == config_entry.entry_id:
                     registry.async_remove(entity_id)
-        if getattr(coordinator, "brand", None) != "anker":
-            continue
-        if getattr(getattr(coordinator, "driver", None), "has_independent_pv", False):
-            continue
-        for unique_id in (
-            f"{coordinator.device_key}_solar_power",
-            f"{coordinator.host}_solar_power",
-            f"{coordinator.name}_solar_power",
-        ):
-            entity_id = registry.async_get_entity_id("sensor", DOMAIN, unique_id)
-            registered = registry.async_get(entity_id) if entity_id else None
-            if registered and registered.config_entry_id == config_entry.entry_id:
-                registry.async_remove(entity_id)
 
     # The system aggregate is only meaningful when at least one connected
     # battery contributes independent PV. Existing installations may still
     # have this registry entry after upgrading from 1.4.0b4; remove it so the
-    # configured external sensor remains the sole source for AC-only Anker.
+    # configured external sensor remains the sole source for AC-only systems.
     has_independent_solar = any(
         bool(
             has_connected_mppt_pv(coordinator)
@@ -144,9 +125,7 @@ async def async_setup_entry(
     entities = []
 
     # Add individual battery sensors. The driver owns the per-platform split, so
-    # use its sensor_definitions directly (same pattern as number.py). The old
-    # _all_definitions filter required a "register" field, which silently dropped
-    # property-based drivers (Zendure) whose sensor defs carry no register.
+    # use its sensor_definitions directly (same pattern as number.py).
     for coordinator in coordinators:
         for definition in coordinator.sensor_definitions:
             entities.append(MarstekVenusSensor(coordinator, definition))
@@ -170,38 +149,12 @@ async def async_setup_entry(
             entities.append(MarstekVenusStoredEnergySensor(coordinator, definition))
         for definition in CYCLE_SENSOR_DEFINITIONS:
             entities.append(MarstekVenusCycleSensor(coordinator, definition))
-        # Drivers without hardware energy counters (Zendure): synthesise the
-        # charge/discharge energy totals by integrating power, and expose per-pack
-        # telemetry sized to the live pack count (the first refresh already ran).
-        # Hoymiles reports native daily counters only, so just the lifetime
-        # totals are synthesised there.
-        if not coordinator.capabilities.has_energy_counters:
-            for definition in SYNTHETIC_ENERGY_SENSOR_DEFINITIONS:
-                if (
-                    definition["period"] == "daily"
-                    and coordinator.capabilities.has_daily_energy_counters
-                ):
-                    continue
-                entities.append(SyntheticEnergySensor(coordinator, definition))
-        elif not coordinator.capabilities.has_daily_energy_counters:
+        if not coordinator.capabilities.has_daily_energy_counters:
             for definition in CUMULATIVE_DAILY_ENERGY_SENSOR_DEFINITIONS:
                 entities.append(CumulativeDailyEnergySensor(coordinator, definition))
-        # User-configured capacity (Zendure, Sessy, Hoymiles): gated on capacity,
-        # not energy counters — Sessy/Hoymiles have counters but no capacity.
-        if not getattr(coordinator.capabilities, "has_nominal_capacity", True):
-            entities.append(SyntheticCapacitySensor(coordinator))
-        pack_specs = getattr(coordinator.driver, "pack_field_specs", None)
-        if pack_specs:
-            data = coordinator.data or {}
-            pack_count = sum(1 for i in range(1, 33) if f"pack{i}_soc" in data)
-            for pack_index in range(1, pack_count + 1):
-                for spec in pack_specs:
-                    entities.append(ZendurePackSensor(coordinator, pack_index, spec))
         # DC-coupled PV total + solar-corrected battery power exist only on
         # units that expose independent DC-coupled PV telemetry. Venus D/A
-        # exposes individual MPPT inputs. Verified Anker E5000 entities expose
-        # their aggregate ``solar_power`` through the driver definitions; Max/XE
-        # do not create that per-battery entity.
+        # exposes individual MPPT inputs.
         if has_connected_mppt_pv(coordinator):
             for definition in SOLAR_POWER_SENSOR_DEFINITIONS:
                 entities.append(MarstekVenusSolarPowerSensor(coordinator, definition))
@@ -269,7 +222,7 @@ async def async_setup_entry(
     # Exact daily energy totals from the real power sensors (panel "Energía hoy").
     # Each is added only when its source sensor is configured.
     # Daily solar = external solar sensor + independent battery-reported
-    # DC-coupled PV (individual MPPT channels or verified Anker aggregate).
+    # DC-coupled PV (individual MPPT channels).
     has_solar_telemetry = any(
         bool(
             has_connected_mppt_pv(c)
@@ -400,7 +353,7 @@ class MarstekVenusSensor(CoordinatorEntity, SensorEntity):
         """Surface the driver's model label on the SOC sensor for the panel chip.
 
         The device-registry model is hardcoded "Venus", so the per-battery model
-        (Marstek version / Zendure product) rides along here on the always-present
+        (Marstek version) rides along here on the always-present
         battery_soc entity the panel already reads.
         """
         if self.definition["key"] == "total_discharging_energy":
@@ -2597,8 +2550,7 @@ class DailySolarEnergySensor(SensorEntity):
     """Exact daily solar production (kWh), integrated from the real solar power.
 
     The controller integrates total solar — the configured solar_production_sensor
-    plus independent battery PV (Venus MPPT inputs or verified Anker E5000
-    aggregate) — at control-loop cadence and resets at local midnight (see
+    plus independent battery PV (Venus MPPT inputs) — at control-loop cadence and resets at local midnight (see
     ConsumptionTracker); this entity just surfaces that running total.
     total_increasing so HA handles the daily reset.
     """
@@ -2638,9 +2590,8 @@ class SystemSolarPowerSensor(SensorEntity):
     """Instantaneous total solar production from external and independent PV.
 
     Sums the configured solar_production_sensor and independent battery PV —
-    Venus MPPT inputs or verified Anker E5000 aggregate telemetry — just as the
-    ConsumptionTracker does for daily solar energy. AC-derived Anker Max/XE
-    readings are excluded, and the entity is omitted when no battery contributes
+    Venus MPPT inputs — just as the
+    ConsumptionTracker does for daily solar energy. The entity is omitted when no battery contributes
     independent PV so it cannot duplicate the external sensor.
     """
 

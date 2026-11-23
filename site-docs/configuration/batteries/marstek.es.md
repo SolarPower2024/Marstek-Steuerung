@@ -1,6 +1,6 @@
 # Marstek Venus
 
-Usa esta conexión para una batería Marstek Venus a la que se llega directamente por Ethernet, mediante una pasarela Modbus o mediante un adaptador USB a RS-485. Un puente LilyGo utiliza su propia opción en el asistente.
+Usa esta conexión para una batería Marstek Venus a la que se llega directamente por Ethernet, mediante una pasarela Modbus o mediante un adaptador USB a RS-485.
 
 ## ¿Lo necesito?
 
@@ -11,7 +11,7 @@ Usa esta conexión para una batería Marstek Venus a la que se llega directament
 | Venus A | **A** | 1.500 W |
 | Venus D | **D** | 2.200 W antes del firmware EMS 149, o cuando se desconoce el firmware; 2.500 W desde el firmware 149 |
 
-**Usa esta página si** una de estas opciones del asistente coincide con tu batería y puedes acceder a ella mediante Modbus TCP o Modbus RTU. **Usa en su lugar la [vía ESPHome / LilyGo](esphome-lilygo.md)** cuando un puente ESPHome compatible ya exponga la batería en Home Assistant.
+**Usa esta página si** una de estas opciones del asistente coincide con tu batería y puedes acceder a ella mediante Modbus TCP o Modbus RTU.
 
 ## Antes de empezar
 
@@ -46,7 +46,6 @@ Venus E v2 puede usar cortes de SOC de hardware. Omnibattery aplica los límites
 | Los valores son inverosímiles o no están disponibles | La versión Venus seleccionada usa otro mapa de registros | Vuelve a configurar la batería con la versión exacta del modelo |
 | La descarga de Venus E nunca supera unos 800 W aunque **Max Discharge Power** sea mayor | En versiones anteriores a v1.3.0, un valor entre 800 y 2.500 W se escribía tal cual en el selector de 800/2.500 W (ver la nota de abajo). En v1.3.0 o posterior, una posible causa es la potencia máxima de salida de la app Marstek en `800 W` (a menudo el valor por defecto donde las baterías enchufables están limitadas a 800 W): se ha observado que prevalece sobre el registro que escribe Omnibattery | Actualiza Omnibattery primero. Si persiste, comprueba el selector de potencia de salida en la app Marstek, también tras un reinicio de la batería. Si 800 W es tu límite legal, mantenlo y ajusta **Max Discharge Power** a `800 W` para que el controlador y las previsiones trabajen con el límite real |
 | Venus D está limitada a 2.200 W | El firmware EMS es anterior al 149 o no se pudo leer su versión | Comprueba el firmware EMS antes de esperar el límite superior |
-| Falta una batería conectada por LilyGo | Se seleccionó la vía Marstek directa | Vuelve al paso de marca y selecciona **Marstek via LilyGo RS485 (ESPHome)** |
 | La carga se ralentiza cerca del máximo | Está activa la reducción gradual de carga completa opcional | Comprueba **100% Charge Voltage Taper** y los sensores de tensión de celda |
 
 ??? "Detalles avanzados"

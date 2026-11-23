@@ -2,7 +2,7 @@
 
 The incremental PD re-anchors its command base to measured AC power when the
 batteries under-deliver. That is only correct on REAL saturation (SOC/taper/
-blocker/cap). A slow MQTT/HTTP actuator (Zendure) ramps over seconds, and that
+blocker/cap). A slow MQTT/HTTP actuator (Hybrid) ramps over seconds, and that
 ramp lag must NOT be read as saturation, or the base is yanked down to the
 lagging measurement before the device reaches the cap. This gate distinguishes
 the two: ``True`` only when no active battery has headroom below its own limit.
@@ -21,7 +21,7 @@ def _coord(ac_power, limit=1250, blocked=False):
     return SimpleNamespace(data={"ac_power": ac_power}, limit=limit, blocked=blocked)
 
 
-def _zendure(battery_power, limit=1250, blocked=False):
+def _hybrid(battery_power, limit=1250, blocked=False):
     """Registerless driver: no ac_power, only synthesised battery_power (+charge)."""
     return SimpleNamespace(
         data={"battery_power": battery_power}, limit=limit, blocked=blocked
@@ -64,14 +64,14 @@ def test_unknown_delivery_not_saturated():
     assert _saturated([coord]) is False
 
 
-def test_zendure_at_cap_is_saturated():
+def test_hybrid_at_cap_is_saturated():
     # Registerless driver: battery_power only. At cap → no headroom → saturated.
-    assert _saturated([_zendure(1250, limit=1250)]) is True
+    assert _saturated([_hybrid(1250, limit=1250)]) is True
 
 
-def test_zendure_ramp_lag_not_saturated():
+def test_hybrid_ramp_lag_not_saturated():
     # Registerless driver still ramping below cap → headroom → not saturated.
-    assert _saturated([_zendure(400, limit=1250)]) is False
+    assert _saturated([_hybrid(400, limit=1250)]) is False
 
 
 def test_unconfigured_phase_is_not_treated_as_saturated():
@@ -95,7 +95,7 @@ def test_unconfigured_phase_is_not_treated_as_saturated():
 
 
 def test_mixed_blocked_plus_headroom_not_saturated():
-    # Marstek blocked (max_soc) + Zendure still ramping below cap → not saturated.
+    # Marstek blocked (max_soc) + Hybrid still ramping below cap → not saturated.
     coords = [_coord(0, limit=2500, blocked=True), _coord(-400, limit=1250)]
     assert _saturated(coords) is False
 
@@ -119,11 +119,11 @@ def _measured(coords):
     )
 
 
-def test_measured_includes_zendure_via_battery_power():
-    # Regression: Zendure has no ac_power. The controller must still see its
+def test_measured_includes_hybrid_via_battery_power():
+    # Regression: Hybrid has no ac_power. The controller must still see its
     # charge (battery_power, + charge) instead of reading it as 0 W.
-    # Marstek idle (ac_power 0, + discharge/- charge) + Zendure charging 1250.
-    assert _measured([_coord(0), _zendure(1250)]) == 1250.0
+    # Marstek idle (ac_power 0, + discharge/- charge) + Hybrid charging 1250.
+    assert _measured([_coord(0), _hybrid(1250)]) == 1250.0
 
 
 def test_measured_none_when_no_battery_reports():
@@ -132,7 +132,7 @@ def test_measured_none_when_no_battery_reports():
 
 
 def test_delivered_prefers_ac_port_over_cell_side_battery_power():
-    # #634: Zendure Mix Pro with 400 W DC PV charging the cells and 0 W on the
+    # #634: Hybrid Mix Pro with 400 W DC PV charging the cells and 0 W on the
     # AC port. battery_power (+400) is cell-side; the PD must see the AC port.
     coord = SimpleNamespace(data={"battery_power": 400, "ac_delivered_power": 0})
     assert ChargeDischargeController._coordinator_delivered_power(coord) == 0.0

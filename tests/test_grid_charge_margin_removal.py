@@ -93,10 +93,10 @@ def test_a_stored_margin_wins_over_the_default(stored):
 # Batteries that report their own capacity count too
 # ----------------------------------------------------------------------
 
-# A Marstek reads its capacity over Modbus (nothing configured); a Zendure left
-# at 0 detects it from its packs. Only the reported figures size the fleet.
-REPORTING = {"batteries": [{"name": "Venus"}, {"name": "SolarFlow", "battery_capacity_kwh": 0}]}
-REPORTED = {"Venus": 5.12, "SolarFlow": 8.16}
+# A Marstek reads its capacity over Modbus (nothing configured); another battery left
+# at 0 detects it itself. Only the reported figures size the fleet.
+REPORTING = {"batteries": [{"name": "Venus"}, {"name": "Venus 2", "battery_capacity_kwh": 0}]}
+REPORTED = {"Venus": 5.12, "Venus 2": 8.16}
 
 
 def test_default_margin_counts_the_reported_capacity():

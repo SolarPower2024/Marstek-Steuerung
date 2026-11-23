@@ -26,8 +26,8 @@ from dataclasses import dataclass
 from typing import Any, Callable, Iterable, Sequence
 
 # Brands whose batteries are addressed by IP and can therefore drift.
-# Serial (a device path), ESPHome and MQTT (a device id) have no IP to track.
-IP_BASED_BRANDS = frozenset({"marstek", "zendure", "anker", "sessy", "indevolt"})
+# Serial (a device path) has no IP to track.
+IP_BASED_BRANDS = frozenset({"marstek"})
 
 CONF_TRACK_MAC = "track_mac"
 CONF_MAC = "mac"

@@ -12,15 +12,7 @@ expressed through semantic driver capabilities or hooks; brand/model branches
 are limited to driver selection, configuration, and migrations.
 
 Drivers:
-  - ``marstek``: Modbus-TCP, register based, polled (the original hardware).
-  - ``zendure``: local HTTP REST, property based, polled (SolarFlow series).
-  - ``esphome``: HA-entity based, push (Marstek behind a LilyGo RS485 bridge).
-  - ``anker``: Modbus-TCP, register based, polled (SOLIX Solarbank Max AC / 4 E5000 Pro).
-  - ``hoymiles``: HA MQTT based, push telemetry (MS-A2).
-  - ``huawei``: native Modbus-TCP telemetry, set-points via huawei_solar
-    services (SUN2000 + LUNA2000).
-  - ``indevolt``: local HTTP, paced scheduler, realtime RAM tuple only
-    (SolidFlex / PowerFlex).
+  - ``marstek``: Modbus-TCP, register based, polled.
 
 See ``docs/plans/driver_abstraction.md`` for the phased extraction plan.
 """
@@ -33,14 +25,7 @@ from .base import (
     SetpointResult,
     TelemetrySnapshot,
 )
-from .esphome import EsphomeEntityDriver
 from .marstek import MarstekModbusDriver
-from .zendure import ZendureLocalDriver
-from .anker import AnkerModbusDriver
-from .sessy import SessyLocalDriver
-from .hoymiles import HoymilesMqttDriver
-from .huawei import HuaweiSolarDriver
-from .indevolt import IndevoltDriver
 
 __all__ = [
     "DELIVERED_AC_POWER_KEY",
@@ -49,12 +34,5 @@ __all__ = [
     "ReadGroup",
     "SetpointResult",
     "TelemetrySnapshot",
-    "EsphomeEntityDriver",
     "MarstekModbusDriver",
-    "ZendureLocalDriver",
-    "AnkerModbusDriver",
-    "SessyLocalDriver",
-    "HoymilesMqttDriver",
-    "HuaweiSolarDriver",
-    "IndevoltDriver",
 ]

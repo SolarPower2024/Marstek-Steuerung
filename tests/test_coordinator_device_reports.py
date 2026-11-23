@@ -22,8 +22,6 @@ class _Coordinator:
     def __init__(self, data):
         self.name = "Omnibattery Marstek Venus"
         self.data = data
-        self.needs_software_max_charge = False
-        self.needs_software_max_discharge = False
         self.needs_software_power_cap = False
         self._configured_max_charge_power = 2500
         self._configured_max_discharge_power = 2500
@@ -83,7 +81,7 @@ def test_the_mismatch_is_logged_rather_than_swallowed(caplog):
 # The system totals refuse to add up unless every battery's daily figure is
 # marked as belonging to today — a guard against summing one battery's fresh
 # value with another's from before midnight. Only the derived counter stamps
-# that mark, because until the Huawei driver arrived every brand needed one.
+# that mark, because until a driver arrived that counts for itself every brand needed one.
 #
 # A battery whose device counts for itself never got that sensor, so it never
 # carried the mark, and one of them in a fleet zeroed the totals outright: 10.3
@@ -135,7 +133,7 @@ def test_zero_is_a_value_and_gets_marked():
 # --- The device keeps its own midnight ---------------------------------
 #
 # Stamping every poll with today's date said the value was today's when it was
-# not. Just after local midnight the Huawei's own counter still held 14.13 kWh
+# not. Just after local midnight a device's own counter still held 14.13 kWh
 # while the Marstek had reset to 0.00; the aggregate accepted 14.18 as a
 # complete sum and latched it, and because it refuses same-day decreases the
 # figure stood untouched all day while the real total climbed to 6.17.
@@ -196,7 +194,7 @@ def test_a_same_day_climb_is_never_held_back():
 
 # --- The device cap has to reach config_entry.data --------------------
 #
-# Issue #449: an Anker Solarbank Max AC had its discharge limit raised from
+# Issue #449: a battery had its discharge limit raised from
 # 2500 W to 3000 W in the vendor app. The poll adopted the new ceiling, so the
 # per-battery slider allowed 3000 W, but the *system* slider stayed pinned at
 # 2500 W through reloads. The system sliders derive their bounds from
@@ -212,12 +210,11 @@ from custom_components.omnibattery.number import config_number_bounds
 
 
 class _SoftMaxCoordinator(_Coordinator):
-    """A soft-max driver (Anker, Zendure) with a config entry behind it."""
+    """A soft-max battery (Venus v2/v3) with a config entry behind it."""
 
     def __init__(self, data, entry_data):
         super().__init__(data)
-        self.needs_software_max_charge = True
-        self.needs_software_max_discharge = True
+        self.needs_software_power_cap = True
         self.entry_data = entry_data
 
     def persist_battery_config(self, key, value):

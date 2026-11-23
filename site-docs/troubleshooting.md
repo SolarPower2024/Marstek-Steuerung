@@ -78,7 +78,7 @@ The battery may be idle by design when the grid is already near target. If house
 |---|---|---|
 | Host, port, slave ID, or battery model is wrong | Integration entry and battery-specific setup | Correct the connection in the relevant [battery guide](configuration/batteries/index.md) |
 | Marstek RS-485 control is off | **RS485 Control Mode** | Enable it before sending control commands |
-| Gateway or bridge is offline | Gateway, ESPHome, MQTT, or API device status | Restore the local connection and reload the integration if needed |
+| Gateway or bridge is offline | Gateway or bridge device status | Restore the local connection and reload the integration if needed |
 | Driver rejected repeated reads or writes | Home Assistant **Repairs**, logs, and **Non-Responsive Batteries** | Follow the Repair instructions; attach diagnostics if it repeats |
 | An old entity belongs to a previous driver | Entity registry device and integration | Remove the stale unavailable entity if the current driver has created its replacement |
 

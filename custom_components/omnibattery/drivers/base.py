@@ -3,21 +3,17 @@
 This is the seam between the control layer (coordinator + ChargeDischargeController)
 and the hardware. It is deliberately *semantic*, not register-shaped: the only
 operations it exposes are "give me a telemetry snapshot" and "deliver this net
-power". A Modbus/register battery (Marstek) and an MQTT/property battery (Zendure)
-can both sit behind it because neither register addresses nor MQTT topics appear
-in the contract.
+power". A Modbus/register battery (Marstek) sits behind it without register
+addresses appearing in the contract.
 
-Two model differences the contract reconciles:
+The contract is semantic rather than register-shaped:
 
-* **Poll vs push.** Marstek is polled every ~1.5 s; Zendure pushes telemetry over
-  MQTT. :meth:`BatteryDriver.read_telemetry` is a *pull* of the latest known
-  state — a push-based driver caches the last message and returns it, so the
-  coordinator's poll loop is unchanged.
-* **Control semantics.** Marstek wants ``force_mode`` + separate charge/discharge
-  set-point registers; Zendure wants an input/output limit. The control loop
-  speaks a single signed *net power* (+charge / -discharge) via
-  :meth:`BatteryDriver.apply_setpoint`; each driver translates to its own wire
-  format internally.
+* **Poll vs push.** :meth:`BatteryDriver.read_telemetry` is a *pull* of the
+  latest known state; the coordinator's poll loop is unchanged either way.
+* **Control semantics.** The control loop speaks a single signed *net power*
+  (+charge / -discharge) via :meth:`BatteryDriver.apply_setpoint`; the driver
+  translates to its own wire format (Marstek: force_mode + charge/discharge
+  registers) internally.
 
 Nothing imports this module yet — it defines the target contract. It is filled
 in incrementally; see ``docs/plans/driver_abstraction.md`` for the phase plan.
@@ -89,23 +85,22 @@ class DriverCapabilities:
     has_energy_counters: bool = True
 
     # True if the hardware also reports its nominal battery capacity. Drivers
-    # such as Sessy expose lifetime energy counters but require the user to
-    # supply this value for stored-energy and equivalent-cycle calculations.
+    # that do not report it need the user to supply this value for
+    # stored-energy and equivalent-cycle calculations.
     has_nominal_capacity: bool = True
 
     # True when equivalent cycles are defined from cumulative discharged energy
-    # alone. Sessy exposes that lifetime counter, while the existing drivers
-    # retain their throughput-based calculation for backward compatibility.
+    # alone. The existing drivers retain their throughput-based calculation for backward compatibility.
     cycles_from_discharge_only: bool = False
 
     # True if the hardware also reports counters that reset every day. Some
-    # devices (Anker) expose only lifetime charge/discharge totals; for those the
+    # devices expose only lifetime charge/discharge totals; for those the
     # entity layer derives daily values from the cumulative counter deltas.
     # Defaults True for backward compatibility with the Marstek register maps.
     has_daily_energy_counters: bool = True
 
     # True when ``solar_power`` is an independent aggregate DC/PV source.
-    # This is separate from has_mppt_pv because some devices (Anker Solarbank 4)
+    # This is separate from has_mppt_pv because some devices
     # report the combined PV input but do not expose one telemetry key per MPPT.
     # A PV-looking value derived from the battery's own AC/P1 calculation must
     # leave this False so it is never counted as additional production.
@@ -113,15 +108,15 @@ class DriverCapabilities:
 
     # True if a setpoint readback reliably reflects the just-written command on the
     # confirmation cycle. Register batteries (Marstek) echo the written value at
-    # once. A driver whose device applies writes with latency (Zendure: the HTTP
-    # report echoes the previous limit for ~2 s, so an in-flight PD setpoint change
+    # once. A driver whose device applies writes with latency (the device
+    # report may echo the previous limit for seconds, so an in-flight PD setpoint change
     # reads back "not yet applied" even though the write was accepted) reports
     # False, so the control layer logs an unconfirmed first attempt at debug rather
     # than warning — the retry still confirms it. Defaults True.
     setpoint_confirm_reliable: bool = True
 
     # True if the reported delivered power tracks the real AC output closely
-    # enough to anchor control on. Anker reports 0 W or lagging values for
+    # enough to anchor control on. A device may report 0 W or lagging values for
     # seconds after a setpoint change (#522), so the PD skips the measured-power
     # anchors that have no real limit behind them (the timed anti-windup
     # fallback and the feedforward deadbeat). Defaults True.
@@ -129,8 +124,8 @@ class DriverCapabilities:
 
     # True if the AC port and the cell terminal are measured independently, so
     # their power difference is the real conversion loss. The efficiency sensor
-    # integrates the two planes on PV units only when this holds. Zendure reports
-    # identical AC and cell power while discharging, which reads as 100% (#556),
+    # integrates the two planes on PV units only when this holds. A device that reports
+    # identical AC and cell power while discharging reads as 100% (#556),
     # so it keeps the cumulative charge/discharge counters. Defaults True.
     independent_power_planes: bool = True
 
@@ -152,12 +147,12 @@ class DriverCapabilities:
     # expected while the device engages. ``None`` uses the controller default.
     # This is separate from actuator_latency_s because a device may switch
     # direction quickly once running but still need a long standby-to-running
-    # safety transition (Sessy takes up to 60 seconds for that transition).
+    # safety transition.
     engage_grace_s: Optional[float] = None
 
     # Minimum reliable operating power (watts, per unit) below which the hardware
     # will not sustain a non-zero charge/discharge. Every Marstek model reports 0
-    # (its setpoint registers accept any power); Anker reports a real floor.
+    # (its setpoint registers accept any power).
     # The thermal derate clamps its non-zero output up to this value
     # so it never dribbles an unreliable sub-minimum command. Defaults to 0 (no floor).
     min_charge_power_w: int = 0
@@ -312,8 +307,7 @@ class BatteryDriver(ABC):
     def model_label(self) -> Optional[str]:
         """Human-readable model for display (panel chip / device page).
 
-        Defaults to None; concrete drivers override (Marstek: "Venus <version>";
-        Zendure: the report's ``product`` field). Not abstract so a driver with no
+        Defaults to None; concrete drivers override (Marstek: "Venus <version>"). Not abstract so a driver with no
         model identity need not implement it.
         """
         return None
@@ -322,9 +316,8 @@ class BatteryDriver(ABC):
     def serial(self) -> Optional[str]:
         """Stable hardware serial, or None if the transport exposes none.
 
-        Used to key the synthetic-energy backup so a deleted-and-re-added battery
-        reclaims its lifetime totals (host/port can change with DHCP; the serial
-        does not). Defaults to None; only drivers that read one override it.
+        Identifies the battery independently of host/port, which can change with
+        DHCP. Defaults to None; only drivers that read one override it.
         """
         return None
 
@@ -424,7 +417,7 @@ class BatteryDriver(ABC):
         """Command a signed net power: +charge / -discharge, 0 = idle/hold.
 
         The driver translates to its own wire format (Marstek: force_mode +
-        charge/discharge registers; Zendure: input/output limit). ``mode_hint``
+        charge/discharge registers). ``mode_hint``
         is an optional control-layer intent ("charge"/"discharge"/"idle") that
         drivers with an explicit mode command may use; sign of ``net_power_w`` is
         authoritative. ``read_back=False`` skips confirmation to cut bus traffic
@@ -445,55 +438,6 @@ class BatteryDriver(ABC):
         driver has no control for the key or the write failed.
         """
 
-    def dynamic_discharge_limit_w(self, data: dict) -> Optional[int]:
-        """Live discharge ceiling below the static envelope, or None if there is none.
-
-        The static envelope in :class:`DriverCapabilities` describes what the
-        battery can do in isolation. A DC-coupled hybrid breaks that assumption:
-        its battery and its PV strings share one inverter, so the power actually
-        available for discharge is whatever the inverter's AC rating has left
-        over after PV. That headroom changes with the sun, which a value fixed at
-        setup time cannot express.
-
-        Returning a live value lets the load-sharing logic allocate against real
-        headroom rather than a nameplate figure it can never reach. ``data`` is
-        the coordinator's telemetry cache; return None when the inputs are
-        missing so the caller keeps the static limit rather than guessing.
-
-        Drivers for AC batteries with their own inverter have no such coupling
-        and inherit this default.
-        """
-        return None
-
-    def dynamic_charge_limit_w(self, data: dict) -> Optional[int]:
-        """Live charge ceiling below the static envelope, or None if there is none.
-
-        The charge-side counterpart of :meth:`dynamic_discharge_limit_w`. A
-        driver returns 0 while it cannot take a charge command at all (an
-        Indevolt outside Realtime mode), so battery selection skips it and the
-        other batteries take the load, instead of the controller allocating
-        power the battery refuses until the non-responsive tracker excludes it.
-        Near full it may return what the battery takes while its BMS tapers the
-        charge (an Indevolt in its constant-voltage phase), so the controller
-        commands that instead of a power the battery reports as not delivered.
-
-        Defaults to None: the static limit stands, so other drivers are
-        unaffected. See docs/indevolt-core-changes.md.
-        """
-        return None
-
-    async def async_fix_issue(self, issue_id: str) -> bool:
-        """Fix a Repairs issue this driver raised; True when it did.
-
-        Called by the fix flow in ``repairs.py`` when the user submits a fixable
-        issue whose data names this battery. The Indevolt driver uses it to turn
-        setting writes back on after its yearly flash allowance stopped them.
-
-        Defaults to False: other drivers raise no fixable issues, and the flow
-        then keeps the issue. See docs/indevolt-core-changes.md.
-        """
-        return False
-
     @abstractmethod
     def net_power_from_data(self, data: dict) -> Optional[int]:
         """Derive the current commanded net power from coordinator telemetry cache.
@@ -502,8 +446,7 @@ class BatteryDriver(ABC):
         into ``coordinator.data``, or None if the required keys are absent. None
         tells the skip-if-unchanged logic to fall through to a real write rather
         than incorrectly skipping it. Each driver reads its own brand-native keys
-        (Marstek: force_mode + set_charge/discharge_power; Zendure: ac_mode +
-        input/output_limit).
+        (Marstek: force_mode + set_charge/discharge_power).
         """
 
     @property

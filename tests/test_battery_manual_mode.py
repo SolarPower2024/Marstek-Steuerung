@@ -63,32 +63,6 @@ async def test_automatic_power_write_is_rejected_for_manual_battery():
     assert result is False
 
 
-@pytest.mark.asyncio
-async def test_individual_software_manual_setpoint_is_reasserted_with_owner():
-    coordinator = SimpleNamespace(
-        battery_manual_mode_enabled=True,
-        needs_software_manual_control=True,
-        manual_force_mode="Charge",
-        manual_set_charge_power=700,
-        manual_set_discharge_power=0,
-    )
-    controller = ChargeDischargeController.__new__(ChargeDischargeController)
-    controller.coordinators = [coordinator]
-    controller._set_battery_power = AsyncMock()
-
-    await ChargeDischargeController._apply_software_manual_setpoints(
-        controller, global_mode=False
-    )
-
-    controller._set_battery_power.assert_awaited_once_with(
-        coordinator,
-        700,
-        0,
-        bypass_blockers=True,
-        owner="battery_manual",
-    )
-
-
 def test_effective_system_capacity_excludes_manual_battery():
     manual = SimpleNamespace(battery_manual_mode_enabled=True)
     automatic = SimpleNamespace(battery_manual_mode_enabled=False)
@@ -448,50 +422,3 @@ async def test_global_manual_mode_preserves_individual_software_state():
 
     assert coordinator.manual_force_mode == "Charge"
     coordinator.persist_battery_config.assert_not_called()
-
-
-def test_soc_calibration_hands_battery_out_of_and_back_to_automatic_control():
-    """#799: a calibrating Zendure leaves the pool without a non-responsive spell."""
-    coordinator = HashableNamespace(
-        name="Zendure",
-        battery_manual_mode_enabled=False,
-        data={"soc_status": 1},
-    )
-    controller = _controller_with_reset(
-        coordinators=[coordinator],
-        _non_responsive=Mock(),
-    )
-    controller._active_discharge_batteries.append(coordinator)
-
-    assert ChargeDischargeController._is_battery_manual_owned(coordinator)
-    ChargeDischargeController._sync_calibration_ownership(controller)
-    assert coordinator not in controller._active_discharge_batteries
-    controller._non_responsive.clear.assert_called_once_with(coordinator)
-
-    # Steady calibration: no repeated handoff.
-    ChargeDischargeController._sync_calibration_ownership(controller)
-    controller._non_responsive.clear.assert_called_once()
-
-    coordinator.data = {"soc_status": 0}
-    assert not ChargeDischargeController._is_battery_manual_owned(coordinator)
-    ChargeDischargeController._sync_calibration_ownership(controller)
-    assert coordinator not in controller._calibrating_batteries
-
-
-@pytest.mark.asyncio
-async def test_calibrating_battery_gets_no_manual_setpoint():
-    coordinator = SimpleNamespace(
-        battery_manual_mode_enabled=False,
-        data={"soc_status": 1},
-        needs_software_manual_control=True,
-        manual_force_mode="None",
-    )
-    controller = ChargeDischargeController.__new__(ChargeDischargeController)
-    controller.coordinators = [coordinator]
-    controller._set_battery_power = AsyncMock()
-
-    await ChargeDischargeController._apply_software_manual_setpoints(
-        controller, global_mode=False
-    )
-
-    controller._set_battery_power.assert_not_awaited()

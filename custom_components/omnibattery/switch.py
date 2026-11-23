@@ -89,11 +89,7 @@ async def async_setup_entry(
             entities.append(BatteryAllowChargeSwitch(hass, entry, controller, coordinator))
             entities.append(BatteryAllowDischargeSwitch(hass, entry, controller, coordinator))
             entities.append(BatteryManualModeSwitch(hass, entry, controller, coordinator))
-            # Marstek-only cell maintenance: voltage taper needs per-cell
-            # voltages the other brands do not expose in the same way. Same
-            # brand list as the taper option in the config flow.
-            if coordinator.brand not in ("zendure", "anker", "sessy", "hoymiles", "huawei", "indevolt"):
-                entities.append(BatteryFullChargeVoltageTaperSwitch(hass, entry, controller, coordinator))
+            entities.append(BatteryFullChargeVoltageTaperSwitch(hass, entry, controller, coordinator))
 
     # Add manual mode switch (system-level, always present)
     if controller:
@@ -1615,10 +1611,7 @@ class ManualModeSwitch(SwitchEntity):
                     "Automatic charge/discharge control is paused. "
                     "All batteries have been set to idle (0W). "
                     "You can now manually control each battery using the "
-                    "'Set Forcible Charge/Discharge Power' controls, or — "
-                    "for Anker — select another operating mode in the "
-                    "official Anker Solix integration without OmniBattery "
-                    "reverting it.\n\n"
+                    "'Set Forcible Charge/Discharge Power' controls.\n\n"
                     "Turn off Manual Mode to resume automatic control."
                 ),
                 "notification_id": f"{NOTIFICATION_ID_PREFIX}manual_mode_active",

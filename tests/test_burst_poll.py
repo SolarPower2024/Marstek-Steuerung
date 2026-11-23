@@ -57,7 +57,7 @@ def test_unrelated_group_is_never_boosted():
 
 
 def test_battery_power_key_also_boosted():
-    """battery_power (Zendure's fallback delivered-power key) is boosted too."""
+    """battery_power (a fallback delivered-power key) is boosted too."""
     now = 100.0
     boost_until = now + 3.0
 

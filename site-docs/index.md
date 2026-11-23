@@ -16,13 +16,6 @@ Check [whether your exact battery is compatible](compatibility.md) before instal
 
 | Brand | How Omnibattery connects | Start here |
 |---|---|---|
-| **Marstek Venus** | Modbus TCP, Modbus RTU or a LilyGo RS-485/ESPHome bridge | [Marstek setup](configuration/batteries/marstek.md) |
-| **Zendure SolarFlow** | Local HTTP API | [Zendure setup](configuration/batteries/zendure.md) |
-| **Anker SOLIX Solarbank** | Modbus TCP | [Anker SOLIX setup](configuration/batteries/anker.md) |
-| **Huawei SUN2000 + LUNA2000** | Modbus TCP through the inverter | [Huawei setup](configuration/batteries/huawei.md) |
-| **Sessy Home Battery** | Local HTTP API through the Sessy dongle | [Sessy setup](configuration/batteries/sessy.md) |
-| **Hoymiles MS-A2 and HiBattery** | MQTT through Home Assistant | [Hoymiles MQTT setup](configuration/batteries/hoymiles.md) |
-| **Indevolt SolidFlex and PowerFlex** | Local HTTP API | [Indevolt setup](configuration/batteries/indevolt.md) |
 
 Omnibattery can coordinate supported brands in the same installation. Check the [installation requirements](installation.md#before-you-start) before changing any manufacturer settings.
 

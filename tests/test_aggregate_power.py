@@ -1,6 +1,6 @@
 """Aggregate power sensors across mixed-brand coordinators.
 
-Covers System Charge/Discharge Power (Zendure coordinators only synthesise
+Covers System Charge/Discharge Power (Hybrid coordinators only synthesise
 ``battery_power`` (+charge / −discharge); Marstek exposes ``ac_power``) and
 System Battery Cell Power (signed, mirroring the dashboard formula
 ``-ac_power - ac_offgrid_power + sum(MPPT)``).
@@ -38,7 +38,7 @@ def test_ac_convention_power_prefers_ac_power():
 
 
 def test_ac_convention_power_falls_back_to_negated_battery_power():
-    # Zendure: only battery_power (+charge / −discharge) → negate to ac convention.
+    # Hybrid: only battery_power (+charge / −discharge) → negate to ac convention.
     assert MarstekVenusAggregateSensor._ac_convention_power({"battery_power": 300}) == -300
     assert MarstekVenusAggregateSensor._ac_convention_power({"battery_power": -450}) == 450
 
@@ -68,29 +68,29 @@ def test_ac_convention_power_none_when_no_power_keys():
     assert MarstekVenusAggregateSensor._ac_convention_power({"battery_soc": 50}) is None
 
 
-def test_charge_power_sums_marstek_and_zendure():
+def test_charge_power_sums_marstek_and_hybrid():
     marstek = FakeCoordinator(data={"ac_power": -200})       # charging 200 W
-    zendure = FakeCoordinator(data={"battery_power": 300})   # charging 300 W
-    sensor = _sensor([marstek, zendure], "system_charge_power")
+    hybrid = FakeCoordinator(data={"battery_power": 300})   # charging 300 W
+    sensor = _sensor([marstek, hybrid], "system_charge_power")
     assert sensor._calculate_total_charge_power() == 500
 
 
-def test_discharge_power_sums_marstek_and_zendure():
+def test_discharge_power_sums_marstek_and_hybrid():
     marstek = FakeCoordinator(data={"ac_power": 150})        # discharging 150 W
-    zendure = FakeCoordinator(data={"battery_power": -450})  # discharging 450 W
-    sensor = _sensor([marstek, zendure], "system_discharge_power")
+    hybrid = FakeCoordinator(data={"battery_power": -450})  # discharging 450 W
+    sensor = _sensor([marstek, hybrid], "system_discharge_power")
     assert sensor._calculate_total_discharge_power() == 600
 
 
-def test_charge_power_excludes_discharging_zendure():
-    zendure = FakeCoordinator(data={"battery_power": -450})  # discharging
-    sensor = _sensor([zendure], "system_charge_power")
+def test_charge_power_excludes_discharging_hybrid():
+    hybrid = FakeCoordinator(data={"battery_power": -450})  # discharging
+    sensor = _sensor([hybrid], "system_charge_power")
     assert sensor._calculate_total_charge_power() == 0
 
 
-def test_unavailable_zendure_not_counted():
-    zendure = FakeCoordinator(data={"battery_power": 300}, is_available=False)
-    sensor = _sensor([zendure], "system_charge_power")
+def test_unavailable_hybrid_not_counted():
+    hybrid = FakeCoordinator(data={"battery_power": 300}, is_available=False)
+    sensor = _sensor([hybrid], "system_charge_power")
     assert sensor._calculate_total_charge_power() == 0
 
 
@@ -121,38 +121,38 @@ def _home_sensor(coordinators, grid, solar):
     return sensor
 
 
-def test_home_consumption_includes_zendure_battery_power():
-    # Regression: a registerless Zendure exposes only battery_power. Home
-    # Consumption summed raw ac_power, dropping the Zendure's discharge — home
+def test_home_consumption_includes_hybrid_battery_power():
+    # Regression: a registerless Hybrid exposes only battery_power. Home
+    # Consumption summed raw ac_power, dropping the Hybrid's discharge — home
     # read low and the dashboard Home node collapsed toward 0 once an excluded
-    # device was subtracted. grid 236 + marstek 0 + zendure 614 + solar 2249.
+    # device was subtracted. grid 236 + marstek 0 + hybrid 614 + solar 2249.
     marstek = FakeCoordinator(data={"ac_power": 0})
-    zendure = FakeCoordinator(data={"battery_power": -614})  # discharging 614 W
-    sensor = _home_sensor([marstek, zendure], grid=236, solar=2249)
+    hybrid = FakeCoordinator(data={"battery_power": -614})  # discharging 614 W
+    sensor = _home_sensor([marstek, hybrid], grid=236, solar=2249)
     assert sensor._calculate_home_consumption() == 3099
 
 
-def test_home_consumption_charging_zendure_reduces_home():
-    # Charging Zendure (battery_power +400) draws from the bus → subtracts.
-    zendure = FakeCoordinator(data={"battery_power": 400})
-    sensor = _home_sensor([zendure], grid=1000, solar=0)
+def test_home_consumption_charging_hybrid_reduces_home():
+    # Charging Hybrid (battery_power +400) draws from the bus → subtracts.
+    hybrid = FakeCoordinator(data={"battery_power": 400})
+    sensor = _home_sensor([hybrid], grid=1000, solar=0)
     assert sensor._calculate_home_consumption() == 600
 
 
 def test_home_consumption_excludes_direct_pv_charging():
-    # Issue #453 as reported: rooftop 1303 W, grid import 8 W, Zendure charging
+    # Issue #453 as reported: rooftop 1303 W, grid import 8 W, Hybrid charging
     # 385 W from its own DC array with zero AC exchange. Home is 1311 W; billing
     # the array to the house gave 926 W.
-    zendure = FakeCoordinator(data={"battery_power": 385, "ac_delivered_power": 0})
-    sensor = _home_sensor([zendure], grid=8, solar=1303)
+    hybrid = FakeCoordinator(data={"battery_power": 385, "ac_delivered_power": 0})
+    sensor = _home_sensor([hybrid], grid=8, solar=1303)
     assert sensor._calculate_home_consumption() == 1311
 
 
 def test_home_consumption_still_subtracts_real_ac_charging():
     # Mixed: 594 W from the array plus 300 W pulled from the house wiring. Only
     # the AC term comes off the household load.
-    zendure = FakeCoordinator(data={"battery_power": 894, "ac_delivered_power": 300})
-    sensor = _home_sensor([zendure], grid=1000, solar=0)
+    hybrid = FakeCoordinator(data={"battery_power": 894, "ac_delivered_power": 300})
+    sensor = _home_sensor([hybrid], grid=1000, solar=0)
     assert sensor._calculate_home_consumption() == 700
 
 
@@ -160,8 +160,8 @@ def test_home_consumption_holds_last_valid_value_for_negative_transient():
     # Independent telemetry can briefly make the derived AC balance negative
     # while a battery is charging. Keep the previous positive estimate instead
     # of publishing an impossible 0 W state.
-    zendure = FakeCoordinator(data={"battery_power": 400})
-    sensor = _home_sensor([zendure], grid=1000, solar=0)
+    hybrid = FakeCoordinator(data={"battery_power": 400})
+    sensor = _home_sensor([hybrid], grid=1000, solar=0)
     assert sensor._calculate_home_consumption() == 600
 
     sensor.hass._states["sensor.grid"] = _FakeState(100)
@@ -175,8 +175,8 @@ def test_home_consumption_holds_last_valid_value_for_negative_transient():
 def test_home_consumption_holds_last_valid_value_for_small_positive_transient():
     # The independently sampled values can leave a tiny positive balance, so
     # checking only total <= 0 is insufficient.
-    zendure = FakeCoordinator(data={"battery_power": 400})
-    sensor = _home_sensor([zendure], grid=1000, solar=0)
+    hybrid = FakeCoordinator(data={"battery_power": 400})
+    sensor = _home_sensor([hybrid], grid=1000, solar=0)
     assert sensor._calculate_home_consumption() == 600
 
     sensor.hass._states["sensor.grid"] = _FakeState(401)
@@ -188,8 +188,8 @@ def test_home_consumption_holds_last_valid_value_for_small_positive_transient():
 
 
 def test_home_consumption_holds_last_valid_value_after_long_gap():
-    zendure = FakeCoordinator(data={"battery_power": 400})
-    sensor = _home_sensor([zendure], grid=1000, solar=0)
+    hybrid = FakeCoordinator(data={"battery_power": 400})
+    sensor = _home_sensor([hybrid], grid=1000, solar=0)
     assert sensor._calculate_home_consumption() == 600
 
     sensor.hass._states["sensor.grid"] = _FakeState(100)
@@ -204,8 +204,8 @@ def test_home_consumption_holds_last_valid_value_after_long_gap():
 def test_home_consumption_accepts_positive_balance_below_previous_half():
     # A real load reduction must remain numeric. The old relative 50% guard
     # incorrectly rejected this 292 W balance while the battery was charging.
-    zendure = FakeCoordinator(data={"battery_power": 400})
-    sensor = _home_sensor([zendure], grid=1000, solar=0)
+    hybrid = FakeCoordinator(data={"battery_power": 400})
+    sensor = _home_sensor([hybrid], grid=1000, solar=0)
     assert sensor._calculate_home_consumption() == 600
 
     sensor.hass._states["sensor.grid"] = _FakeState(692)
@@ -241,7 +241,7 @@ def test_cell_power_max_ac_does_not_add_derived_solar_power():
     assert sensor._calculate_battery_cell_power() == 200
 
 
-def test_cell_power_anker_sb4_does_not_double_count_pv_issue_738():
+def test_cell_power_ac_derived_pv_does_not_double_count_pv_issue_738():
     # Solarbank 4 E5000 Pro: ac_power = -pack power (10008), which already
     # includes the 2540 W PV charging the cells. Cell power = pack = 2110 W,
     # not pack + PV = 4650 W.
@@ -320,8 +320,8 @@ def test_cell_power_ignores_ac_offgrid_on_grid():
 
 def test_cell_power_falls_back_to_battery_power():
     # A driver without ac_power contributes its signed battery_power directly.
-    zendure = FakeCoordinator(data={"battery_power": 400})
-    sensor = _sensor([zendure], "system_battery_cell_power")
+    hybrid = FakeCoordinator(data={"battery_power": 400})
+    sensor = _sensor([hybrid], "system_battery_cell_power")
     assert sensor._calculate_battery_cell_power() == 400
 
 

@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 from custom_components.omnibattery.number import (
-    MarstekManualSetPowerNumber,
     MarstekVenusNumber,
     SoftSocLimitNumber,
 )
@@ -108,52 +107,12 @@ async def test_manual_register_write_is_capped_to_configured_power_limit(key, li
     )
 
 
-@pytest.mark.asyncio
-async def test_zendure_inverse_max_power_updates_effective_discharge_limit():
-    """The Zendure hardware discharge number must also update coordinator state."""
-    coordinator = object.__new__(MarstekVenusDataUpdateCoordinator)
-    coordinator.brand = "zendure"
-    coordinator.battery_version = "v3"
-    coordinator.name = "SolarFlow 4000"
-    coordinator._config_entry = None
-    coordinator._device_max_charge_power = 4000
-    coordinator._device_max_discharge_power = 4000
-    coordinator._configured_max_charge_power = 4000
-    coordinator._configured_max_discharge_power = 2400
-    coordinator._effective_max_charge_power = 4000
-    coordinator._effective_max_discharge_power = 2400
-    coordinator.data = {"inverse_max_power": 2400}
-    coordinator.write_control = AsyncMock()
-    coordinator.persist_battery_config = Mock()
-
-    entity = object.__new__(MarstekVenusNumber)
-    entity.definition = {"key": "inverse_max_power", "max": 4000}
-    entity.coordinator = coordinator
-    entity.hass = SimpleNamespace(data={})
-    entity._scale = 1.0
-    entity.async_write_ha_state = Mock()
-
-    await entity.async_set_native_value(4000)
-
-    coordinator.write_control.assert_awaited_once_with(
-        "inverse_max_power", 4000, do_refresh=True
-    )
-    assert coordinator.configured_max_discharge_power == 4000
-    assert coordinator.effective_max_discharge_power == 4000
-    coordinator.persist_battery_config.assert_called_once_with(
-        "max_discharge_power", 4000
-    )
-    # Shown at once, not only after the next poll of its read group.
-    assert coordinator.data["inverse_max_power"] == 4000
-    entity.async_write_ha_state.assert_called_once()
-
-
 async def test_a_refused_register_write_keeps_showing_the_old_value():
     """Only a write the driver accepted is shown before the next poll."""
     coordinator = object.__new__(MarstekVenusDataUpdateCoordinator)
-    coordinator.brand = "indevolt"
+    coordinator.brand = "marstek"
     coordinator.battery_version = "v3"
-    coordinator.name = "Indevolt"
+    coordinator.name = "Venus"
     coordinator._config_entry = None
     coordinator.min_soc = 16
     coordinator.data = {"discharging_cutoff_capacity": 16}
@@ -201,33 +160,11 @@ async def test_venus_e_max_power_write_keeps_hardware_selector_in_data():
         ("discharge", "max_discharge_power"),
     ],
 )
-def test_software_manual_slider_uses_configured_power_limit(kind, limit):
-    entity = object.__new__(MarstekManualSetPowerNumber)
-    entity._kind = kind
-    entity._hardware_max = 2500
-    entity.coordinator = SimpleNamespace(
-        max_charge_power=1500,
-        max_discharge_power=1500,
-        capabilities=SimpleNamespace(
-            max_charge_power_w=2500,
-            max_discharge_power_w=2500,
-        ),
-        commanded_charge_power=2500,
-        commanded_discharge_power=2500,
-    )
-    setattr(entity.coordinator, limit, 1500)
-
-    assert entity.native_max_value == 1500
-    assert entity.native_value == 1500.0
-
-
 # ----------------------------------------------------------------------
 # Cutoff bounds come from the driver, not from constants (#495)
 #
-# The software SOC-limit entity hard-coded the Venus D's hardware floors, and
-# every brand inherited them. On a LUNA2000 that put a 12 % floor on a battery
-# whose own minimum is 5 %, and offered a discharge cutoff up to 50 % that the
-# Huawei write path rejects outright (its register takes 0-20 %).
+# The software SOC-limit entity hard-coded the Venus D's hardware floors. A
+# driver may declare its own window through its capabilities instead.
 # ----------------------------------------------------------------------
 
 
@@ -263,7 +200,7 @@ def _soc_limit_entity(kind, *, charge_range=None, discharge_range=None):
 
 
 def test_a_driver_without_its_own_window_keeps_the_marstek_bounds():
-    """Every existing driver must be untouched by this change."""
+    """A driver that declares no window keeps the Marstek bounds."""
     assert (_soc_limit_entity("min").native_min_value,
             _soc_limit_entity("min").native_max_value) == (12.0, 50.0)
     assert (_soc_limit_entity("max").native_min_value,
@@ -280,31 +217,3 @@ def test_the_charge_side_follows_the_driver_too():
     entity = _soc_limit_entity("max", charge_range=(90.0, 100.0))
     assert entity.native_min_value == 90.0
     assert entity.native_max_value == 100.0
-
-
-def test_a_huawei_floor_of_five_percent_is_now_reachable():
-    """The reported symptom: 5 % could not be set because 12 % was the minimum."""
-    entity = _soc_limit_entity("min", discharge_range=(0.0, 20.0))
-    assert entity.native_min_value <= 5.0
-
-
-def test_the_huawei_driver_declares_the_windows_its_registers_accept():
-    """The declared window must be the one _write_cutoff will actually take."""
-    from unittest.mock import MagicMock
-
-    from custom_components.omnibattery.drivers.huawei import (
-        _CHARGE_CUTOFF_RANGE,
-        _DISCHARGE_CUTOFF_RANGE,
-        HuaweiSolarDriver,
-    )
-
-    driver = HuaweiSolarDriver(
-        MagicMock(),
-        "1.2.3.4",
-        port=502,
-        slave_id=4,
-        battery_device_id="dev",
-        client=MagicMock(),
-    )
-    assert driver.capabilities.charge_cutoff_range == _CHARGE_CUTOFF_RANGE
-    assert driver.capabilities.discharge_cutoff_range == _DISCHARGE_CUTOFF_RANGE

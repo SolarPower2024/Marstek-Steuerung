@@ -162,8 +162,8 @@ class NonResponsiveTracker:
         nudge and leave the battery in the pool), ``"excluded"`` on the call
         that excludes the battery for real, or ``None`` otherwise.
         """
-        # Not phrased as "ACK ok": a fire-and-forget driver (Hoymiles publishes
-        # the setpoint over MQTT and never reads it back) reaches here from the
+        # Not phrased as "ACK ok": a fire-and-forget driver (one that
+        # never reads the setpoint back) reaches here from the
         # poll-time delivery check, with no ACK to report either way.
         return self._record_fail(
             coordinator, reason,

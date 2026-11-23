@@ -61,7 +61,7 @@ const I18N = {
     tabResumen: "Overview", tabBaterias: "Batteries", tabControl: "Control",
     moreInfo: "Show history",
     zoomReset: "All",
-    infoModel: "Model", infoSoftware: "Software", infoSerial: "Serial", infoInverter: "Inverter", infoPowerModule: "Power module",
+    infoModel: "Model", infoSoftware: "Software", infoSerial: "Serial",
     placeholderMsg: "This view is coming in a future phase. For now, use the Overview view.",
     cardFlow: "Energy flow", cardSoc: "System status", cardDaily: "Energy today",
     cardWeekly: "Weekly energy", cardPower: "Power", cardSocToday: "SOC · today",
@@ -104,7 +104,7 @@ const I18N = {
     acOutput: "AC output", acInput: "AC input", toHomeGrid: "To home / grid", fromAcBus: "From AC bus",
     inverterMode: "Inverter · {state}",
     offgrid: "Off-grid", infoComm: "Comm module",
-    invBackup: "Backup", invUpdating: "Updating", invCalibrating: "Calibrating", invStandby: "Standby", invBypass: "Bypass",
+    invBackup: "Backup", invUpdating: "Updating", invStandby: "Standby", invBypass: "Bypass",
     active: "Active", inactive: "Inactive",
     ctlEmpty: "No controls enabled. Enable them on the device (Settings → disabled entities).",
     ctlAdvanced: "Advanced settings",
@@ -118,7 +118,7 @@ const I18N = {
     bcSocMax: "Max SOC", bcSocMin: "Min SOC", bcForceMode: "Force mode",
     bcChargePower: "Charge power", bcDischargePower: "Discharge power",
     bcMaxCharge: "Max charge", bcMaxDischarge: "Max discharge",
-    bcChargeToSoc: "Charge to SOC", bcChargeHysteresis: "Charge hysteresis", bcBackup: "Backup function", bcOffgridMode: "Off-grid mode", bcEnergyExport: "Energy export",
+    bcChargeToSoc: "Charge to SOC", bcChargeHysteresis: "Charge hysteresis", bcBackup: "Backup function",
     bcBackupThreshold: "Backup threshold", bcVoltageTaper: "100% charge taper", bcBatteryPhase: "Battery phase",
     secPhaseProtection: "Three-phase protection", threePhaseProtection: "Three-phase current protection",
     secManual: "Manual mode", secOffgridMeter: "Off-grid meter mode", secVacation: "Vacation mode", itemEnable: "Enable",
@@ -152,7 +152,7 @@ const I18N = {
     tabResumen: "Resumen", tabBaterias: "Baterías", tabControl: "Control",
     moreInfo: "Ver histórico",
     zoomReset: "Todo",
-    infoModel: "Modelo", infoSoftware: "Software", infoSerial: "N.º serie", infoInverter: "Inversor", infoPowerModule: "Módulo de potencia",
+    infoModel: "Modelo", infoSoftware: "Software", infoSerial: "N.º serie",
     placeholderMsg: "Esta vista llegará en una próxima fase. Por ahora, usa la vista Resumen.",
     cardFlow: "Flujo de energía", cardSoc: "Estado del sistema", cardDaily: "Energía hoy",
     cardWeekly: "Energía semanal", cardPower: "Potencias", cardSocToday: "SOC · hoy",
@@ -195,7 +195,7 @@ const I18N = {
     acOutput: "Salida AC", acInput: "Entrada AC", toHomeGrid: "A casa / red", fromAcBus: "Desde bus AC",
     inverterMode: "Inversor · {state}",
     offgrid: "Offgrid", infoComm: "Módulo com.",
-    invBackup: "Respaldo", invUpdating: "Actualizando", invCalibrating: "Calibrando", invStandby: "En espera", invBypass: "Bypass",
+    invBackup: "Respaldo", invUpdating: "Actualizando", invStandby: "En espera", invBypass: "Bypass",
     active: "Activa", inactive: "Inactiva",
     ctlEmpty: "No hay controles habilitados. Actívalos en el dispositivo (Ajustes → entidades deshabilitadas).",
     ctlAdvanced: "Ajustes avanzados",
@@ -209,7 +209,7 @@ const I18N = {
     bcSocMax: "SOC máximo", bcSocMin: "SOC mínimo", bcForceMode: "Modo forzado",
     bcChargePower: "Potencia de carga", bcDischargePower: "Potencia de descarga",
     bcMaxCharge: "Máx. carga", bcMaxDischarge: "Máx. descarga",
-    bcChargeToSoc: "Cargar hasta SOC", bcChargeHysteresis: "Histéresis de carga", bcBackup: "Función de respaldo", bcOffgridMode: "Modo off-grid", bcEnergyExport: "Exportación de energía",
+    bcChargeToSoc: "Cargar hasta SOC", bcChargeHysteresis: "Histéresis de carga", bcBackup: "Función de respaldo",
     bcBackupThreshold: "Umbral de respaldo", bcVoltageTaper: "Reducción carga 100%", bcBatteryPhase: "Fase de la batería",
     secPhaseProtection: "Protección trifásica", threePhaseProtection: "Protección de corriente trifásica",
     secManual: "Modo manual", secOffgridMeter: "Modo de medidor off-grid", secVacation: "Modo vacaciones", itemEnable: "Activar",
@@ -244,7 +244,7 @@ const I18N = {
     tabResumen: "Resum", tabBaterias: "Bateries", tabControl: "Control",
     moreInfo: "Veure històric",
     zoomReset: "Tot",
-    infoModel: "Model", infoSoftware: "Programari", infoSerial: "Núm. sèrie", infoInverter: "Inversor", infoPowerModule: "Mòdul de potència",
+    infoModel: "Model", infoSoftware: "Programari", infoSerial: "Núm. sèrie",
     placeholderMsg: "Aquesta vista arribarà en una fase futura. De moment, fes servir la vista Resum.",
     cardFlow: "Flux d'energia", cardSoc: "Estat del sistema", cardDaily: "Energia avui",
     cardWeekly: "Energia setmanal", cardPower: "Potències", cardSocToday: "SOC · avui",
@@ -287,7 +287,7 @@ const I18N = {
     acOutput: "Sortida CA", acInput: "Entrada CA", toHomeGrid: "A casa / xarxa", fromAcBus: "Des del bus CA",
     inverterMode: "Inversor · {state}",
     offgrid: "Offgrid", infoComm: "Mòdul com.",
-    invBackup: "Reserva", invUpdating: "Actualitzant", invCalibrating: "Calibrant", invStandby: "En espera", invBypass: "Bypass",
+    invBackup: "Reserva", invUpdating: "Actualitzant", invStandby: "En espera", invBypass: "Bypass",
     active: "Activa", inactive: "Inactiva",
     ctlEmpty: "No hi ha controls habilitats. Activa'ls al dispositiu (Configuració → entitats deshabilitades).",
     ctlAdvanced: "Ajustos avançats",
@@ -297,7 +297,7 @@ const I18N = {
     bcSocMax: "SOC màxim", bcSocMin: "SOC mínim", bcForceMode: "Mode forçat",
     bcChargePower: "Potència de càrrega", bcDischargePower: "Potència de descàrrega",
     bcMaxCharge: "Màx. càrrega", bcMaxDischarge: "Màx. descàrrega",
-    bcChargeToSoc: "Carregar fins a SOC", bcChargeHysteresis: "Histèresi de càrrega", bcBackup: "Funció de reserva", bcOffgridMode: "Mode fora de xarxa", bcEnergyExport: "Exportació d'energia",
+    bcChargeToSoc: "Carregar fins a SOC", bcChargeHysteresis: "Histèresi de càrrega", bcBackup: "Funció de reserva",
     bcBackupThreshold: "Llindar de reserva", bcVoltageTaper: "Reducció càrrega 100%", bcActiveBalance: "Balanç actiu",
     secManual: "Mode manual", secOffgridMeter: "Mode de mesurador off-grid", secVacation: "Mode vacances", itemEnable: "Activar",
     secTempLimit: "Límit de càrrega per temperatura", itemTempLimitC: "Límit de temperatura", itemTempLimitBand: "Banda de reducció", itemTempLimitFloor: "Potència de càrrega mínima", itemTempApplyDischarge: "Redueix també la descàrrega",
@@ -331,7 +331,7 @@ const I18N = {
     tabResumen: "Übersicht", tabBaterias: "Batterien", tabControl: "Steuerung",
     moreInfo: "Verlauf anzeigen",
     zoomReset: "Alles",
-    infoModel: "Modell", infoSoftware: "Software", infoSerial: "Seriennr.", infoInverter: "Wechselrichter", infoPowerModule: "Leistungsmodul",
+    infoModel: "Modell", infoSoftware: "Software", infoSerial: "Seriennr.",
     placeholderMsg: "Diese Ansicht kommt in einer späteren Phase. Nutze vorerst die Übersicht.",
     cardFlow: "Energiefluss", cardSoc: "Systemstatus", cardDaily: "Energie heute",
     cardWeekly: "Wochenenergie", cardPower: "Leistung", cardSocToday: "SOC · heute",
@@ -374,7 +374,7 @@ const I18N = {
     acOutput: "AC-Ausgang", acInput: "AC-Eingang", toHomeGrid: "Zu Haus / Netz", fromAcBus: "Vom AC-Bus",
     inverterMode: "Wechselrichter · {state}",
     offgrid: "Inselbetrieb", infoComm: "Komm.-Modul",
-    invBackup: "Backup", invUpdating: "Aktualisierung", invCalibrating: "Kalibrierung", invStandby: "Standby", invBypass: "Bypass",
+    invBackup: "Backup", invUpdating: "Aktualisierung", invStandby: "Standby", invBypass: "Bypass",
     active: "Aktiv", inactive: "Inaktiv",
     ctlEmpty: "Keine Steuerungen aktiviert. Aktiviere sie am Gerät (Einstellungen → deaktivierte Entitäten).",
     ctlAdvanced: "Erweiterte Einstellungen",
@@ -384,7 +384,7 @@ const I18N = {
     bcSocMax: "Max. SOC", bcSocMin: "Min. SOC", bcForceMode: "Betriebsmodus erzwingen",
     bcChargePower: "Ladeleistung", bcDischargePower: "Entladeleistung",
     bcMaxCharge: "Max. Ladeleistung", bcMaxDischarge: "Max. Entladeleistung",
-    bcChargeToSoc: "Laden bis SOC", bcChargeHysteresis: "Ladehysterese", bcBackup: "Backup-Funktion", bcOffgridMode: "Inselnetz-Modus", bcEnergyExport: "Energieeinspeisung",
+    bcChargeToSoc: "Laden bis SOC", bcChargeHysteresis: "Ladehysterese", bcBackup: "Backup-Funktion",
     bcBackupThreshold: "Backup-Schwelle", bcVoltageTaper: "100%-Ladungsreduktion", bcActiveBalance: "Aktiver Zellabgleich",
     secManual: "Manueller Modus", secOffgridMeter: "Off-Grid-Zählermodus", secVacation: "Urlaubsmodus", itemEnable: "Aktivieren",
     secTempLimit: "Temperaturbasierte Ladebegrenzung", itemTempLimitC: "Temperaturgrenze", itemTempLimitBand: "Drosselbereich", itemTempLimitFloor: "Minimale Ladeleistung", itemTempApplyDischarge: "Auch Entladung drosseln",
@@ -418,7 +418,7 @@ const I18N = {
     tabResumen: "Résumé", tabBaterias: "Batteries", tabControl: "Contrôle",
     moreInfo: "Voir l'historique",
     zoomReset: "Tout",
-    infoModel: "Modèle", infoSoftware: "Logiciel", infoSerial: "N° série", infoInverter: "Onduleur", infoPowerModule: "Module de puissance",
+    infoModel: "Modèle", infoSoftware: "Logiciel", infoSerial: "N° série",
     placeholderMsg: "Cette vue arrivera dans une phase ultérieure. Pour l'instant, utilisez la vue Résumé.",
     cardFlow: "Flux d'énergie", cardSoc: "État du système", cardDaily: "Énergie aujourd'hui",
     cardWeekly: "Énergie hebdomadaire", cardPower: "Puissances", cardSocToday: "SOC · aujourd'hui",
@@ -461,7 +461,7 @@ const I18N = {
     acOutput: "Sortie CA", acInput: "Entrée CA", toHomeGrid: "Vers maison / réseau", fromAcBus: "Depuis bus CA",
     inverterMode: "Onduleur · {state}",
     offgrid: "Hors réseau", infoComm: "Module comm.",
-    invBackup: "Secours", invUpdating: "Mise à jour", invCalibrating: "Calibrage", invStandby: "En attente", invBypass: "Bypass",
+    invBackup: "Secours", invUpdating: "Mise à jour", invStandby: "En attente", invBypass: "Bypass",
     active: "Active", inactive: "Inactive",
     ctlEmpty: "Aucun contrôle activé. Activez-les sur l'appareil (Paramètres → entités désactivées).",
     ctlAdvanced: "Paramètres avancés",
@@ -471,7 +471,7 @@ const I18N = {
     bcSocMax: "SOC max.", bcSocMin: "SOC min.", bcForceMode: "Mode forcé",
     bcChargePower: "Puissance de charge", bcDischargePower: "Puissance de décharge",
     bcMaxCharge: "Charge max.", bcMaxDischarge: "Décharge max.",
-    bcChargeToSoc: "Charger jusqu'à SOC", bcChargeHysteresis: "Hystérésis de charge", bcBackup: "Fonction de secours", bcOffgridMode: "Mode hors-réseau", bcEnergyExport: "Export d'énergie",
+    bcChargeToSoc: "Charger jusqu'à SOC", bcChargeHysteresis: "Hystérésis de charge", bcBackup: "Fonction de secours",
     bcBackupThreshold: "Seuil de secours", bcVoltageTaper: "Réduction charge 100%", bcActiveBalance: "Équilibrage actif",
     secManual: "Mode manuel", secOffgridMeter: "Mode compteur hors réseau", secVacation: "Mode vacances", itemEnable: "Activer",
     secTempLimit: "Limite de charge par température", itemTempLimitC: "Limite de température", itemTempLimitBand: "Plage de réduction", itemTempLimitFloor: "Puissance de charge minimale", itemTempApplyDischarge: "Réduire aussi la décharge",
@@ -505,7 +505,7 @@ const I18N = {
     tabResumen: "Overzicht", tabBaterias: "Batterijen", tabControl: "Bediening",
     moreInfo: "Geschiedenis tonen",
     zoomReset: "Alles",
-    infoModel: "Model", infoSoftware: "Software", infoSerial: "Serienr.", infoInverter: "Omvormer", infoPowerModule: "Vermogensmodule",
+    infoModel: "Model", infoSoftware: "Software", infoSerial: "Serienr.",
     placeholderMsg: "Deze weergave komt in een latere fase. Gebruik voorlopig het Overzicht.",
     cardFlow: "Energiestroom", cardSoc: "Systeemstatus", cardDaily: "Energie vandaag",
     cardWeekly: "Energie per week", cardPower: "Vermogen", cardSocToday: "SOC · vandaag",
@@ -548,7 +548,7 @@ const I18N = {
     acOutput: "AC-uitgang", acInput: "AC-ingang", toHomeGrid: "Naar huis / net", fromAcBus: "Vanaf AC-bus",
     inverterMode: "Omvormer · {state}",
     offgrid: "Eilandbedrijf", infoComm: "Comm.-module",
-    invBackup: "Back-up", invUpdating: "Bijwerken", invCalibrating: "Kalibreren", invStandby: "Stand-by", invBypass: "Bypass",
+    invBackup: "Back-up", invUpdating: "Bijwerken", invStandby: "Stand-by", invBypass: "Bypass",
     active: "Actief", inactive: "Inactief",
     ctlEmpty: "Geen bedieningen ingeschakeld. Schakel ze in op het apparaat (Instellingen → uitgeschakelde entiteiten).",
     ctlAdvanced: "Geavanceerde instellingen",
@@ -558,7 +558,7 @@ const I18N = {
     bcSocMax: "Max. SOC", bcSocMin: "Min. SOC", bcForceMode: "Geforceerde modus",
     bcChargePower: "Laadvermogen", bcDischargePower: "Ontlaadvermogen",
     bcMaxCharge: "Max. laden", bcMaxDischarge: "Max. ontladen",
-    bcChargeToSoc: "Laden tot SOC", bcChargeHysteresis: "Laadhysterese", bcBackup: "Back-upfunctie", bcOffgridMode: "Off-grid-modus", bcEnergyExport: "Energie-export",
+    bcChargeToSoc: "Laden tot SOC", bcChargeHysteresis: "Laadhysterese", bcBackup: "Back-upfunctie",
     bcBackupThreshold: "Back-updrempel", bcVoltageTaper: "100%-laadbegrenzing", bcActiveBalance: "Actieve celbalans",
     secManual: "Handmatige modus", secOffgridMeter: "Off-grid metermodus", secVacation: "Vakantiemodus", itemEnable: "Inschakelen",
     secTempLimit: "Temperatuurbegrenzing laden", itemTempLimitC: "Temperatuurlimiet", itemTempLimitBand: "Afbouwband", itemTempLimitFloor: "Minimaal laadvermogen", itemTempApplyDischarge: "Ook ontladen terugregelen",
@@ -854,19 +854,17 @@ const K = {
   batterySoc: "battery_soc",
   batterySoh: "battery_soh",
   acPower: "ac_power", // AC-side power. HA sign: - charge / + discharge (W)
-  batteryPower: "battery_power", // synthesised cell power (Zendure). + charge / - discharge (W)
+  batteryPower: "battery_power", // cell power. + charge / - discharge (W)
   batteryCellPower: "battery_cell_power", // Venus A/D net cell power. + charge / - discharge (W)
   solarPower: "solar_power", // aggregate DC PV power (W)
   acOffgridPower: "ac_offgrid_power", // off-grid/backup AC output. HA sign: + discharge (W)
   storedEnergy: "stored_energy", // kWh
   batteryTotalEnergy: "battery_total_energy", // capacity kWh
   inverterState: "inverter_state",
-  controlStatus: "control_status", // Indevolt: whether Omnibattery is steering it
   dailyCharge: "total_daily_charging_energy",
   dailyDischarge: "total_daily_discharging_energy",
   maxChargePower: "max_charge_power",
   maxDischargePower: "max_discharge_power",
-  inverseMaxPower: "inverse_max_power", // Zendure discharge cap (shares the bcMaxDischarge label)
   batteryVoltage: "battery_voltage",
   internalTemp: "internal_temperature",
   cellMax: "max_cell_voltage",
@@ -876,10 +874,6 @@ const K = {
   cyclesCalc: "battery_cycle_count_calc",
   rte: "round_trip_efficiency_total",
   softwareVersion: "software_version",
-  powerModuleSerial: "power_module_serial_number",
-  powerModuleFirmware: "power_module_firmware_version",
-  inverterSerial: "inverter_serial_number",
-  inverterFirmware: "inverter_software_version",
   pack1Firmware: "pack1_firmware_version",
   pack2Firmware: "pack2_firmware_version",
   pack3Firmware: "pack3_firmware_version",
@@ -981,31 +975,19 @@ const BAT_CONTROLS = [
   { key: "battery_allow_charge", domain: "switch", lk: "bcAllowCharge", icon: "mdi:battery-arrow-up" },
   { key: "battery_allow_discharge", domain: "switch", lk: "bcAllowDischarge", icon: "mdi:battery-arrow-down" },
   { key: "battery_manual_mode", domain: "switch", lk: "bcBatteryManual", icon: "mdi:hand-back-right-outline" },
-  // SOC limits: the Marstek register and its Zendure equivalent share each label;
-  // only one of each pair exists on a given device, so both layouts read
-  // "SOC máximo" then "SOC mínimo" in this order.
   { key: "charging_cutoff_capacity", domain: "number", lk: "bcSocMax", icon: "mdi:battery-high" },
-  { key: "soc_set", domain: "number", lk: "bcSocMax", icon: "mdi:battery-high" },
   { key: "discharging_cutoff_capacity", domain: "number", lk: "bcSocMin", icon: "mdi:battery-low" },
-  { key: "min_soc", domain: "number", lk: "bcSocMin", icon: "mdi:battery-low" },
   { key: "force_mode", domain: "select", lk: "bcForceMode", icon: "mdi:gesture-tap-button" },
   { key: "set_charge_power", domain: "number", lk: "bcChargePower", icon: "mdi:battery-arrow-up-outline" },
   { key: "set_discharge_power", domain: "number", lk: "bcDischargePower", icon: "mdi:battery-arrow-down-outline" },
   { key: "max_charge_power", domain: "number", lk: "bcMaxCharge", icon: "mdi:battery-arrow-up-outline" },
-  // Max discharge: Marstek register + Zendure inverter-output cap share the label.
   { key: "max_discharge_power", domain: "number", lk: "bcMaxDischarge", icon: "mdi:battery-arrow-down-outline" },
-  { key: "inverse_max_power", domain: "number", lk: "bcMaxDischarge", icon: "mdi:battery-arrow-down-outline" },
   { key: "charge_to_soc", domain: "number", lk: "bcChargeToSoc", icon: "mdi:battery-sync-outline" },
   { key: "charge_hysteresis_percent", domain: "number", lk: "bcChargeHysteresis", icon: "mdi:battery-sync" },
   { key: "backup_function", domain: "switch", lk: "bcBackup", icon: "mdi:home-battery-outline" },
   // Offgrid load threshold for the backup output (software-only, no register).
   { key: "backup_offgrid_threshold", domain: "number", lk: "bcBackupThreshold", icon: "mdi:transmission-tower-off" },
   { key: "battery_phase", domain: "select", lk: "bcBatteryPhase", icon: "mdi:transmission-tower" },
-  // Zendure off-grid output port mode (select: normal/economy/off). Distinct from
-  // the Marstek backup_function switch; only one exists per device.
-  { key: "grid_off_mode", domain: "select", lk: "bcOffgridMode", icon: "mdi:transmission-tower-off" },
-  // Zendure grid feed-in (gridReverse): only "allowed" lets PV bypass at target SOC (#631).
-  { key: "grid_reverse", domain: "select", lk: "bcEnergyExport", icon: "mdi:transmission-tower-export" },
   // Cell-maintenance switch (Marstek only): 100% charge voltage taper.
   { key: "full_charge_voltage_taper", domain: "switch", lk: "bcVoltageTaper", icon: "mdi:battery-clock" },
 ];
@@ -2056,8 +2038,8 @@ class MarstekVenusPanel extends HTMLElement {
     return unit === "wh" ? n / 1000 : n;
   }
   /** Sum numeric states for a key across all batteries: one value per device.
-   *  A device can expose two entities with the same translation_key (Anker:
-   *  read-only hardware-cap sensor + soft-limit number for max charge /
+   *  A device can expose two entities with the same translation_key (for
+   *  example a hardware-cap sensor plus a soft-limit number for max charge /
    *  discharge power, #716). Those are the same limit, not two units; the
    *  effective ceiling is the lower of the two, as the coordinator applies. */
   _sum(byKey, key) {
@@ -2081,23 +2063,10 @@ class MarstekVenusPanel extends HTMLElement {
     const u = (stateObj.attributes.unit_of_measurement || "").toLowerCase();
     return u === "kw" ? n * 1000 : n;
   }
-  /** Anker AC models expose a calculated PV-looking value, not DC PV input. */
-  _isAnkerAcOnlyModel(model) {
-    const normalized = String(model || "").trim().toLowerCase();
-    return /(?:^|\s)solarbank\s+(?:max|xe)\s+ac(?:$|\s)/.test(normalized);
-  }
-  /** Only the verified E5000 Anker models may use aggregate PV in the panel. */
-  _isAnkerIndependentPvModel(model) {
-    const normalized = String(model || "").trim().toLowerCase();
-    return normalized.includes("solarbank 4 e5000 pro");
-  }
+  /** Marstek batteries all report DC PV from their own MPPT inputs, so an
+   *  aggregate PV value is always usable. */
   _allowAggregateSolar(model, device) {
-    const manufacturer = String((device && device.manufacturer) || "").toLowerCase();
-    const normalized = String(model || "").trim().toLowerCase();
-    const isAnker = manufacturer.includes("anker") || normalized.includes("solarbank");
-    if (!isAnker) return true;
-    if (this._isAnkerAcOnlyModel(model)) return false;
-    return this._isAnkerIndependentPvModel(model);
+    return true;
   }
   /** Sum live power (W) of every enabled excluded device. Configuration comes
    *  from the panel payload so disabling a control entity cannot remove a load
@@ -2202,11 +2171,10 @@ class MarstekVenusPanel extends HTMLElement {
         const s = this._watts(get(mk));
         if (s != null) mpptW = (mpptW || 0) + s;
       }
-      // Only per-MPPT PV is added to cell power. Anker Solarbank 4's ac_power is
-      // the negated pack power, which already includes PV (#738).
+      // Only per-MPPT PV is added to cell power; an aggregate PV value would
+      // double-count what ac_power already includes (#738).
       const cellMpptW = mpptW;
-      // Some batteries (Anker Solarbank 4) publish only the aggregate DC PV
-      // value. It uses the same canonical translation key as the Venus total,
+      // A battery may publish only the aggregate DC PV value. It uses the same canonical translation key as the Venus total,
       // so it can fill the per-battery model without inventing MPPT channels.
       if (allowAggregateSolar && mpptW == null) {
         const aggregateSolarW = this._watts(get(K.solarPower));
@@ -2217,8 +2185,8 @@ class MarstekVenusPanel extends HTMLElement {
       // PV charges the cells without crossing the AC port, so add this unit's DC PV to
       // recover the true cell power. ac_power is used instead of the battery_power
       // sensor, whose reported value is unreliable.
-      // Zendure exposes no ac_power; fall back to its synthesised battery_power
-      // sensor (already + charge / - discharge, MPPT-inclusive).
+      // Without ac_power, fall back to the battery_power sensor
+      // (already + charge / - discharge, MPPT-inclusive).
       const battPwrW = this._watts(get(K.batteryPower));
       // Off-grid output only draws from the cells in Backup Mode (grid down);
       // with the grid present it's fed by passthrough, not the battery.
@@ -2356,11 +2324,7 @@ class MarstekVenusPanel extends HTMLElement {
 
     // total available power for the bar (sum of per-unit max limits, else heuristic)
     const maxCh = this._sum(byKey, K.maxChargePower);
-    // Marstek exposes max_discharge_power; Zendure exposes inverse_max_power.
-    // Each unit has only one of the two, so summing both keys is safe.
-    const maxDis =
-      (this._sum(byKey, K.maxDischargePower) || 0) +
-      (this._sum(byKey, K.inverseMaxPower) || 0) || null;
+    const maxDis = this._sum(byKey, K.maxDischargePower) || null;
 
     // ----- diagnostics -----
     // raw state object per diagnostic row, localized later via formatEntityState
@@ -5833,8 +5797,8 @@ class MarstekVenusPanel extends HTMLElement {
     for (const [dev, ids] of byDevice) {
       const byTk = {};
       // translation_key -> entity_id (last wins; used for sensors/metrics).
-      // Controls also need domain-qualified lookup so Anker's read-only
-      // max_charge_power sensor is not mistaken for the soft-max number.
+      // Controls also need domain-qualified lookup so a read-only
+      // max_charge_power sensor is not mistaken for the number.
       const idByTk = {};
       const idByTkDomain = {}; // `${domain}:${translation_key}` -> entity_id
       for (const id of ids) {
@@ -5877,7 +5841,7 @@ class MarstekVenusPanel extends HTMLElement {
         dev,
         name,
         // model label rides on the battery_soc entity attributes (device-registry
-        // model is hardcoded "Venus"): Marstek version / Zendure product.
+        // model is hardcoded "Venus"): Marstek version.
         model: (socObj.attributes && socObj.attributes.model) || null,
         soc: this._num(socObj),
         // Net cell flow (+charge / -discharge). On Venus A/D this includes MPPT;
@@ -5896,7 +5860,6 @@ class MarstekVenusPanel extends HTMLElement {
         stored: this._num(byTk[K.storedEnergy]),
         capacity: this._num(byTk[K.batteryTotalEnergy]),
         inverter,
-        controlStatus: byTk[K.controlStatus] || null,
         temp: this._num(byTk[K.internalTemp]),
         soh: this._num(byTk[K.batterySoh]),
         voltage: this._num(byTk[K.batteryVoltage]),
@@ -5918,12 +5881,7 @@ class MarstekVenusPanel extends HTMLElement {
         entIdsDomain: idByTkDomain,
         info: {
           sw: this._sval(byTk[K.softwareVersion]),
-          // Huawei publishes the serial as a sensor; the registry entry has none.
-          serial: (devReg && devReg.serial_number) || this._sval(byTk[K.powerModuleSerial]),
-          powerModuleFw: this._sval(byTk[K.powerModuleFirmware]),
-          inverterModel: this._sval(byTk[K.deviceName]),
-          inverterSn: this._sval(byTk[K.inverterSerial]),
-          inverterFw: this._sval(byTk[K.inverterFirmware]),
+          serial: (devReg && devReg.serial_number) || null,
           // A battery built from packs names each one. Empty slots answer with
           // nothing and are left out rather than listed blank.
           packs: [1, 2, 3]
@@ -6182,12 +6140,7 @@ class MarstekVenusPanel extends HTMLElement {
     // inverter-state chip (localized; tone by state)
     const inv = b.inverter;
     const invState = this._sval(inv);
-    const ctlState = this._sval(b.controlStatus);
-    if (ctlState === "soc_calibration") {
-      // Zendure SOC calibration (#799): ignores setpoints, charges on its own.
-      this._setChip(r.state, this._t("invCalibrating"), "warn");
-      r.state.style.display = "";
-    } else if (invState) {
+    if (invState) {
       const raw = invState.toLowerCase();
       let tone = "neutral", disp;
       // inverter_state exposes the English label (sensor.py states map); localize
@@ -6207,7 +6160,7 @@ class MarstekVenusPanel extends HTMLElement {
       this._setChip(r.state, disp, tone);
       r.state.style.display = "";
     } else if (b.powerW != null) {
-      // No inverter_state sensor (e.g. Zendure): derive the chip from power flow.
+      // No inverter_state sensor: derive the chip from power flow.
       const w = b.powerW;
       const disp = w > 30 ? this._t("charging") : w < -30 ? this._t("discharging") : this._t("invStandby");
       this._setChip(r.state, disp, w > 30 || w < -30 ? "good" : "neutral");
@@ -6216,19 +6169,8 @@ class MarstekVenusPanel extends HTMLElement {
       r.state.style.display = "none";
     }
 
-    // control-status chip: only while Omnibattery is not steering the battery.
-    // The inverter chip above still shows what the battery itself is doing
-    // (in its own self-consumption mode it may well be discharging).
-    if (ctlState && ctlState !== "active" && ctlState !== "starting" && ctlState !== "soc_calibration") {
-      const disp =
-        typeof this._hass.formatEntityState === "function"
-          ? this._hass.formatEntityState(b.controlStatus)
-          : ctlState;
-      this._setChip(r.control, disp, ctlState === "not_configured" ? "neutral" : "warn");
-      r.control.style.display = "";
-    } else if (r.control) {
-      r.control.style.display = "none";
-    }
+    // The control-status chip is unused: Marstek batteries are always steered.
+    if (r.control) r.control.style.display = "none";
 
     // SOC ring
     if (b.soc != null) {
@@ -6382,18 +6324,7 @@ class MarstekVenusPanel extends HTMLElement {
     }
     addRow("WiFi", wifi);
     addRow("MAC", b.info.mac);
-    // A Huawei storage is three kinds of hardware — inverter, power module,
-    // packs — and each carries its own serial and firmware. Brands with a
-    // single identity keep the plain serial row.
-    if (b.info.powerModuleFw || b.info.inverterSn) {
-      addRow(
-        this._t("infoInverter"),
-        [b.info.inverterModel, b.info.inverterSn, b.info.inverterFw].filter(Boolean).join(" · ")
-      );
-      addRow(this._t("infoPowerModule"), [b.info.serial, b.info.powerModuleFw].filter(Boolean).join(" · "));
-    } else {
-      addRow(this._t("infoSerial"), b.info.serial);
-    }
+    addRow(this._t("infoSerial"), b.info.serial);
     for (const pack of b.info.packs || [])
       addRow(`Pack ${pack.n}`, [pack.sn, pack.fw].filter(Boolean).join(" · "));
     r.infoGrid.innerHTML = rows.length ? rows.join("") : `<div class="dim">${this._t("noData")}</div>`;

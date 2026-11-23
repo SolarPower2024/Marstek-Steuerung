@@ -34,7 +34,7 @@ async def test_single_battery_skips_submenu_to_count_form():
 async def test_removes_first_battery_and_its_device():
     batteries = [
         {"name": "Venus 1", "host": "10.0.0.1", "port": 502},
-        {"name": "Zendure", "host": "10.0.0.2", "port": 80},
+        {"name": "Venus 3", "host": "10.0.0.2", "port": 502},
         {"name": "Venus 2", "host": "10.0.0.3", "port": 502, "slave_id": 2},
     ]
     flow = _options_flow(_entry(batteries))
@@ -48,7 +48,7 @@ async def test_removes_first_battery_and_its_device():
     ):
         await flow.async_step_remove_battery({"battery": "0"})
 
-    assert [b["name"] for b in flow.config_data["batteries"]] == ["Zendure", "Venus 2"]
+    assert [b["name"] for b in flow.config_data["batteries"]] == ["Venus 3", "Venus 2"]
     assert flow.config_data["primary_battery"] == ""
     dev_reg.async_get_device_by_identifier.assert_called_once_with(
         (DOMAIN, "10.0.0.1_502"), "test-entry"

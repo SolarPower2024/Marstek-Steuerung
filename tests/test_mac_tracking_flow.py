@@ -331,79 +331,22 @@ async def test_a_successful_probe_leaves_the_reload_to_rebuild_the_connection(
     assert hass.config_entries.reloaded == [entry.entry_id]
 
 
-async def test_sessy_is_probed_with_its_stored_credentials(monkeypatch, no_settle_delay):
-    """Sessy refuses an unauthenticated probe, which reads exactly like an absent device."""
-    sessy = battery(host="192.168.1.181") | {
-        "brand": "sessy",
-        "port": 80,
-        "username": "sessy-user",
-        "password": "sessy-pass",
-    }
-    entry = FakeEntry([sessy])
-    hass = FakeHass([entry])
-    calls: list = []
-    patch_probe(monkeypatch, "SessyLocalDriver", True, calls)
-    flow = make_flow_probing_for_real(hass)
-
-    assert await flow._async_apply_dhcp_lease(MAC_A, "192.168.1.180") == "ip_updated"
-    assert calls[0][0] == ("192.168.1.180", 80, "sessy-user", "sessy-pass")
-
-
-@pytest.mark.parametrize(
-    "brand,driver_name,tuple_result",
-    [
-        ("marstek", "MarstekModbusDriver", False),
-        ("zendure", "ZendureLocalDriver", True),
-        ("anker", "AnkerModbusDriver", True),
-        ("sessy", "SessyLocalDriver", False),
-        ("indevolt", "IndevoltDriver", False),
-    ],
-)
-async def test_every_ip_based_brand_is_probed_through_its_own_driver(
-    monkeypatch, no_settle_delay, brand, driver_name, tuple_result
-):
-    """Every brand whose address can drift is probed through its own driver."""
-    entry = FakeEntry([battery(host="192.168.1.181") | {"brand": brand}])
+async def test_a_marstek_is_probed_through_its_own_driver(monkeypatch, no_settle_delay):
+    """A battery whose address can drift is probed through the Marstek driver."""
+    entry = FakeEntry([battery(host="192.168.1.181")])
     hass = FakeHass([entry])
     calls: list = []
 
     async def _probe(*args, **kwargs):
         calls.append((args, kwargs))
-        return (True, None) if tuple_result else True
+        return True
 
-    monkeypatch.setattr(getattr(cf, driver_name), "probe", _probe)
+    monkeypatch.setattr(cf.MarstekModbusDriver, "probe", _probe)
     flow = make_flow_probing_for_real(hass)
 
     assert await flow._async_apply_dhcp_lease(MAC_A, "192.168.1.180") == "ip_updated"
     assert len(calls) == 1
     assert calls[0][0][0] == "192.168.1.180"
-
-
-@pytest.mark.parametrize(
-    "answer", [None, cf.IndevoltAuthenticationError("local API set to HTTP Digest")]
-)
-async def test_an_indevolt_that_does_not_answer_over_plain_http_stays_put(
-    monkeypatch, no_settle_delay, answer
-):
-    """No reply, or a local API set to HTTP Digest, leaves the address unchanged."""
-    indevolt = battery(host="192.0.2.11") | {"brand": "indevolt", "port": 8080}
-    entry = FakeEntry([indevolt])
-    hass = FakeHass([entry])
-    calls: list = []
-
-    async def _probe(*args, **kwargs):
-        calls.append(args)
-        if isinstance(answer, Exception):
-            raise answer
-        return answer
-
-    monkeypatch.setattr(cf.IndevoltDriver, "probe", _probe)
-    flow = make_flow_probing_for_real(hass)
-
-    assert await flow._async_apply_dhcp_lease(MAC_A, "192.0.2.10") == "candidate_silent"
-    assert calls == [("192.0.2.10", 8080)]
-    assert entry.data["batteries"][0]["host"] == "192.0.2.11"
-    assert hass.config_entries.updated == []
 
 
 # --- the migration helper actually preserves entity ids ---------------------

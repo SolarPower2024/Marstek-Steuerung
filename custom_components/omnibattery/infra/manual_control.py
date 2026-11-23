@@ -1,6 +1,6 @@
 """Ownership guard for the direct battery-command entities.
 
-Register-backed drivers (Marstek, ESPHome) expose the raw force-mode and
+Register-backed drivers (Marstek) expose the raw force-mode and
 setpoint registers as writable entities. The control loop re-asserts those
 registers every cycle, so a write made while the controller owns the battery is
 undone before it can do anything: the UI accepts the change, the select even

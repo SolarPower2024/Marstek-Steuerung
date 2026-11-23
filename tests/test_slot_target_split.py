@@ -42,10 +42,10 @@ def _ctrl(coords, planned_kwh, **extra):
     )
 
 
-def _fleet(zendure_derate=1.0):
+def _fleet(slow_derate=1.0):
     # Gaps to 90 %: Venus 2.05 kWh, SolarFlow 4.90 kWh.
     venus = _Coord("Venus", 50.0, 5.12, 2400)
-    solarflow = _Coord("SolarFlow", 30.0, 8.16, 2400, derate=zendure_derate)
+    solarflow = _Coord("SolarFlow", 30.0, 8.16, 2400, derate=slow_derate)
     return venus, solarflow
 
 
@@ -71,7 +71,7 @@ def test_each_share_fits_what_the_battery_charges_in_the_slot():
 
 def test_a_derated_battery_gets_only_what_it_charges_in_time():
     """46 °C: the SolarFlow charges at 64 % of its power."""
-    venus, solarflow = _fleet(zendure_derate=0.64)
+    venus, solarflow = _fleet(slow_derate=0.64)
     targets = ChargeDischargeController._compute_deficit_target_soc(
         _ctrl([venus, solarflow], 0.8), planned_kwh=0.8, window_hours=0.25
     )
@@ -84,7 +84,7 @@ def test_a_derated_battery_gets_only_what_it_charges_in_time():
 
 def test_more_than_the_slot_can_take_keeps_every_battery_charging():
     """What fits nowhere stays in the targets, so the shortfall is still counted."""
-    venus, solarflow = _fleet(zendure_derate=0.64)
+    venus, solarflow = _fleet(slow_derate=0.64)
     targets = ChargeDischargeController._compute_deficit_target_soc(
         _ctrl([venus, solarflow], 1.02), planned_kwh=1.02, window_hours=0.25
     )

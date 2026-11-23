@@ -56,11 +56,6 @@ async def async_setup_entry(
         entities.append(BatteryPhaseSelect(hass, entry, coordinator))
         for definition in coordinator.select_definitions:
             entities.append(MarstekVenusSelect(coordinator, definition))
-        # Drivers without a force_mode register (Zendure) get a software force
-        # mode; the controller applies it via apply_setpoint while global manual
-        # mode or this battery's individual manual ownership is active.
-        if coordinator.needs_software_manual_control:
-            entities.append(MarstekManualForceModeSelect(coordinator))
 
     # Add weekly full charge day select (system-level, always present: the enable
     # switch is always available, so the day must be pickable before enabling —
@@ -458,71 +453,6 @@ class PdTuningProfileSelect(SelectEntity):
 # Software force mode: same option strings as the Marstek force_mode register
 # select so the existing translations / dashboard label apply unchanged.
 MANUAL_FORCE_MODE_OPTIONS = ["None", "Charge", "Discharge"]
-
-
-class MarstekManualForceModeSelect(CoordinatorEntity, SelectEntity):
-    """Software force mode for drivers without a force_mode register.
-
-    Stores the choice on the coordinator; while the global Manual Mode switch or
-    this battery's individual manual switch is on, the controller drives the
-    battery to the matching charge/discharge setpoint via apply_setpoint (see
-    _apply_software_manual_setpoints). "None" leaves the battery idle.
-    """
-
-    def __init__(self, coordinator: MarstekVenusDataUpdateCoordinator) -> None:
-        """Initialize the software force-mode select."""
-        super().__init__(coordinator)
-        self._attr_has_entity_name = True
-        self._attr_translation_key = "force_mode"
-        self._attr_unique_id = f"{coordinator.device_key}_force_mode"
-        self.entity_id = english_entity_id("select", coordinator.name, "force_mode")
-        self._attr_options = MANUAL_FORCE_MODE_OPTIONS
-        self._attr_icon = "mdi:gesture-tap-button"
-        self._attr_should_poll = False
-
-    @property
-    def current_option(self) -> str:
-        """Return the live force mode derived from the commanded power, mirroring
-        the Marstek force_mode register (which the controller overwrites)."""
-        if self.coordinator.commanded_charge_power > 0:
-            return "Charge"
-        if self.coordinator.commanded_discharge_power > 0:
-            return "Discharge"
-        # A user may choose the direction before entering a non-zero power. Keep
-        # that intent visible instead of immediately snapping back to None.
-        stored = self.coordinator.manual_force_mode
-        return stored if stored in MANUAL_FORCE_MODE_OPTIONS else "None"
-
-    async def async_select_option(self, option: str) -> None:
-        """Store the manual force mode and reflect it now.
-
-        The optimistic commanded update (using the stored manual power for the
-        chosen direction) keeps the select on the picked option until the next
-        control cycle re-asserts it, instead of snapping back.
-        """
-        self.coordinator.manual_force_mode = option
-        if option == "Charge":
-            self.coordinator.commanded_charge_power = self.coordinator.manual_set_charge_power
-            self.coordinator.commanded_discharge_power = 0
-        elif option == "Discharge":
-            self.coordinator.commanded_charge_power = 0
-            self.coordinator.commanded_discharge_power = self.coordinator.manual_set_discharge_power
-        else:
-            # Stop the active manual command once. The controller deliberately
-            # does not reassert 0 W on later idle cycles, so Anker users can then
-            # select another Solix operating mode without OmniBattery reverting it.
-            await self.coordinator.apply_power(0, read_back=False)
-            await self.coordinator.async_request_refresh()
-            self.coordinator.commanded_charge_power = 0
-            self.coordinator.commanded_discharge_power = 0
-        self.coordinator.persist_battery_config("manual_force_mode", option)
-        _LOGGER.info("%s: manual_force_mode → %s", self.coordinator.name, option)
-        self.async_write_ha_state()
-
-    @property
-    def device_info(self):
-        """Return device information."""
-        return self.coordinator.battery_device_info
 
 
 HIGH_PRICE_SALE_OFF = "off"

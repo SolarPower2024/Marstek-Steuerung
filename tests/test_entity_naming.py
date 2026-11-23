@@ -104,7 +104,7 @@ def test_system_prefixes_decoupled():
 def test_omnibattery_solar_entity_detects_renamed_per_battery_sensor(monkeypatch):
     entry = SimpleNamespace(
         platform="omnibattery",
-        unique_id="anker_grange_solar_power",
+        unique_id="grange_solar_power",
     )
     registry = SimpleNamespace(async_get=lambda entity_id: entry)
     monkeypatch.setattr(

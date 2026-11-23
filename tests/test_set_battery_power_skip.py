@@ -30,7 +30,6 @@ from custom_components.omnibattery.const import (
     PD_READBACK_EVERY_N_WRITES,
 )
 from custom_components.omnibattery.drivers import SetpointResult
-from custom_components.omnibattery.drivers.sessy import SessyLocalDriver
 from custom_components.omnibattery.tracking.non_responsive_tracker import (
     NonResponsiveTracker,
 )
@@ -51,7 +50,7 @@ def _Coord(data):
 
 
 class _SlowCoord(FakeCoordinator):
-    """Zendure-like slow actuator: per-write readback is skipped, so a stalled
+    """Slow actuator: per-write readback is skipped, so a stalled
     battery only surfaces at the poll-time delivery check, not via ACK."""
 
     @property
@@ -71,19 +70,17 @@ class _DelayedReadbackCoord(FakeCoordinator):
         )
 
 
-class _SessyCoord(FakeCoordinator):
-    """Sessy-like actuator with a one-minute standby-to-running transition."""
+class _LongGraceCoord(FakeCoordinator):
+    """Actuator with a one-minute standby-to-running transition."""
 
     @property
     def capabilities(self):
-        return SessyLocalDriver(
-            "sessy.local", session=MagicMock(closed=False)
-        ).capabilities
+        return replace(super().capabilities, engage_grace_s=60.0)
 
 
 def _SlowCoordFake(data):
     return _SlowCoord(
-        name="ZEN1",
+        name="SLOW1",
         is_available=True,
         rs485_user_disabled=False,
         balance_hold=False,
@@ -358,7 +355,7 @@ async def test_no_skip_when_charge_unchanged_but_not_delivering():
 
 
 async def test_steady_delivery_clears_isolated_zero_samples():
-    """Zendure in manual charge: scattered 0 W telemetry samples between long
+    """A slow actuator in manual charge: scattered 0 W telemetry samples between long
     delivering stretches must not add up to an exclusion, and a battery already
     excluded must be released as soon as a steady cycle shows it delivering."""
     coord = _SlowCoordFake({
@@ -437,7 +434,7 @@ async def test_high_soc_charge_taper_is_not_non_responsive():
     """The last stretch before 100% legitimately tapers to a fraction of the
     commanded power well before the BMS confirms a cutoff (which needs
     Standby + <=10 W) -- must not be judged as a fault while within the
-    taper grace (observed on a Huawei LUNA2000: 48-189 W of a 7000 W command
+    taper grace (observed on a hybrid inverter: 48-189 W of a 7000 W command
     for ~15 minutes climbing 99% -> 100%, inverter never in Standby)."""
     coord = _Coord({
         "battery_power": 48,
@@ -628,10 +625,10 @@ async def test_no_record_during_discharge_engage_grace():
     record.assert_not_called()  # suppressed: inverter still within engage grace
 
 
-async def test_sessy_startup_grace_prevents_false_non_responsive_detection():
-    """Sessy needs up to 60 s to leave standby after its first setpoint."""
-    coord = _SessyCoord(
-        name="Sessy",
+async def test_long_engage_grace_prevents_false_non_responsive_detection():
+    """A slow actuator needs up to 60 s to leave standby after its first setpoint."""
+    coord = _LongGraceCoord(
+        name="LongGrace",
         is_available=True,
         rs485_user_disabled=False,
         balance_hold=False,
@@ -645,7 +642,7 @@ async def test_sessy_startup_grace_prevents_false_non_responsive_detection():
     )
     ctrl = _controller()
     ctrl._last_commanded_net_sign[coord] = -1
-    # Past the generic 30 s grace, but still inside Sessy's 60 s startup window.
+    # Past the generic 30 s grace, but still inside the 60 s startup window.
     ctrl._discharge_engage_started[coord] = dt_util.utcnow() - timedelta(
         seconds=DISCHARGE_ENGAGE_GRACE_S + 1
     )
@@ -818,7 +815,7 @@ async def test_readback_latency_is_decoupled_from_actuator_latency():
 
 
 async def test_slow_actuator_records_non_delivery_at_poll_time():
-    """A slow actuator (Zendure HTTP) skips per-write readback, so a silently
+    """A slow actuator skips per-write readback, so a silently
     stalled battery never reaches the ACK-path detection. The poll-time check
     must record it (toward exclusion) instead of re-commanding it forever."""
     coord = _SlowCoordFake({
@@ -895,81 +892,6 @@ async def test_no_skip_when_data_missing():
 
     assert result is True
     coord.apply_power.assert_called_once()
-
-
-class _HuaweiCoord(FakeCoordinator):
-    """Huawei hybrid: a 25 s actuator, so never on the per-write readback hot
-    path, and no RS485 control to re-assert."""
-
-    @property
-    def capabilities(self):
-        return replace(
-            super().capabilities,
-            actuator_latency_s=25.0,
-            readback_latency_s=25.0,
-            has_rs485_control=False,
-        )
-
-
-def _HuaweiCoordFake(data, result):
-    return _HuaweiCoord(
-        name="HUA1",
-        is_available=True,
-        rs485_user_disabled=False,
-        balance_hold=False,
-        min_soc=10,
-        data=data,
-        apply_power=AsyncMock(return_value=result),
-    )
-
-
-async def test_pv_gated_charge_is_not_diagnosed_as_a_broken_battery():
-    """A Huawei that answers a charge with a release must not be excluded.
-
-    While the roof is producing, the driver's PV gate refuses the command and
-    releases instead (#381), so the battery is left to the inverter's own
-    regulation and the commanded power is never delivered. That is a deliberate
-    refusal, not a fault, and the two paths that judge delivery must both stay
-    out of it: the per-write ACK path is closed because a 25 s actuator never
-    reads back on the hot path, and the poll-time path is closed because the
-    polled set-points read released, never the commanded charge — the refusal's
-    own echo is merged into coordinator.data on the same cycle, so not even the
-    poll grain leaves the old command standing.
-    """
-    released = {
-        "force_mode": 0,          # released; the gate refused the charge
-        "set_charge_power": 0,
-        "set_discharge_power": 0,
-        "battery_power": 0,       # nothing flowing: the worst case for the judge
-        "battery_soc": 55,
-    }
-    # What the driver returns for a refused command: held at the release, and
-    # unconfirmed because no readback was taken.
-    coord = _HuaweiCoordFake(released, SetpointResult(
-        ok=True, net_power_w=0, confirmed=False,
-        applied={"force_mode": 0, "set_charge_power": 0, "set_discharge_power": 0},
-    ))
-    ctrl = _controller()
-    record = MagicMock(return_value=None)
-    comm_fail = MagicMock(return_value=False)
-    ctrl._non_responsive.record_non_delivery = record
-    ctrl._non_responsive.record_comm_failure = comm_fail
-    ctrl._attempt_wake = AsyncMock(return_value=True)
-    # Past the charge engage grace, and already commanding a charge, so the
-    # grace is not re-stamped: nothing but the gating under test stands between
-    # a 0 W reading and the tracker.
-    ctrl._last_commanded_net_sign[coord] = 1
-    ctrl._charge_engage_started[coord] = dt_util.utcnow() - timedelta(
-        seconds=DISCHARGE_ENGAGE_GRACE_S + 1
-    )
-
-    for _ in range(5):  # exclusion needs consecutive cycles; give it plenty
-        assert await ChargeDischargeController._set_battery_power(
-            ctrl, coord, 400, 0
-        ) is True
-
-    record.assert_not_called()
-    comm_fail.assert_not_called()
 
 
 async def test_discharge_delivered_at_ac_port_while_pv_charges_cells():

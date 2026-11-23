@@ -168,7 +168,6 @@ class WeeklyFullChargeManager:
             if soc >= 99 or in_taper_zone:
                 power = c.data.get("battery_power", None)
                 inv_state = c.data.get("inverter_state", None)
-                is_zendure = getattr(c, "brand", None) == "zendure"
                 # A real top-of-charge cutoff only counts when we are actually
                 # commanding the battery to charge but it refuses (≤10 W +
                 # Standby). A battery that is merely idle — not allocated charge
@@ -181,13 +180,7 @@ class WeeklyFullChargeManager:
                     power is not None
                     and commanded > _BMS_CUTOFF_POWER_W
                     and power <= _BMS_CUTOFF_POWER_W
-                    and (
-                        inv_state == _INVERTER_STATE_STANDBY
-                        # Zendure's local API has no inverter_state field.  Its
-                        # commanded setpoint is the equivalent idle guard, and
-                        # the SOC >= 99 gate above prevents lower-SOC false hits.
-                        or (is_zendure and inv_state is None and soc >= 99)
-                    )
+                    and inv_state == _INVERTER_STATE_STANDBY
                 )
                 if cutoff and now - charge_commanded_at[c.name] < self._engage_grace_s(c):
                     # A battery starting from standby reads ≤10 W + Standby until it
@@ -385,7 +378,7 @@ class WeeklyFullChargeManager:
             if ctrl.weekly_full_charge_registers_written and not ctrl.weekly_full_charge_complete:
                 # The charge may not have reached its completion condition
                 # before the window closed. Resetting the flags alone would
-                # leave a Zendure socSet=100 in place until the next weekly run.
+                # leave the raised ceiling in place until the next weekly run.
                 ctrl._weekly_charge_needs_restore = True
                 _LOGGER.info(
                     "Weekly Full Charge: Mid-charge day rollover detected - hardware restore pending"
@@ -541,24 +534,6 @@ class WeeklyFullChargeManager:
                 continue
             if 0 <= value_int <= 100:
                 saved[str(name)] = value_int
-
-    @staticmethod
-    def _original_max_soc(coordinator: Any) -> int:
-        """The ceiling to restore after the run.
-
-        A battery that reports its own Target SOC (Zendure: ``socSet``) is
-        restored to what it reported before the raise. The integration's stored
-        config may be older, because the device's own Target SOC entity writes
-        only the device.
-        """
-        if "soc_set" in (getattr(coordinator, "data", None) or {}):
-            try:
-                live = int(getattr(coordinator, "max_soc", 100))
-            except (TypeError, ValueError):
-                live = 100
-            if 0 < live < 100:
-                return live
-        return WeeklyFullChargeManager._get_configured_max_soc(coordinator)
 
     @staticmethod
     def _get_configured_max_soc(coordinator: Any) -> int:
@@ -734,7 +709,7 @@ class WeeklyFullChargeManager:
                     # setdefault preserves the value restored from storage after HA
                     # restarts, when the live poll already reports 100%.
                     ctrl._weekly_charge_saved_max_soc.setdefault(
-                        coordinator.name, self._original_max_soc(coordinator)
+                        coordinator.name, self._get_configured_max_soc(coordinator)
                     )
                     # Raise the hardware charging cutoff to 100%
                     ok = await coordinator.set_charge_cutoff(100)

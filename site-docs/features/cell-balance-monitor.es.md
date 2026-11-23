@@ -10,9 +10,8 @@ El monitor de equilibrio de celdas compara la celda más alta y la más baja cer
 
 ## Antes de empezar
 
+- El equilibrio de celdas está disponible para Marstek Venus E v2/v3 y Venus A/D.
 - Busca **Balance - Estado**, **Balance - Delta de Celda (al 100%)** y **Balance - Última Lectura** en el dispositivo de la batería.
-- El equilibrio de celdas está disponible para Marstek Venus E v2/v3 y Venus A/D, baterías Zendure que publican los extremos de celda y dispositivos ESPHome/LilyGo cuando existen las entidades de origen.
-- Los controladores de Anker, Hoymiles, Huawei y Sessy no proporcionan actualmente las dos lecturas que requiere este monitor.
 - Activa **Activar reducción por voltaje al cargar al 100%** en la batería, o usa la [carga semanal completa](weekly-full-charge.md), para obtener una lectura comparable cerca del final de carga.
 
 ## Cómo activarlo

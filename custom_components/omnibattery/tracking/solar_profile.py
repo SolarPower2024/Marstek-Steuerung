@@ -646,7 +646,7 @@ class SolarProfileTracker:
         }
         # Keep the fingerprint byte-for-byte compatible for existing external/
         # MPPT-only profiles. The extra payload is only needed once a verified
-        # independent aggregate PV source (Anker E5000 Pro) is configured.
+        # independent aggregate PV source is configured.
         if aggregate_sources:
             payload["aggregate_pv"] = sorted(
                 aggregate_sources,

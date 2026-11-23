@@ -11,7 +11,6 @@ from homeassistant.util import dt as dt_util
 
 from custom_components.omnibattery.sensors.calculated_sensors import (
     CumulativeDailyEnergySensor,
-    SyntheticEnergySensor,
     _CumulativeDailyEnergyData,
     _highest_daily_energy_value,
     _legacy_daily_energy_value,
@@ -108,19 +107,7 @@ def test_cumulative_sensor_ignores_callbacks_until_restore_finishes():
     sensor._publish_daily.assert_not_called()
 
 
-def test_synthetic_sensor_ignores_callbacks_until_restore_finishes():
-    sensor = SyntheticEnergySensor.__new__(SyntheticEnergySensor)
-    sensor._restore_complete = False
-    sensor._accumulate = Mock()
-    sensor._publish_total = Mock()
-
-    sensor._handle_coordinator_update()
-
-    sensor._accumulate.assert_not_called()
-    sensor._publish_total.assert_not_called()
-
-
-def test_daily_sources_publish_value_and_reset_date_metadata():
+def test_daily_source_publishes_value_and_reset_date_metadata():
     cumulative = CumulativeDailyEnergySensor.__new__(CumulativeDailyEnergySensor)
     cumulative.coordinator = SimpleNamespace(data={})
     cumulative._key = "total_daily_charging_energy"
@@ -133,18 +120,4 @@ def test_daily_sources_publish_value_and_reset_date_metadata():
     assert cumulative.coordinator.data == {
         "total_daily_charging_energy": 1.7,
         "total_daily_charging_energy_reset_date": "2026-07-28",
-    }
-
-    synthetic = SyntheticEnergySensor.__new__(SyntheticEnergySensor)
-    synthetic.coordinator = SimpleNamespace(data={})
-    synthetic._key = "total_daily_discharging_energy"
-    synthetic._kwh = 0.8
-    synthetic._daily = True
-    synthetic._reset_date = date(2026, 7, 28)
-
-    synthetic._publish_total()
-
-    assert synthetic.coordinator.data == {
-        "total_daily_discharging_energy": 0.8,
-        "total_daily_discharging_energy_reset_date": "2026-07-28",
     }

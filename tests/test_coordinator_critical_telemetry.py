@@ -200,8 +200,6 @@ def _power_limit_coordinator(
         ],
         user_max_charge_power=user_charge,
         user_max_discharge_power=user_discharge,
-        needs_software_max_charge=False,
-        needs_software_max_discharge=False,
         needs_software_power_cap=version in ("v2", "v3"),
         max_charge_power=2500,
         max_discharge_power=2500,
@@ -242,7 +240,7 @@ async def test_non_venus_e_polling_keeps_register_value_as_effective_cap():
 
 
 async def test_lifetime_energy_totals_are_dependencies_for_derived_daily_energy():
-    """Daily v3/Anker sensors must work when lifetime entities are disabled."""
+    """Daily v3 sensors must work when lifetime entities are disabled."""
     total_group = ReadGroup("low", ("total_charging_energy",))
     driver = SimpleNamespace(
         read_groups=[total_group],

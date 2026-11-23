@@ -15,7 +15,7 @@ Age limit (``PHYSICAL_MAX_AGE_S``): the age is taken from ``last_reported``
 (falls back to ``last_updated`` on HA versions without it). A meter
 integration that re-writes an identical value advances ``last_reported`` and
 stays usable. Sensors that only write on a CHANGE do not: a template sensor
-whose inputs did not change, or an ESPHome sensor with a ``delta`` /
+whose inputs did not change, or a sensor with a ``delta`` /
 ``throttle`` filter, becomes unusable after 60 s of identical readings. The
 caller then falls back to the control sensor; while peak shaving runs, the
 controller's peak exit hold (PEAK_EXIT_HOLD_S) keeps the last command for a

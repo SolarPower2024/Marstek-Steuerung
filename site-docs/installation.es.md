@@ -18,13 +18,7 @@ La batería o su puente deben ser accesibles mediante la conexión local corresp
 
 | Si tienes | Prepara esto antes de configurar | Conexión |
 |---|---|---|
-| **Marstek Venus E v2/v3, Venus A o Venus D** | Activa o añade la conexión descrita en la [guía de Marstek](configuration/batteries/marstek.md). | Modbus TCP, Modbus RTU mediante USB–RS-485 o un puente LilyGo RS-485/ESPHome para Venus E v2 |
-| **Zendure SolarFlow 800, 800 Plus, 800 Pro, 1600 AC+, 2400 AC+, 2400 AC Pro, 3000 Mix AC+, 4000 Mix AC+ o 4000 Mix Pro** | Mantén desactivado el control **HEMS** del fabricante para que no sustituya la orden de potencia de Omnibattery. | API HTTP local |
-| **Anker SOLIX Solarbank Max AC, Solarbank 4 E5000 Pro o Solarbank XE AC** | Activa **Third-Party Control** en la aplicación de Anker y desconecta cualquier otro cliente Modbus. | Modbus TCP |
-| **Huawei SUN2000 + LUNA2000** | Prepara la conexión Modbus del inversor. El método de control predeterminado también necesita la integración Huawei Solar. | Modbus TCP a través del inversor o un proxy compartido |
-| **Sessy Home Battery** | Ten disponibles las credenciales locales impresas en el dongle Sessy. | API HTTP local |
-| **Hoymiles MS-A2 o HiBattery** | Configura la integración MQTT de Home Assistant y un broker MQTT local; después activa **MQTT Service** en S-Miles Home. | MQTT a través de Home Assistant |
-| **Indevolt SolidFlex o PowerFlex** | En la app de Indevolt, activa la API local con **HTTP** y elige el modo **Tiempo real**. | API HTTP local |
+| **Marstek Venus E v2/v3, Venus A o Venus D** | Activa o añade la conexión descrita en la [guía de Marstek](configuration/batteries/marstek.md). | Modbus TCP, Modbus RTU mediante USB–RS-485 para Venus E v2 |
 
 !!! warning "Usa un sensor de red con respuesta rápida"
     Se recomienda una actualización cada **1–2 segundos**. Se aceptan sensores que publican cada **10 segundos o más**, pero Omnibattery muestra una advertencia de Reparaciones porque las lecturas retrasadas reducen la calidad del control. La última lectura sigue siendo válida hasta **65 segundos**.
@@ -43,15 +37,7 @@ Puedes dejar estos campos vacíos o desactivados durante la primera configuraci�
 Establece **Potencia máxima contratada** en el límite de importación real de tu casa. Omnibattery la usa como techo de seguridad de carga.
 
 ??? "Detalles de conexión por tipo de batería"
-    **Marstek:** Venus E v2 necesita una conexión RS-485, como un adaptador USB o un convertidor RS-485 a TCP. Venus E v3, Venus A y Venus D pueden usar su conexión de red. La vía LilyGo necesita el firmware ESPHome compatible y sus entidades estándar de Home Assistant.
-
-    **Zendure, Sessy e Indevolt:** Home Assistant debe poder alcanzar el punto final HTTP local del dispositivo. Omnibattery se comunica localmente, en lugar de mediante una cuenta en la nube del fabricante.
-
-    **Anker:** su servidor Modbus acepta un cliente cada vez. Cierra otra integración o herramienta antes de que Omnibattery pruebe la conexión.
-
-    **Huawei:** Omnibattery lee a través del inversor SUN2000. De forma predeterminada, las órdenes de control usan servicios Huawei Solar; las escrituras Modbus directas son una opción de configuración opcional.
-
-    **Hoymiles:** Omnibattery usa el broker MQTT configurado en Home Assistant. No instala ni gestiona un broker.
+    **Marstek:** Venus E v2 necesita una conexión RS-485, como un adaptador USB o un convertidor RS-485 a TCP. Venus E v3, Venus A y Venus D pueden usar su conexión de red.
 
 ## Instalar con HACS
 

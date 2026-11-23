@@ -98,25 +98,6 @@ def test_commanded_refusal_confirms_cutoff():
     assert m.is_battery_full(coord) is True
 
 
-def test_zendure_commanded_refusal_confirms_without_inverter_state():
-    """Zendure has no inverter_state, but its active command still gates a cutoff."""
-    coord = _Coord(
-        "zendure",
-        soc=99,
-        power=0,
-        commanded=200,
-        inv=None,
-        brand="zendure",
-    )
-    m = _mgr(coord)
-
-    for _ in range(_BMS_CUTOFF_REQUIRED_CYCLES):
-        m.tick_bms_cutoff()
-
-    assert m._bms_cutoff_counts["zendure"] >= _BMS_CUTOFF_REQUIRED_CYCLES
-    assert m.is_battery_full(coord) is True
-
-
 def test_confirmed_cutoff_latches_when_battery_goes_idle():
     """Once confirmed, dropping the charge command must freeze (not reset) the count."""
     coord = _Coord("bat", soc=94, power=0, commanded=200)

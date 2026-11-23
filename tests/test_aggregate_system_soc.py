@@ -1,6 +1,6 @@
 """System SOC aggregate: capacity weighting, and the fallback without capacity.
 
-Drivers without a hardware nominal capacity (Zendure, Sessy) only expose
+Drivers without a hardware nominal capacity only expose
 ``battery_total_energy`` once the user configures it, so the weighted formula
 has nothing to weight by. It must still publish a SOC (discussion #438).
 """

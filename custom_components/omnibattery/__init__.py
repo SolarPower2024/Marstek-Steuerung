@@ -16,11 +16,10 @@ from homeassistant.const import (
     CONF_HOST,
     CONF_NAME,
     CONF_PORT,
-    CONF_USERNAME,
-    CONF_PASSWORD,
 )
 from homeassistant.core import CoreState, HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import (
+    ConfigEntryError,
     ConfigEntryNotReady,
     HomeAssistantError,
     ServiceValidationError,
@@ -546,10 +545,8 @@ async def _async_register_frontend_panel(hass: HomeAssistant, entry: ConfigEntry
                     CONF_SOLAR_FORECAST_REMAINING_SENSOR
                 ]
             # Solar node click target. Use the capabilities of the live
-            # coordinators, not the configured brand: Anker model identity is
-            # discovered during connect and Solarbank Max AC must use only the
-            # configured external sensor. The second panel registration at the
-            # end of setup refreshes this payload after all models are known.
+            # coordinators. The second panel registration at the end of setup
+            # refreshes this payload after all models are known.
             coordinator_data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
             coordinators = coordinator_data.get("coordinators", ())
             solar_eid = _panel_solar_entity(
@@ -601,77 +598,18 @@ def _async_unregister_frontend_panel(hass: HomeAssistant) -> None:
         hass.data[DOMAIN][_PANEL_REGISTERED_KEY] = False
 
 
-def _apply_driver_dynamic_limit(
-    coordinator, current_limit: int, *, charging: bool = False
-) -> int:
-    """Narrow a charge or discharge limit to the live headroom the driver reports.
-
-    Only DC-coupled hybrids report one: battery and PV share an inverter there,
-    so the reachable discharge power falls as PV rises. Every other driver
-    returns None and keeps its static envelope.
-
-    Applied in the control path rather than on the coordinator's power
-    properties on purpose — those also drive the user-facing power sliders, and
-    a bound that moved with the sun would be unusable.
-
-    ``charging`` asks the driver's ``dynamic_charge_limit_w`` instead. Only the
-    Indevolt driver reports one: 0 while it cannot take commands (outside
-    Realtime mode), and near full what its BMS takes while it tapers the
-    charge. Every other driver returns None.
-    """
-    driver = getattr(coordinator, "driver", None)
-    limiter = getattr(
-        driver,
-        "dynamic_charge_limit_w" if charging else "dynamic_discharge_limit_w",
-        None,
-    )
-    if limiter is None:
-        return current_limit
-    try:
-        dynamic = limiter(getattr(coordinator, "data", None) or {})
-    except Exception:  # a driver must never break the control cycle
-        _LOGGER.debug(
-            "[%s] dynamic %s limit raised; keeping static limit",
-            getattr(coordinator, "name", "?"),
-            "charge" if charging else "discharge",
-            exc_info=True,
-        )
-        return current_limit
-    if dynamic is None or dynamic >= current_limit:
-        return current_limit
-    _LOGGER.debug(
-        "[%s] %s limit narrowed %dW -> %dW by the driver",
-        getattr(coordinator, "name", "?"),
-        "charge" if charging else "discharge", current_limit, dynamic,
-    )
-    return max(0, int(dynamic))
-
-
 def _backup_switch_enabled(value) -> bool:
-    """Whether a battery's backup output is armed, whatever shape it reports in.
+    """Whether a battery's backup output is armed.
 
-    Register drivers publish the switch itself: 0 is on, 1 is off. A hybrid
-    inverter has no such switch — it reports a state, and this driver names the
-    three a SUN2000 distinguishes: off-grid, ready to go off-grid, or the
-    function disabled outright.
-
-    Comparing against 0 alone reads every one of those strings as "off", which
-    would let a Huawei keep taking charge and discharge commands through a power
-    cut. Both shapes are answered here rather than at each call site.
+    The register publishes the switch itself: 0 is on, 1 is off.
     """
     if value is None:
         return False
-    if isinstance(value, str):
-        return value in ("Off-grid", "Ready")
     return value == 0
 
 
 def _inverter_in_ac_bypass(value) -> bool:
-    """Whether the reported inverter state is the grid-bypass state.
-
-    Register drivers and the ESPHome driver publish the raw code (6 = Bypass).
-    Other drivers publish labels or their own codes, which never match.
-    """
+    """Whether the reported inverter state is the grid-bypass state (raw code 6)."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return False
     return value == INVERTER_STATE_AC_BYPASS
@@ -778,9 +716,8 @@ class ChargeDischargeController:
         self._zero_cross_since = None
         # Event-driven cycle rate limit: drop grid-sensor triggers that arrive
         # closer together than this, so fast meters can't flood the Modbus bridge.
-        # NOT raised to the slowest actuator's latency: a slow battery (Zendure HTTP)
-        # must not throttle the shared loop for the whole fleet — the fast batteries
-        # (Marstek) need to track the grid meter's full cadence. Slow-actuator pacing
+        # NOT raised to the slowest actuator's latency: a slow battery must not
+        # throttle the shared loop for the whole fleet. Slow-actuator pacing
         # belongs per-battery in the power distribution, not in the loop cadence.
         self._min_cycle_interval_s = config_entry.data.get(CONF_PD_MIN_CYCLE_INTERVAL, DEFAULT_PD_MIN_CYCLE_INTERVAL)
         self._last_cycle_monotonic = 0.0
@@ -894,7 +831,7 @@ class ChargeDischargeController:
         self.saturation_backcalc_cycles = 3          # sustained cycles before re-anchoring
         self._saturation_cycles = 0
         # Re-anchoring is gated on a REAL limit being active (SOC/taper/blocker/cap):
-        # a slow MQTT/HTTP actuator (e.g. Zendure) takes seconds to ramp, and that
+        # a slow actuator takes seconds to ramp, and that
         # ramp lag must NOT be mistaken for saturation or the base is yanked down to
         # the lagging measurement every few cycles and the command never reaches the
         # cap. The long fallback below still re-anchors on a sustained shortfall with
@@ -1840,8 +1777,8 @@ class ChargeDischargeController:
                     )
                     if math.isfinite(candidate):
                         offgrid_power = candidate
-                # Only MPPT PV is added: Anker SB4's ac_power is the negated pack
-                # power, which already includes its aggregate PV (#738).
+                # Only per-MPPT PV is added; an aggregate PV value would
+                # double-count what ac_power already includes (#738).
                 cell_power = -ac_power - offgrid_power + (
                     direct_pv_w if has_mppt else 0.0
                 )
@@ -2759,46 +2696,10 @@ class ChargeDischargeController:
 
     @staticmethod
     def _is_battery_manual_owned(coordinator) -> bool:
-        """Return whether an individual battery is outside automatic control.
-
-        A Zendure running its SOC calibration (#799) ignores setpoints and
-        charges on its own, so it is treated like a manual battery: out of the
-        pool, out of non-delivery tracking, and its charge handled by the
-        manual grid-feedback policy (never fed by the other batteries).
-        """
+        """Return whether an individual battery is outside automatic control."""
         return bool(
             getattr(coordinator, CONF_BATTERY_MANUAL_MODE_ENABLED, False)
-        ) or ChargeDischargeController._is_battery_calibrating(coordinator)
-
-    @staticmethod
-    def _is_battery_calibrating(coordinator) -> bool:
-        """Return whether the battery reports an active SOC calibration."""
-        return (getattr(coordinator, "data", None) or {}).get("soc_status") == 1
-
-    def _sync_calibration_ownership(self) -> None:
-        """Hand a battery over/back when its SOC calibration starts or ends."""
-        calibrating = getattr(self, "_calibrating_batteries", None)
-        if calibrating is None:
-            calibrating = self._calibrating_batteries = set()
-        for coordinator in self.coordinators:
-            now = ChargeDischargeController._is_battery_calibrating(coordinator)
-            if now == (coordinator in calibrating):
-                continue
-            if now:
-                calibrating.add(coordinator)
-                # The zero delivery during calibration is not a fault.
-                self._non_responsive.clear(coordinator)
-                _LOGGER.info(
-                    "[%s] SOC calibration started - out of automatic control",
-                    coordinator.name,
-                )
-            else:
-                calibrating.discard(coordinator)
-                _LOGGER.info(
-                    "[%s] SOC calibration finished - back to automatic control",
-                    coordinator.name,
-                )
-            self._reset_battery_ownership_state(coordinator)
+        )
 
     def _get_automatic_batteries(self) -> list:
         """Return the batteries available to automatic planning and control."""
@@ -3137,7 +3038,6 @@ class ChargeDischargeController:
                     coordinator.max_discharge_power,
                 ),
             )
-            limit = _apply_driver_dynamic_limit(coordinator, limit)
             return self._apply_slot_power_ceiling(coordinator, False, limit)
 
         limit = getattr(
@@ -3147,7 +3047,6 @@ class ChargeDischargeController:
         )
         if coordinator.data is None:
             return self._apply_slot_power_ceiling(coordinator, True, limit)
-        limit = _apply_driver_dynamic_limit(coordinator, limit, charging=True)
         limit = self._max_soc_mgr.apply_charge_taper(coordinator, limit)
         limit = self._temp_limit_mgr.apply_temperature_limit(coordinator, limit)
         return self._apply_slot_power_ceiling(coordinator, True, limit)
@@ -4290,7 +4189,7 @@ class ChargeDischargeController:
         """The margin the user set, or 5% of the fleet's capacity.
 
         The default counts a battery that reports its own capacity (Marstek over
-        Modbus, a Zendure or Hoymiles left at 0 for auto-detection) with what it
+        Modbus) with what it
         reports, so it is read when used rather than frozen at setup, before the
         first poll.
         """
@@ -7598,48 +7497,21 @@ class ChargeDischargeController:
         )
 
     async def _apply_software_manual_setpoints(self, global_mode: bool = True) -> None:
-        """Assert the per-battery manual setpoint for drivers without manual
-        registers (Zendure/Anker) while global or individual manual mode is active.
+        """Re-assert a manual battery's Charge/Discharge intent while global or
+        individual manual mode is active.
 
-        Register-based batteries (Marstek) are driven by the user's own register
-        writes; they are only re-asserted when the polled direction no longer
-        matches the stored intent (a V150 v3 drops forced mode to None/0 W during
-        a Modbus stall, issue #477). Charge/Discharge setpoints of software
-        drivers are re-asserted every cycle; _set_battery_power's
-        skip-if-unchanged guard avoids redundant writes.
-
-        Idle (None) does not reassert 0 W: Manual Mode turn-on already idles
-        once, and reasserting would force Anker Third-Party Control every cycle
-        — fighting Solix app modes the user may select while paused.
+        Marstek batteries are driven by the user's own register writes; they are
+        only re-asserted when the polled direction no longer matches the stored
+        intent (a V150 v3 drops forced mode to None/0 W during a Modbus stall,
+        issue #477).
         """
         for coordinator in self.coordinators:
-            # Raw flag: a calibrating battery is manual-owned but has no manual
-            # setpoint to assert.
             individual_mode = bool(
                 getattr(coordinator, CONF_BATTERY_MANUAL_MODE_ENABLED, False)
             )
             if not global_mode and not individual_mode:
                 continue
-            if not coordinator.needs_software_manual_control:
-                await self._reassert_register_manual_intent(coordinator)
-                continue
-            mode = coordinator.manual_force_mode
-            owner = "battery_manual" if individual_mode else "automatic"
-            if mode == "Charge":
-                kwargs = {"bypass_blockers": True}
-                if individual_mode:
-                    kwargs["owner"] = owner
-                await self._set_battery_power(
-                    coordinator, coordinator.manual_set_charge_power, 0, **kwargs
-                )
-            elif mode == "Discharge":
-                kwargs = {"bypass_blockers": True}
-                if individual_mode:
-                    kwargs["owner"] = owner
-                await self._set_battery_power(
-                    coordinator, 0, coordinator.manual_set_discharge_power, **kwargs
-                )
-            # Idle: leave device alone (no 0 W reassert / no mode force).
+            await self._reassert_register_manual_intent(coordinator)
 
     @staticmethod
     async def _reassert_register_manual_intent(coordinator) -> None:
@@ -7962,8 +7834,7 @@ class ChargeDischargeController:
         # Bus-load reduction: skip the atomic write+readback when the battery is
         # already in the commanded state. coordinator.driver.net_power_from_data()
         # derives the current net from brand-native telemetry keys (Marstek:
-        # force_mode + set_charge/discharge_power; Zendure: ac_mode +
-        # input/output_limit), which coordinator.data keeps fresh via polling and
+        # force_mode + set_charge/discharge_power), which coordinator.data keeps fresh via polling and
         # write readbacks. External writers and BMS reverts self-correct on the
         # next poll.
         #
@@ -8048,7 +7919,7 @@ class ChargeDischargeController:
                     and _delivered_toward(data, float(batt_power), is_charge=False)
                     >= 0.10 * abs(net_power)
                 )
-                # Slow actuators (Zendure HTTP) never read back per-write, so the
+                # Slow actuators never read back per-write, so the
                 # ACK-path non-delivery detection further down never runs for them.
                 # This poll-time judgment on the freshly polled battery_power is the
                 # only place a silently stalled registerless battery in a pool
@@ -8097,7 +7968,7 @@ class ChargeDischargeController:
 
         # Bus-load / latency reduction: only read back (verify ACK + run non-delivery
         # detection) every Nth real write, and never on the hot path for a slow
-        # actuator — its readback needs a multi-second settle (Zendure: ~2.5 s) that
+        # actuator — its readback needs a multi-second settle that
         # would block the shared control loop while it holds the lock. Option-B skips
         # above don't reach here, so the cadence is measured in actual writes;
         # write-only cycles skip the readback and its settle delay. HTTP drivers
@@ -8208,8 +8079,8 @@ class ChargeDischargeController:
             # confirmation read never followed (feedback_timeout). Both retryable.
             last_fail_reason = result.failure_reason or "ack_mismatch"
             if attempt == 0:
-                # On a driver whose readback lags the write (Zendure HTTP echoes the
-                # previous limit for ~2 s), a first-attempt mismatch is expected
+                # On a driver whose readback lags the write (the device echoes the
+                # previous limit for seconds), a first-attempt mismatch is expected
                 # echo/engage latency that the retry resolves — log it at debug, not
                 # warning, so it does not read as a fault. Register drivers, whose
                 # readback is immediate, keep the warning.
@@ -8299,7 +8170,7 @@ class ChargeDischargeController:
             < engage_grace_s
         )
         if within_engage_grace:
-            # A slow inverter (Zendure HTTP) takes seconds to reverse into
+            # A slow inverter takes seconds to reverse into
             # discharge from charge/idle — up to ~20-30 s on a cold
             # charge→discharge transition — or to ramp after a large step up.
             # 0 W out this soon after the direction flip or step is engage
@@ -8328,7 +8199,7 @@ class ChargeDischargeController:
             # Top-of-charge tail: the last stretch before 100% often tapers hard
             # (CC/CV tail current) well before is_battery_full() above fires or
             # tick_bms_cutoff() confirms a cutoff (which needs power <= 10 W
-            # *and* Standby). Observed on a Huawei LUNA2000: 48-189 W of a
+            # *and* Standby). Observed on a hybrid inverter: 48-189 W of a
             # 7000 W command for ~15 minutes while SOC climbed 99% -> 100%,
             # inverter never in Standby - genuinely still charging, just at a
             # reduced tail current below the 10%-of-commanded bar above.
@@ -8443,7 +8314,7 @@ class ChargeDischargeController:
         # wake worked, instead of paying a 5-minute cooldown for nothing if it
         # did. Only a second consecutive threshold-cross in the same episode
         # (post-wake) actually excludes it, and that one gets no further wake
-        # (no-op on drivers without RS485 control, e.g. Zendure).
+        # (no-op on drivers without RS485 control).
         if outcome == "wake":
             woke = await self._attempt_wake(coordinator, is_standby=is_standby)
             self._non_responsive.set_wake_attempted(coordinator, woke)
@@ -8584,8 +8455,8 @@ class ChargeDischargeController:
         """Measured delivery for one battery in controller convention (+charge/-discharge).
 
         Marstek exposes ``ac_power`` (+discharge/-charge), so it is negated.
-        Registerless drivers (e.g. Zendure) never populate ``ac_power``; they publish
-        their AC port as ``DELIVERED_AC_POWER_KEY`` (+charge/-discharge). That comes
+        A driver without an ``ac_power`` register may publish its AC port as
+        ``DELIVERED_AC_POWER_KEY`` (+charge/-discharge). That comes
         before ``battery_power``, which is cell-side and includes the device's own
         DC PV: with sun it reads a charge the grid never sees, so the PD re-anchored
         to it and commanded grid charge while the house imported (#634).
@@ -9312,8 +9183,7 @@ class ChargeDischargeController:
             # saturation — re-anchor after a few cycles. Slow path: no known
             # limit (likely actuator ramp lag), so only re-anchor after a long
             # sustained shortfall as a windup safety net for unmodelled derate.
-            # The slow path is skipped when the telemetry itself lags (Anker,
-            # #522): the "shortfall" is then a stale reading, and re-anchoring
+            # The slow path is skipped when the telemetry itself lags (#522): the "shortfall" is then a stale reading, and re-anchoring
             # to it yanks the command back every ~15 s and makes the loop hunt.
             if saturated:
                 self._saturation_cycles += 1
@@ -9666,7 +9536,7 @@ class ChargeDischargeController:
             return new_power
 
         # Window: at least the fixed floor, stretched for slow actuators (2x
-        # latency ~= command->ramp + telemetry grain; Zendure 3.0 s -> 6 s).
+        # latency ~= command->ramp + telemetry grain).
         latency_s = max(
             (c.capabilities.actuator_latency_s for c in self.coordinators),
             default=0.0,
@@ -10273,7 +10143,6 @@ class ChargeDischargeController:
         # Skip all operations if any coordinator is shutting down (integration unloading)
         if any(c._is_shutting_down for c in self.coordinators):
             return
-        ChargeDischargeController._sync_calibration_ownership(self)
         self._phase_power_limiter.begin_cycle()
         self._phase_power_limiter.update_degraded_warning()
         # A battery at 100% SOC or a confirmed BMS cutoff (is_battery_full())
@@ -10355,8 +10224,7 @@ class ChargeDischargeController:
             _LOGGER.debug("Manual Mode active - skipping automatic control")
             # Register-based drivers (Marstek) obey the user's force_mode /
             # set_*_power register writes directly, so we just freeze the
-            # controller. Drivers controlled only via apply_setpoint (Zendure)
-            # have no such registers — assert their stored manual setpoint here.
+            # controller; a v3 that dropped the forced mode is re-asserted below.
             await self._apply_software_manual_setpoints()
             # Do not set batteries to 0 - preserve user's manual settings
             # Do not update PD state - freeze controller state
@@ -11873,11 +11741,6 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-def _device_owns_initial_config(brand: str) -> bool:
-    """Return whether setup must preserve configuration stored by the device."""
-    return brand == "zendure"
-
-
 _LEGACY_ACTIVE_BALANCE_PREFIX = "active_balance_mode_"
 _LEGACY_ACTIVE_BALANCE_MARKERS = (
     "active_balance_mode_enabled",
@@ -12266,8 +12129,25 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, opened: li
     # Migration: Add default version for existing installations
     from .const import (
         CONF_BATTERY_VERSION, DEFAULT_VERSION, CONF_SLAVE_ID, DEFAULT_SLAVE_ID,
-        CONF_SERIAL_PORT, CONF_RS485_GATEWAY, CONF_INDEVOLT_REQUEST_SPEED,
+        CONF_SERIAL_PORT, CONF_RS485_GATEWAY,
     )
+
+    # Only Marstek batteries are supported. An entry written by a build that
+    # still knew other brands cannot be set up; say so instead of failing
+    # somewhere deep in the coordinator.
+    for battery_config in entry.data["batteries"]:
+        brand = battery_config.get("brand", "marstek")
+        if brand != "marstek":
+            _LOGGER.error(
+                "Battery %s is configured with the unsupported brand '%s'; only "
+                "Marstek batteries are supported. Remove that battery from the "
+                "integration configuration.",
+                battery_config.get(CONF_NAME, "?"), brand,
+            )
+            raise ConfigEntryError(
+                f"Battery {battery_config.get(CONF_NAME, '?')} uses the unsupported "
+                f"brand '{brand}'; only Marstek batteries are supported"
+            )
 
     for battery_config in entry.data["batteries"]:
         if CONF_BATTERY_VERSION not in battery_config:
@@ -12312,10 +12192,6 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, opened: li
     from .config_backup import async_save_config_backup
     await async_save_config_backup(hass)
 
-    # Load the per-serial synthetic-energy backup once, domain-level, before the
-    # platforms set up their entities (so the sensors find it cached, no race).
-    from .synthetic_energy_backup import async_get_backup
-    await async_get_backup(hass)
     from .backup_discharge_store import async_get_backup_discharge_store
     backup_discharge_store = await async_get_backup_discharge_store(hass)
 
@@ -12351,18 +12227,8 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, opened: li
             ),
             backup_discharge_store=backup_discharge_store,
             backup_discharge_store_key=f"{entry.entry_id}:{battery_index}",
-            brand=battery_config.get("brand", "marstek"),
-            zendure_model=battery_config.get("zendure_model", "2400ac_pro"),
-            hoymiles_model=battery_config.get("hoymiles_model"),
             serial_port=battery_config.get(CONF_SERIAL_PORT) or None,
             rs485_gateway=battery_config.get(CONF_RS485_GATEWAY, False),
-            indevolt_request_speed=battery_config.get(CONF_INDEVOLT_REQUEST_SPEED),
-            esphome_device_id=battery_config.get("esphome_device_id"),
-            huawei_battery_device_id=battery_config.get("huawei_battery_device_id"),
-            huawei_direct_write=battery_config.get("huawei_direct_write", False),
-            huawei_emma_slave_id=battery_config.get("huawei_emma_slave_id"),
-            username=battery_config.get(CONF_USERNAME, ""),
-            password=battery_config.get(CONF_PASSWORD, ""),
             battery_manual_mode_enabled=battery_config.get(
                 CONF_BATTERY_MANUAL_MODE_ENABLED, False
             ),
@@ -12397,7 +12263,7 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, opened: li
             battery_config.get("max_discharge_power", coordinator.configured_max_discharge_power),
         )
 
-        # Software manual-control + charge-ceiling state (Zendure-class drivers).
+        # Manual-control state.
         coordinator.manual_force_mode = battery_config.get("manual_force_mode", "None")
         coordinator.manual_set_charge_power = min(
             battery_config.get("manual_set_charge_power", 0),
@@ -12496,32 +12362,20 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, opened: li
             # cut-offs (v2 only) + max charge/discharge power caps. The driver
             # owns which registers exist for this version and the scaling.
             #
-            # Registerless drivers (Zendure) are skipped: their SOC limits live
-            # in device flash and are written directly by the soc_set/min_soc
-            # number entities, which do NOT round-trip through battery_config.
-            # So battery_config still holds the config-flow defaults (max_soc=100,
-            # min_soc=12); re-asserting them here would clobber the user's
-            # device-set values on every restart and re-arm the full-charge
-            # taper/hysteresis machinery. The device is the source of truth and
-            # the coordinator syncs soc_set/min_soc back from the poll.
-            if _device_owns_initial_config(coordinator.brand):
-                _LOGGER.info("Skipping initial SOC config write for %s (registerless driver; device flash holds the user values)",
-                           battery_config[CONF_NAME])
-            else:
-                max_charge_power = int(battery_config["max_charge_power"])
-                max_discharge_power = int(battery_config["max_discharge_power"])
+            max_charge_power = int(battery_config["max_charge_power"])
+            max_discharge_power = int(battery_config["max_discharge_power"])
 
-                _LOGGER.info("Writing initial configuration for %s (%s): max_soc=%d%%, min_soc=%d%%, max_charge=%dW, max_discharge=%dW",
-                           battery_config[CONF_NAME], coordinator.battery_version,
-                           battery_config["max_soc"], battery_config["min_soc"],
-                           max_charge_power, max_discharge_power)
+            _LOGGER.info("Writing initial configuration for %s (%s): max_soc=%d%%, min_soc=%d%%, max_charge=%dW, max_discharge=%dW",
+                       battery_config[CONF_NAME], coordinator.battery_version,
+                       battery_config["max_soc"], battery_config["min_soc"],
+                       max_charge_power, max_discharge_power)
 
-                await coordinator.apply_config(
-                    max_soc_pct=battery_config["max_soc"],
-                    min_soc_pct=battery_config["min_soc"],
-                    max_charge_power_w=max_charge_power,
-                    max_discharge_power_w=max_discharge_power,
-                )
+            await coordinator.apply_config(
+                max_soc_pct=battery_config["max_soc"],
+                min_soc_pct=battery_config["min_soc"],
+                max_charge_power_w=max_charge_power,
+                max_discharge_power_w=max_discharge_power,
+            )
 
             # Manually trigger first refresh and wait for it
             await coordinator.async_request_refresh()
@@ -12727,8 +12581,7 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, opened: li
     # so CONF_PD_MIN_CYCLE_INTERVAL paces them too. Passing a timestamp marked
     # them as the periodic safety timer, which is never gated - three phase
     # sensors on a 1 Hz P1 meter then drove several ungated control cycles per
-    # second, each one a set-point write burst, and on a slow bridge (ESPHome
-    # modbus_controller, Elfin EW11) the queue overflowed and the writes never
+    # second, each one a set-point write burst, and on a slow bridge (Elfin EW11) the queue overflowed and the writes never
     # reached the battery (issue #452). Nothing is lost by pacing them:
     # _phase_safety_pending stays set until a cycle services it, and the 2 s
     # safety timer runs ungated regardless.

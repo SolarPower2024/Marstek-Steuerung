@@ -5,7 +5,7 @@ With every battery blocked for discharge (min SOC / allow-discharge off) the
 ``previous_error`` stayed at the last full cycle's value, so each blocked cycle
 fed the derivative filter the same stale step: after a 1300 W import pulse fell
 back to ~60 W, D wound up to kd * -1240 W and drove a CHARGE command from the
-grid while the house was still importing (live 2026-10-06, Zendure pulsing
+grid while the house was still importing (live 2026-10-06, a slow battery pulsing
 400-1275 W every ~20 s).
 """
 from __future__ import annotations

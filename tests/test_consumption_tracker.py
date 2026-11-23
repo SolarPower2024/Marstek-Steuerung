@@ -620,7 +620,7 @@ def test_total_solar_mppt_only_no_external():
 
 
 def test_total_solar_aggregate_pv_only_no_external():
-    # Anker Solarbank 4 reports aggregate PV rather than individual MPPT keys.
+    # A unit may report aggregate PV rather than individual MPPT keys.
     tracker = _make_solar_tracker({}, None, [_aggregate_pv_unit(1500)])
     assert tracker._read_total_solar_power_kw() == pytest.approx(1.5)
 
@@ -726,12 +726,12 @@ def test_derive_home_excludes_direct_pv_charging():
     # Issue #453: the integrated daily total shares the aggregate sensor's source
     # order. A DC-coupled unit charging 385 W from its own array exchanges nothing
     # at the AC port, so the house keeps its full 1.311 kW (grid 8 W + 1303 W PV).
-    zendure = FakeCoordinator(
+    hybrid = FakeCoordinator(
         data={"battery_power": 385, "ac_delivered_power": 0}
     )
     tracker = _make_home_tracker(
         {"sensor.grid": _w(8), "sensor.solar": _w(1303)},
-        [zendure],
+        [hybrid],
         solar_sensor="sensor.solar",
     )
     assert tracker._derive_home_power_kw() == pytest.approx(1.311)

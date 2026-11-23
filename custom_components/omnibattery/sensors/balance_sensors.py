@@ -23,7 +23,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up balance sensor entities — one group of 5 per battery.
 
-    Skipped for brands without per-cell voltage telemetry (e.g. Anker): the
+    Skipped for batteries without per-cell voltage telemetry: the
     five diagnostic "Balans" sensors need max/min cell voltage to be meaningful.
     """
     monitor: BalanceMonitor | None = hass.data[DOMAIN][entry.entry_id].get("balance_monitor")

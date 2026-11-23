@@ -411,8 +411,7 @@ class MarstekModbusDriver(BatteryDriver):
         # limit. The user limit is enforced live via coordinator.max_charge_power,
         # which every apply caller (PD, slots, balance) clamps to first; freezing
         # the user value here trapped charging at whatever was configured at setup
-        # even after the user raised the limit. (Same rule the coordinator already
-        # documents for Zendure.) Tests inject a flat definition list with no
+        # even after the user raised the limit. Tests inject a flat definition list with no
         # number defs, so fall back to the constructor arg there.
         number_defs = {d.get("key"): d for d in self._definitions["number"]}
         hw_charge_ceiling = int(number_defs.get("max_charge_power", {}).get("max", max_charge_power_w))

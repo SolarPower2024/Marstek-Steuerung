@@ -3,8 +3,7 @@
 Regression for the stale-latch bug: when the configured ceiling (``max_soc``) is
 temporarily lowered to at/below the current SOC and then raised again, the
 hysteresis latch had captured the lower SOC and blocked charging up to the new
-target until the battery discharged 10 % below that lower latch point. On Zendure
-``coordinator.max_soc`` tracks the polled ``socSet``, so any Target-SOC dip during
+target until the battery discharged 10 % below that lower latch point. ``coordinator.max_soc`` may track a polled target, so any Target-SOC dip during
 a charge could lock the battery partway. The fix releases the latch when
 ``max_soc`` rises above the latched base, while preserving a genuine
 top-of-charge hold.

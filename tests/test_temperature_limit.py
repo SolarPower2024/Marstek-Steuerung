@@ -6,7 +6,7 @@ directly. ``apply_temperature_limit`` mirrors ``apply_charge_taper``'s
 cap-and-return contract, so the assertions are on the returned integer limit.
 
 The derate enforces a hard floor equal to the battery's minimum operating power,
-read from ``coordinator.capabilities`` (v2/v3 = 800 W, vA/vD/Zendure = 0). Most
+read from ``coordinator.capabilities`` (v2/v3 = 800 W, vA/vD = 0). Most
 cases use a realistic 2500 W ceiling with an 800 W floor so the ramp stays above it.
 """
 from __future__ import annotations
@@ -26,7 +26,7 @@ FLOOR_W = 800  # v3/vA minimum operating power
 class _Coord:
     """Coordinator stand-in with a ``data`` dict and driver ``capabilities``.
 
-    ``min_power`` models the hardware floor: 800 for v2/v3, 0 for vA/vD/Zendure.
+    ``min_power`` models the hardware floor: 800 for v2/v3, 0 for vA/vD.
     """
 
     def __init__(self, name="bat", *, data=None, min_power=FLOOR_W):
@@ -115,7 +115,7 @@ def test_floor_zero_clamps_to_hw_floor_when_present():
 
 
 def test_vd_has_no_floor_so_floor_zero_stops():
-    # vD/Zendure report min_power 0: the derate can reach a full stop.
+    # vD reports min_power 0: the derate can reach a full stop.
     assert _cap(55, floor_pct=0, min_power=0) == 0
     assert _cap(50, floor_pct=20, min_power=0) == 500  # no clamp-up
 

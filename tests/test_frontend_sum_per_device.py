@@ -1,6 +1,6 @@
 """Behavioural check (#716): the overview sums one max-power value per battery.
 
-Anker registers both a read-only sensor and a soft-limit number with the
+A battery can register both a read-only sensor and a soft-limit number with the
 translation_key ``max_charge_power`` / ``max_discharge_power``. The overview
 bar must not count that single battery twice.
 """
@@ -30,17 +30,17 @@ const inst = Object.create(ctx.__cls.prototype);
 const ent = (id, dev, tk) => [id, { entity_id: id, device_id: dev, translation_key: tk, platform: "omnibattery" }];
 inst._hass = {
   entities: Object.fromEntries([
-    ent("sensor.anker_max_charge_power", "anker", "max_charge_power"),
-    ent("number.anker_max_charge_power", "anker", "max_charge_power"),
-    ent("sensor.anker_max_discharge_power", "anker", "max_discharge_power"),
-    ent("number.anker_max_discharge_power", "anker", "max_discharge_power"),
+    ent("sensor.capped_max_charge_power", "capped", "max_charge_power"),
+    ent("number.capped_max_charge_power", "capped", "max_charge_power"),
+    ent("sensor.capped_max_discharge_power", "capped", "max_discharge_power"),
+    ent("number.capped_max_discharge_power", "capped", "max_discharge_power"),
     ent("number.venus_max_charge_power", "venus", "max_charge_power"),
   ]),
   states: {
-    "sensor.anker_max_charge_power": { state: "3500", attributes: {} },
-    "number.anker_max_charge_power": { state: "3500", attributes: {} },
-    "sensor.anker_max_discharge_power": { state: "3500", attributes: {} },
-    "number.anker_max_discharge_power": { state: "2000", attributes: {} },
+    "sensor.capped_max_charge_power": { state: "3500", attributes: {} },
+    "number.capped_max_charge_power": { state: "3500", attributes: {} },
+    "sensor.capped_max_discharge_power": { state: "3500", attributes: {} },
+    "number.capped_max_discharge_power": { state: "2000", attributes: {} },
     "number.venus_max_charge_power": { state: "2500", attributes: {} },
   },
 };
@@ -52,7 +52,7 @@ for (const e of Object.values(inst._hass.entities)) {
 console.log(JSON.stringify({
   charge: inst._sum(byKey, "max_charge_power"),
   discharge: inst._sum(byKey, "max_discharge_power"),
-  missing: inst._sum(byKey, "inverse_max_power"),
+  missing: inst._sum(byKey, "absent_key"),
 }));
 """
 
@@ -67,8 +67,8 @@ def test_sum_counts_each_battery_once(tmp_path):
     ).stdout
     result = json.loads(out.strip().splitlines()[-1])
 
-    # Anker 3500 (sensor + number, one battery) + Venus 2500 — not 9500.
+    # Capped battery 3500 (sensor + number, one battery) + Venus 2500 — not 9500.
     assert result["charge"] == 6000
-    # Anker cap 3500 with a 2000 W soft limit: the effective ceiling is 2000.
+    # Cap 3500 with a 2000 W soft limit: the effective ceiling is 2000.
     assert result["discharge"] == 2000
     assert result["missing"] is None

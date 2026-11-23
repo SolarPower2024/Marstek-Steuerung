@@ -4,20 +4,6 @@
       "title": "Sensors exclosos de Recorder",
       "description": "Recorder exclou aquests sensors que Omnibattery utilitza per recuperar els perfils solars i de consum domèstic: {sensors}. Ajusta les regles include/exclude de Recorder per incloure’ls i reinicia Home Assistant per aplicar la configuració. L’avís desapareix automàticament quan estiguin inclosos. Les mostres històriques que falten no es poden recuperar; l’aprenentatge en directe i els perfils ja desats continuen funcionant."
     },
-    "indevolt_flash_writes_paused": {
-      "title": "Escriptura dels ajustos d'Indevolt en pausa per protegir la bateria: {name}",
-      "fix_flow": {
-        "step": {
-          "confirm": {
-            "title": "Tornar a permetre l'escriptura dels ajustos d'Indevolt",
-            "description": "Omnibattery ha escrit el SOC mínim i els límits de potència de **{name}** {allowance} vegades durant l'últim any, així que n'ha pausat l'escriptura. És una xarxa de seguretat, no una limitació per a tu: evita que una automatització o un script que canvia aquests ajustos massa sovint desgasti sense que ningú se n'adoni la memòria flash de la bateria, que es desgasta una mica amb cada escriptura. Els canvis fets a l'app d'Indevolt es continuen adoptant.\n\nRevisa les teves automatitzacions i scripts per trobar el que canvia aquests ajustos sovint. Després confirma aquí per tornar a permetre l'escriptura; comença un nou marge de {allowance} escriptures. Si els canvis eren intencionats, simplement confirma."
-          }
-        },
-        "abort": {
-          "battery_unavailable": "La bateria no està carregada ara mateix. Torna-ho a provar quan Omnibattery hi estigui connectat."
-        }
-      }
-    },
     "excluded_device_ev_type": {
       "title": "Marca el teu carregador de VE entre els dispositius exclosos",
       "description": "El nou diagrama de fluxos d'energia (activa'l amb el botó de la capçalera de la targeta de flux) dibuixa els carregadors de VE al seu propi cable, al costat del cotxe. Omnibattery no pot saber quin dispositiu exclòs és el carregador, així que fins que el marquis la seva potència es mostra al cable dels altres dispositius exclosos (la unitat exterior) i el cable del VE queda buit. Obre Opcions → Dispositius exclosos i torna a desar els dispositius, marcant \"Carregador de VE\" al carregador (deixa-ho sense marcar als altres). Només afecta com es dibuixa el diagrama, no el control de la bateria. L'avís desapareix en desar els dispositius."
@@ -131,16 +117,6 @@
           "num_batteries": "Nombre de bateries"
         }
       },
-      "battery_brand": {
-        "title": "Configura bateria {battery_num} — Marca",
-        "description": "Selecciona la marca i model de la bateria {battery_num}.",
-        "data": {
-          "brand": "Marca de la bateria"
-        },
-        "data_description": {
-          "brand": "Marstek Venus: Modbus TCP. Zendure SolarFlow: local HTTP (HEMS must be disabled for Omnibattery control). Anker SOLIX Solarbank Max AC / 4 E5000 Pro: Modbus TCP (enable Modbus TCP under Third-Party Control in the Anker app; only one Modbus client at a time). Sessy: local HTTP."
-        }
-      },
       "battery_connection": {
         "title": "Configura bateria {battery_num} — Connexió (Marstek)",
         "description": "Introdueix les dades de connexió i el model de la bateria {battery_num}.",
@@ -163,38 +139,6 @@
           "rs485_gateway": "Activa-ho si la connexió Modbus TCP arriba a una passarel·la RS485 (Elfin EW11, pont USB-RS485...) en lloc del port TCP de la mateixa bateria. L'espera entre missatges només existeix al servidor TCP de la bateria, així que baixar-la a 30 ms fa el sondeig d'una Venus Ev3/A/D unes tres vegades més ràpid. L'espera s'aplica per bateria: si diverses comparteixen passarel·la, el bus rep aquest mateix trànsit multiplicat, així que desactiva-ho de nou si les lectures fallen o expiren. Deixa-ho desactivat si connectes directament a la IP de la bateria."
         }
       },
-      "battery_connection_zendure": {
-        "title": "Configura bateria {battery_num} — Connexió (Zendure)",
-        "description": "Introdueix les dades de connexió per a la bateria Zendure SolarFlow {battery_num}. Mantén HEMS desactivat a l'app Zendure per al control d'Omnibattery.",
-        "data": {
-          "name": "Nom",
-          "host": "Adreça IP",
-          "port": "Port HTTP"
-        },
-        "data_description": {
-          "name": "Nom descriptiu per identificar aquesta bateria",
-          "host": "Adreça IP del Zendure SolarFlow a la teva xarxa local",
-          "port": "Port HTTP (per defecte 80)"
-        }
-      },
-      "battery_connection_hoymiles": {
-        "title": "Configura la bateria {battery_num} — Connexió (Hoymiles)",
-        "description": "Activa MQTT Service a S-Miles Home i fes-lo servir amb el broker MQTT configurat a Home Assistant.",
-        "data": {"name": "Nom", "device_id": "ID de dispositiu MQTT", "hoymiles_model": "Model de bateria"},
-        "data_description": {"device_id": "ID MQTT de Hoymiles, per exemple MSA-280024341346.", "hoymiles_model": "Utilitzeu la detecció automàtica tret que el dispositiu publiqui un model incorrecte o genèric."}
-      },
-      "battery_connection_esphome": {
-        "title": "Configura la bateria {battery_num} — Connexió (LilyGo/ESPHome)",
-        "description": "Selecciona el dispositiu ESPHome (pont LilyGo RS485) que exposa la bateria Marstek {battery_num}. Ha d'executar el firmware marstek-lilygo-rs485 amb els noms d'entitat originals.",
-        "data": {
-          "name": "Nom",
-          "esphome_device": "Dispositiu ESPHome"
-        },
-        "data_description": {
-          "name": "Nom descriptiu per identificar aquesta bateria",
-          "esphome_device": "El dispositiu LilyGo T-CAN485 amb el firmware ESPHome de Marstek"
-        }
-      },
       "battery_limits": {
         "title": "Configura la bateria {battery_num} — Límits",
         "description": "Introdueix els límits de potència i SOC de la bateria {battery_num}.",
@@ -206,7 +150,6 @@
           "charge_hysteresis_percent": "Histèresi de càrrega (%)",
           "backup_offgrid_threshold": "Llindar de càrrega offgrid (fora de la xarxa) de backup (W)",
           "full_charge_voltage_taper_enabled": "Activa la reducció per voltatge en carregar al 100%",
-          "battery_capacity_kwh": "Capacitat nominal de la bateria (kWh)",
           "battery_phase": "Fase física de la bateria",
           "dc_pv_connected": "Hi ha panells solars connectats directament a aquesta bateria",
           "track_mac": "Tornar a trobar aquesta bateria per la seva adreça MAC si canvia la seva adreça IP",
@@ -220,7 +163,6 @@
           "charge_hysteresis_percent": "Sempre activa (mínim 2%). En arribar al màxim, la bateria no tornarà a carregar fins que el SOC baixi a (SOC màx − histèresi). Ex: SOC màx 100% amb 2% = no carrega fins a 98%.",
           "backup_offgrid_threshold": "Una càrrega offgrid superior a aquest valor es considera un esdeveniment de backup actiu, excloent la bateria del control PD. Augmenta'l si tens càrregues permanents (router, càmeres) al port offgrid.",
           "full_charge_voltage_taper_enabled": "Quan l'objectiu és 100%, limita la càrrega a 200 W des de 3,48 V de cel·la màxima. En Venus E s'atura a 3,60 V per mesurar el desbalanç durant 60 segons; les Venus A/D amb packs acoblats continuen a 200 W fins que la BMS talla.",
-          "battery_capacity_kwh": "Capacitat útil nominal del pack de bateries. Es fa servir per calcular energia emmagatzemada i eficiència a partir del SOC. Posa 0 per detectar-la automàticament en models/packs compatibles. Introdueix un valor positiu per substituir la detecció o si els packs són desconeguts. Sessy requereix la capacitat real.",
           "battery_phase": "Fase AC física (L1/L2/L3) on està cablejada aquesta bateria, o Sense assignar si queda fora de l'esquema de fases protegides. Una bateria sense fase queda fora de l'envolupant trifàsica i continua funcionant normalment en automàtic.",
           "dc_pv_connected": "Només Venus A/D. Activa-ho quan hi hagi panells connectats a les entrades MPPT de la bateria. Desactiva-ho si aquestes entrades no s'utilitzen perquè la potència de bateria continuï basant-se en la potència AC sense afegir producció MPPT.",
           "track_mac": "L'adreça MAC és l'adreça física permanent de la bateria: a diferència de l'adreça IP de dalt, no canvia mai. Home Assistant la fa servir per tornar a trobar la bateria i actualitzar l'adreça IP tot sol. Darrere d'un pont Wi-Fi a Ethernet o d'un adaptador PLC, l'adreça que veus és la del mateix adaptador i la comparteix tot el que hi ha al darrere, de manera que el seguiment només funciona si hi ha una sola bateria darrere d'aquest adaptador.",
@@ -598,190 +540,18 @@
           "rs485_gateway": "Activa-ho si la connexió Modbus TCP arriba a una passarel·la RS485 (Elfin EW11, pont USB-RS485...) en lloc del port TCP de la mateixa bateria. L'espera entre missatges només existeix al servidor TCP de la bateria, així que baixar-la a 30 ms fa el sondeig d'una Venus Ev3/A/D unes tres vegades més ràpid. L'espera s'aplica per bateria: si diverses comparteixen passarel·la, el bus rep aquest mateix trànsit multiplicat, així que desactiva-ho de nou si les lectures fallen o expiren. Deixa-ho desactivat si connectes directament a la IP de la bateria."
         }
       },
-      "reconfigure_battery_zendure": {
-        "title": "Reconfigura la bateria {battery_num} — Connexió (Zendure)",
-        "description": "Actualitza les dades de connexió de la bateria Zendure SolarFlow {battery_num}. La resta de configuració es conserva.",
-        "data": {
-          "name": "Nom",
-          "host": "Adreça IP",
-          "port": "Port HTTP"
-        },
-        "data_description": {
-          "name": "Nom descriptiu per identificar aquesta bateria",
-          "host": "Nova adreça IP del Zendure SolarFlow a la xarxa local",
-          "port": "Port HTTP (per defecte 80)"
-        }
-      },
-      "reconfigure_battery_sessy": {
-        "title": "Reconfigura la bateria {battery_num} — Connexió (Sessy)",
-        "description": "Actualitza les dades de connexió de la bateria Sessy {battery_num}. La resta de configuració es conserva.",
-        "data": {"name": "Nom", "host": "Adreça IP", "port": "Port HTTP", "username": "Usuari", "password": "Contrasenya"},
-        "data_description": {"name": "Nom descriptiu per identificar aquesta bateria", "host": "Adreça IP del dispositiu Sessy a la xarxa local", "port": "Port HTTP (per defecte 80)", "username": "Usuari local imprès al dongle Sessy", "password": "Contrasenya local impresa al dongle Sessy"}
-      },
-      "reconfigure_battery_indevolt": {
-        "title": "Reconfigura la bateria {battery_num} — Connexió (Indevolt)",
-        "description": "Actualitza les dades de connexió de la bateria Indevolt {battery_num}. La resta de paràmetres es conserva.",
-        "data": {
-          "name": "Nom",
-          "host": "Adreça IP",
-          "port": "Port HTTP"
-        },
-        "data_description": {
-          "name": "Nom descriptiu per identificar aquesta bateria",
-          "host": "Adreça IP de la bateria Indevolt a la xarxa local",
-          "port": "Port HTTP de l'API local (per defecte 8080)"
-        }
-      },
-      "reconfigure_battery_indevolt_request_speed": {
-        "title": "Reconfigura la bateria {battery_num} — Velocitat de sol·licituds (Indevolt)",
-        "description": "Una velocitat més alta fa que la bateria reaccioni abans als canvis del comptador, cosa que pot millorar el balanç net zero. Les opcions:\n\n- **Conservadora** (5s) és la recomanació d'Indevolt i la predeterminada. És adequada per a un comptador que s'actualitza cada 5s, el ritme habitual a Home Assistant: amb un comptador així, una velocitat més alta no fa que la bateria reaccioni abans.\n- **Normal** (3s) és adequada per a un comptador que s'actualitza cada 3s.\n- **Ràpida** (2s) és adequada per a un comptador que s'actualitza cada 2s. Amb un comptador que s'actualitza cada segon és l'opció segura: la bateria rep llavors una ordre nova com a molt cada 2s.\n- **Màxima** (1s) envia una ordre fins a cada segon i ja no espera 1s entre sol·licituds, cosa que queda per sota del mínim documentat per Indevolt. Només ajuda amb un comptador que s'actualitza cada segon; amb un comptador més lent, tria **Ràpida**. Amb **Màxima**, posa també PD Interval Mínim de Cicle a 0 si totes les bateries d'Omnibattery són Indevolt.",
-        "data": {
-          "indevolt_request_speed": "Velocitat de sol·licituds"
-        },
-        "data_description": {
-          "indevolt_request_speed": "Qualsevol velocitat més ràpida que 5s és sota la teva responsabilitat: et correspon comprovar que la bateria, Home Assistant i la xarxa ho poden aguantar. A la pàgina del dispositiu, Interval de sol·licituds (efectiu) ha de continuar coincidint amb la teva elecció, i Latència de lectura (P95) i Latència d'escriptura (P95) s'han de mantenir molt per sota d'1s.\n\nPots provar-ho: si la bateria respon lentament o no respon, el driver d'Indevolt d'Omnibattery torna automàticament a un ritme més tranquil fins que el temps de resposta es recupera."
-        }
-      },
-      "reconfigure_battery_anker": {
-        "title": "Reconfigure battery {battery_num} — Connection (Anker)",
-        "description": "Update connection details for Anker SOLIX Solarbank Max AC / 4 E5000 Pro battery {battery_num}. All other settings are preserved.",
-        "data": {
-          "name": "Name",
-          "host": "IP Address",
-          "port": "Modbus Port",
-          "slave_id": "Modbus Slave ID"
-        },
-        "data_description": {
-          "name": "Descriptive name to identify this battery",
-          "host": "New IP address shown in the Anker app under Third-Party Control",
-          "port": "Modbus TCP port (default 502)",
-          "slave_id": "Modbus slave/unit id (default 1)"
-        }
-      },
-          "reconfigure_battery_huawei_slave": {
-            "title": "Reconfigura la bateria {battery_num} — Quin inversor?",
-            "description": "{count} inversors amb bateria han respost en aquest bus. Tria el que correspon a aquesta bateria.",
-            "data": {
-              "slave_id": "Inverter"
-            }
-          },
-        "reconfigure_battery_huawei": {
-          "title": "Reconfigura la bateria {battery_num} — Connexió (Huawei)",
-          "description": "Actualitza l'accés Modbus i el dispositiu de bateria de Huawei Solar per a la bateria {battery_num}. La resta d'ajustos es conserven.",
-          "data": {
-            "name": "Name",
-            "host": "IP Address",
-            "port": "Modbus Port",
-            "slave_id": "Modbus slave id (leave empty to search)",
-            "huawei_battery_device": "Huawei Solar battery device",
-            "huawei_direct_write": "Direct Modbus writes"
-          },
-          "data_description": {
-            "name": "Descriptive name to identify this battery",
-            "host": "Address of the Modbus proxy or inverter Omnibattery reads from",
-            "port": "Modbus TCP port (default 502)",
-            "slave_id": "Unit id of the inverter — not of the energy manager or a charger. Leave it empty and setup goes looking: it tries the usual ids, identifies each inverter by its model register and takes the one with a battery attached. If several answer — Huawei inverters can be cascaded — a selection step follows. The search takes about 15 seconds.",
-            "huawei_battery_device": "Only needed when direct Modbus writes are off, in which case set-points go through the Huawei Solar integration's services. With direct writes, leave it empty.",
-            "huawei_direct_write": "Write set-points as Modbus registers instead of calling the Huawei Solar integration's services. Same register sequence, but without the detour through the service layer or the wait on that integration's communication lock. Off by default — enable it once the proven path is working."
-          }
-        },
-      "reconfigure_battery_hoymiles": {
-        "title": "Reconfigura la bateria {battery_num} — MQTT Hoymiles",
-        "description": "Introduïu l'ID MQTT de Hoymiles; Home Assistant gestiona el broker i Omnibattery detecta el model.",
-        "data": {"name": "Nom", "device_id": "ID de dispositiu MQTT", "hoymiles_model": "Model de bateria"},
-        "data_description": {"hoymiles_model": "Utilitzeu la detecció automàtica tret que el dispositiu publiqui un model incorrecte o genèric."}
-      },
-      "reconfigure_battery_esphome": {
-        "title": "Reconfigura la bateria {battery_num} — Connexió (LilyGo/ESPHome)",
-        "description": "Actualitza el dispositiu ESPHome de la bateria Marstek {battery_num}. La resta d'ajustos es conserven.",
-        "data": {
-          "name": "Nom",
-          "esphome_device": "Dispositiu ESPHome"
-        },
-        "data_description": {
-          "name": "Nom descriptiu per identificar aquesta bateria",
-          "esphome_device": "El dispositiu LilyGo T-CAN485 amb el firmware ESPHome de Marstek"
-        }
-      },
       "restore_backup": {
         "title": "Restaura la configuració anterior",
         "description": "S'ha trobat una còpia de seguretat de {count} configuració(ns) anterior(s) (connexió, opcions i ajust). Vols restaurar-la per recuperar-ho tot sense tornar a configurar? Les teves entitats i historial es reconnectaran automàticament.",
         "data": {
           "restore": "Restaura la configuració anterior"
         }
-      },
-      "battery_connection_sessy": {
-        "title": "Configura la bateria {battery_num} — Connexió (Sessy)",
-        "description": "Introdueix les dades de connexió i les credencials locals impreses al dongle Sessy de la bateria {battery_num}.",
-        "data": {"name": "Nom", "host": "Adreça IP", "port": "Port HTTP", "username": "Usuari", "password": "Contrasenya"},
-        "data_description": {"name": "Nom descriptiu per identificar aquesta bateria", "host": "Adreça IP del dispositiu Sessy a la xarxa local", "port": "Port HTTP (per defecte 80)", "username": "Usuari local imprès al dongle Sessy", "password": "Contrasenya local impresa al dongle Sessy"}
-      },
-      "battery_connection_indevolt": {
-        "title": "Configura la bateria {battery_num} — Connexió (Indevolt)",
-        "description": "Introdueix l'adreça IP de la bateria Indevolt {battery_num}. A l'app d'Indevolt, activa l'API local amb el protocol **HTTP** (no HTTP Digest). Omnibattery només controla la bateria en mode **Temps real** (Realtime), que tries a l'app d'Indevolt; mai no canvia el mode per si mateix.",
-        "data": {
-          "name": "Nom",
-          "host": "Adreça IP",
-          "port": "Port HTTP"
-        },
-        "data_description": {
-          "name": "Nom descriptiu per identificar aquesta bateria",
-          "host": "Adreça IP de la bateria Indevolt a la xarxa local",
-          "port": "Port HTTP de l'API local (per defecte 8080)"
-        }
-      },
-      "indevolt_request_speed": {
-        "title": "Configura la bateria {battery_num} — Velocitat de sol·licituds (Indevolt)",
-        "description": "Una velocitat més alta fa que la bateria reaccioni abans als canvis del comptador, cosa que pot millorar el balanç net zero. Les opcions:\n\n- **Conservadora** (5s) és la recomanació d'Indevolt i la predeterminada. És adequada per a un comptador que s'actualitza cada 5s, el ritme habitual a Home Assistant: amb un comptador així, una velocitat més alta no fa que la bateria reaccioni abans.\n- **Normal** (3s) és adequada per a un comptador que s'actualitza cada 3s.\n- **Ràpida** (2s) és adequada per a un comptador que s'actualitza cada 2s. Amb un comptador que s'actualitza cada segon és l'opció segura: la bateria rep llavors una ordre nova com a molt cada 2s.\n- **Màxima** (1s) envia una ordre fins a cada segon i ja no espera 1s entre sol·licituds, cosa que queda per sota del mínim documentat per Indevolt. Només ajuda amb un comptador que s'actualitza cada segon; amb un comptador més lent, tria **Ràpida**. Amb **Màxima**, posa també PD Interval Mínim de Cicle a 0 si totes les bateries d'Omnibattery són Indevolt.",
-        "data": {
-          "indevolt_request_speed": "Velocitat de sol·licituds"
-        },
-        "data_description": {
-          "indevolt_request_speed": "Qualsevol velocitat més ràpida que 5s és sota la teva responsabilitat: et correspon comprovar que la bateria, Home Assistant i la xarxa ho poden aguantar. A la pàgina del dispositiu, Interval de sol·licituds (efectiu) ha de continuar coincidint amb la teva elecció, i Latència de lectura (P95) i Latència d'escriptura (P95) s'han de mantenir molt per sota d'1s.\n\nPots provar-ho: si la bateria respon lentament o no respon, el driver d'Indevolt d'Omnibattery torna automàticament a un ritme més tranquil fins que el temps de resposta es recupera."
-        }
-      },
-      "indevolt_mode_notice": {
-        "title": "Bateria {battery_num} — Cal el mode Temps real",
-        "description": "La bateria no està en mode Temps real. La configuració continua i Omnibattery supervisa la bateria, però només la controla quan tries **Temps real** (Realtime) a l'app d'Indevolt. Llavors el control comença automàticament."
-      },
-      "battery_connection_huawei": {
-        "title": "Configure battery {battery_num} — Connection (Huawei)",
-        "description": "Omnibattery reads this battery over Modbus and sends its set-points through the Huawei Solar integration, so it needs both: a Modbus endpoint and the battery device. Point the Modbus address at a Modbus proxy rather than straight at the inverter — the Huawei Solar integration already holds a connection to it.\n\nA Huawei inverter accepts only ONE Modbus connection at a time. If anything else talks to it besides Omnibattery — the Huawei Solar integration, evcc, another system — you need a Modbus proxy in front that fans the connection out to several clients, for example {proxy_url}. Enter the proxy's address and port instead of the inverter's. The slave id is searched for automatically when the one entered does not answer.",
-        "data": {"name": "Name", "host": "IP Address", "port": "Modbus Port", "slave_id": "Modbus slave id (leave empty to search)", "huawei_battery_device": "Huawei Solar battery device", "huawei_direct_write": "Direct Modbus writes"},
-        "data_description": {"name": "Descriptive name to identify this battery", "host": "Address of the Modbus proxy or inverter Omnibattery reads from", "port": "Modbus TCP port (default 502)", "slave_id": "Unit id of the inverter — not of the energy manager or a charger. Leave it empty and setup goes looking: it tries the usual ids, identifies each inverter by its model register and takes the one with a battery attached. If several answer — Huawei inverters can be cascaded — a selection step follows. The search takes about 15 seconds.", "huawei_battery_device": "Only needed when direct Modbus writes are off, in which case set-points go through the Huawei Solar integration's services. With direct writes, leave it empty.", "huawei_direct_write": "Write set-points as Modbus registers instead of calling the Huawei Solar integration's services. Same register sequence, but without the detour through the service layer or the wait on that integration's communication lock. Off by default — enable it once the proven path is working."}
-      },
-      "battery_connection_huawei_slave": {
-        "title": "Configure battery {battery_num} — Choose inverter",
-        "description": "{count} inverters with a battery answered on this Modbus endpoint. Huawei inverters can be cascaded — pick the one this battery belongs to. For a second battery, add another entry with the other slave id.",
-        "data": {"slave_id": "Inverter"}
-      },
-      "battery_connection_anker": {
-        "title": "Configure battery {battery_num} — Connection (Anker)",
-        "description": "Enter connection details for Anker SOLIX Solarbank Max AC / 4 E5000 Pro battery {battery_num}. Enable Modbus TCP under Third-Party Control in the Anker app first. Only one Modbus client can connect at a time.",
-        "data": {
-          "name": "Name",
-          "host": "IP Address",
-          "port": "Modbus Port",
-          "slave_id": "Modbus Slave ID"
-        },
-        "data_description": {
-          "name": "Descriptive name to identify this battery",
-          "host": "IP address shown in the Anker app under Third-Party Control",
-          "port": "Modbus TCP port (default 502)",
-          "slave_id": "Modbus slave/unit id (default 1)"
-        }
       }
     },
     "error": {
       "invalid_mac": "Això no sembla una adreça MAC. S'esperen sis parelles de dígits hexadecimals, per exemple dc:04:5a:14:6b:33.",
       "cannot_connect": "No es pot connectar a la bateria. Verifica l'adreça IP i que la bateria sigui accessible a la xarxa.",
-      "hoymiles_no_power_ctrl": "Aquest ID de dispositiu MQTT publica telemetria però no control de potència. En un sistema Hoymiles aparellat només es controla el mestre: afegeix una sola vegada l'ID del mestre, no el de l'esclau.",
-      "indevolt_http_digest": "La bateria demana una contrasenya: la seva API local està en HTTP Digest. Tria HTTP a l'app d'Indevolt i torna-ho a provar.",
       "no_battery": "Inverter reached, but it reports no battery. Check that the LUNA2000 is attached and the Modbus slave ID points at the inverter.",
-      "huawei_device_required": "Without direct Modbus writes, Omnibattery controls the battery through the Huawei Solar integration's services, and those address it by device. Either pick the device or enable direct writes.",
-      "huawei_solar_missing": "Without direct Modbus writes, Omnibattery controls the battery through the Huawei Solar integration's services — but that integration is not set up here. Install and configure it via HACS, or enable direct writes.",
-      "huawei_device_mismatch": "The chosen battery device belongs to a different inverter than the Modbus address points at. With cascaded inverters the readings would come from one unit while the commands landed on another. Check the device and the slave id.",
-      "esphome_entities_missing": "Al dispositiu ESPHome seleccionat li falten entitats necessàries: {missing}. Assegura't que executa el firmware marstek-lilygo-rs485 amb els noms d'entitat originals.",
       "sensor_not_found": "El sensor de predicció solar no existeix. Verifica que el sensor estigui disponible.",
       "invalid_unit": "El sensor de predicció solar ha de tenir com a unitat 'kWh' o 'Wh'.",
       "solar_production_sensor_not_found": "El sensor de producció solar no existeix. Verifica que el sensor estigui disponible.",
@@ -922,16 +692,6 @@
           "num_batteries": "Nombre de bateries"
         }
       },
-      "battery_brand": {
-        "title": "Configura la bateria {battery_num} — Marca",
-        "description": "Selecciona la marca i model de la bateria {battery_num}.",
-        "data": {
-          "brand": "Marca de la bateria"
-        },
-        "data_description": {
-          "brand": "Marstek Venus: Modbus TCP. Zendure SolarFlow: local HTTP (HEMS must be disabled for Omnibattery control). Anker SOLIX Solarbank Max AC / 4 E5000 Pro: Modbus TCP (enable Modbus TCP under Third-Party Control in the Anker app; only one Modbus client at a time). Sessy: local HTTP."
-        }
-      },
       "battery_connection": {
         "title": "Configura la bateria {battery_num} — Connexió (Marstek)",
         "description": "Modifica les dades de connexió i el model de la bateria {battery_num}.",
@@ -954,32 +714,6 @@
           "rs485_gateway": "Activa-ho si la connexió Modbus TCP arriba a una passarel·la RS485 (Elfin EW11, pont USB-RS485...) en lloc del port TCP de la mateixa bateria. L'espera entre missatges només existeix al servidor TCP de la bateria, així que baixar-la a 30 ms fa el sondeig d'una Venus Ev3/A/D unes tres vegades més ràpid. L'espera s'aplica per bateria: si diverses comparteixen passarel·la, el bus rep aquest mateix trànsit multiplicat, així que desactiva-ho de nou si les lectures fallen o expiren. Deixa-ho desactivat si connectes directament a la IP de la bateria."
         }
       },
-      "battery_connection_zendure": {
-        "title": "Configura la bateria {battery_num} — Connexió (Zendure)",
-        "description": "Modifica les dades de connexió per a la bateria Zendure SolarFlow {battery_num}. Mantén HEMS desactivat a l'app Zendure per al control d'Omnibattery.",
-        "data": {
-          "name": "Nom",
-          "host": "Adreça IP",
-          "port": "Port HTTP"
-        },
-        "data_description": {
-          "name": "Nom descriptiu per identificar aquesta bateria",
-          "host": "Adreça IP del Zendure SolarFlow a la teva xarxa local",
-          "port": "Port HTTP (per defecte 80)"
-        }
-      },
-      "battery_connection_esphome": {
-        "title": "Configura la bateria {battery_num} — Connexió (LilyGo/ESPHome)",
-        "description": "Selecciona el dispositiu ESPHome (pont LilyGo RS485) que exposa la bateria Marstek {battery_num}. Ha d'executar el firmware marstek-lilygo-rs485 amb els noms d'entitat originals.",
-        "data": {
-          "name": "Nom",
-          "esphome_device": "Dispositiu ESPHome"
-        },
-        "data_description": {
-          "name": "Nom descriptiu per identificar aquesta bateria",
-          "esphome_device": "El dispositiu LilyGo T-CAN485 amb el firmware ESPHome de Marstek"
-        }
-      },
       "battery_limits": {
         "title": "Configura la bateria {battery_num} — Límits",
         "description": "Modifica els límits de potència i SOC de la bateria {battery_num}.",
@@ -991,7 +725,6 @@
           "charge_hysteresis_percent": "Histèresi de càrrega (%)",
           "backup_offgrid_threshold": "Llindar de càrrega offgrid de backup (W)",
           "full_charge_voltage_taper_enabled": "Activar reducció per voltatge en carregar al 100%",
-          "battery_capacity_kwh": "Capacitat nominal de la bateria (kWh)",
           "battery_phase": "Fase física de la bateria",
           "dc_pv_connected": "Hi ha panells solars connectats directament a aquesta bateria",
           "track_mac": "Tornar a trobar aquesta bateria per la seva adreça MAC si canvia la seva adreça IP",
@@ -1005,7 +738,6 @@
           "charge_hysteresis_percent": "Sempre activa (mínim 2%). En arribar al màxim, la bateria no tornarà a carregar fins que el SOC baixi a (SOC màx − histèresi). Ex: SOC màx 100% amb 2% = no carrega fins a 98%.",
           "backup_offgrid_threshold": "Una càrrega offgrid superior a aquest valor es considera un esdeveniment de backup actiu, excloent la bateria del control PD. Augmenta'l si tens càrregues permanents (router, càmeres) al port offgrid.",
           "full_charge_voltage_taper_enabled": "Quan l'objectiu és 100%, limita la càrrega a 200 W des de 3,48 V de cel·la màxima. En Venus E s'atura a 3,60 V per mesurar el desbalanç durant 60 segons; les Venus A/D amb packs acoblats continuen a 200 W fins que la BMS talla.",
-          "battery_capacity_kwh": "Capacitat útil nominal del pack de bateries. Es fa servir per calcular energia emmagatzemada i eficiència a partir del SOC. Posa 0 per detectar-la automàticament en models/packs compatibles. Introdueix un valor positiu per substituir la detecció o si els packs són desconeguts. Sessy requereix la capacitat real.",
           "battery_phase": "Fase AC física (L1/L2/L3) on està cablejada aquesta bateria, o Sense assignar si queda fora de l'esquema de fases protegides. Una bateria sense fase queda fora de l'envolupant trifàsica i continua funcionant normalment en automàtic.",
           "dc_pv_connected": "Només Venus A/D. Activa-ho quan hi hagi panells connectats a les entrades MPPT de la bateria. Desactiva-ho si aquestes entrades no s'utilitzen perquè la potència de bateria continuï basant-se en la potència AC sense afegir producció MPPT.",
           "track_mac": "L'adreça MAC és l'adreça física permanent de la bateria: a diferència de l'adreça IP de dalt, no canvia mai. Home Assistant la fa servir per tornar a trobar la bateria i actualitzar l'adreça IP tot sol. Darrere d'un pont Wi-Fi a Ethernet o d'un adaptador PLC, l'adreça que veus és la del mateix adaptador i la comparteix tot el que hi ha al darrere, de manera que el seguiment només funciona si hi ha una sola bateria darrere d'aquest adaptador.",
@@ -1360,79 +1092,12 @@
           "hourly_balance_deadband_wh": "Tolerància al voltant de l'objectiu. No s'aplica correcció si el balanç net està dins de ±N kWh de l'objectiu. 0 = correcció exacta.",
           "hourly_balance_hysteresis_w": "Canvi mínim en el desplaçament necessari per aplicar una nova correcció. Evita micro-ajustos cada cicle. 0 = aplicar sempre. Per defecte: 15 W."
         }
-      },
-      "battery_connection_sessy": {
-        "title": "Configura la bateria {battery_num} — Connexió (Sessy)",
-        "description": "Modifica les dades de connexió i les credencials locals del dongle de la bateria Sessy {battery_num}.",
-        "data": {"name": "Nom", "host": "Adreça IP", "port": "Port HTTP", "username": "Usuari", "password": "Contrasenya"},
-        "data_description": {"name": "Nom descriptiu per identificar aquesta bateria", "host": "Adreça IP del dispositiu Sessy a la xarxa local", "port": "Port HTTP (per defecte 80)", "username": "Usuari local imprès al dongle Sessy", "password": "Contrasenya local impresa al dongle Sessy"}
-      },
-      "battery_connection_indevolt": {
-        "title": "Configura la bateria {battery_num} — Connexió (Indevolt)",
-        "description": "Modifica les dades de connexió de la bateria Indevolt {battery_num}.",
-        "data": {
-          "name": "Nom",
-          "host": "Adreça IP",
-          "port": "Port HTTP"
-        },
-        "data_description": {
-          "name": "Nom descriptiu per identificar aquesta bateria",
-          "host": "Adreça IP de la bateria Indevolt a la xarxa local",
-          "port": "Port HTTP de l'API local (per defecte 8080)"
-        }
-      },
-      "indevolt_request_speed": {
-        "title": "Configura la bateria {battery_num} — Velocitat de sol·licituds (Indevolt)",
-        "description": "Una velocitat més alta fa que la bateria reaccioni abans als canvis del comptador, cosa que pot millorar el balanç net zero. Les opcions:\n\n- **Conservadora** (5s) és la recomanació d'Indevolt i la predeterminada. És adequada per a un comptador que s'actualitza cada 5s, el ritme habitual a Home Assistant: amb un comptador així, una velocitat més alta no fa que la bateria reaccioni abans.\n- **Normal** (3s) és adequada per a un comptador que s'actualitza cada 3s.\n- **Ràpida** (2s) és adequada per a un comptador que s'actualitza cada 2s. Amb un comptador que s'actualitza cada segon és l'opció segura: la bateria rep llavors una ordre nova com a molt cada 2s.\n- **Màxima** (1s) envia una ordre fins a cada segon i ja no espera 1s entre sol·licituds, cosa que queda per sota del mínim documentat per Indevolt. Només ajuda amb un comptador que s'actualitza cada segon; amb un comptador més lent, tria **Ràpida**. Amb **Màxima**, posa també PD Interval Mínim de Cicle a 0 si totes les bateries d'Omnibattery són Indevolt.",
-        "data": {
-          "indevolt_request_speed": "Velocitat de sol·licituds"
-        },
-        "data_description": {
-          "indevolt_request_speed": "Qualsevol velocitat més ràpida que 5s és sota la teva responsabilitat: et correspon comprovar que la bateria, Home Assistant i la xarxa ho poden aguantar. A la pàgina del dispositiu, Interval de sol·licituds (efectiu) ha de continuar coincidint amb la teva elecció, i Latència de lectura (P95) i Latència d'escriptura (P95) s'han de mantenir molt per sota d'1s.\n\nPots provar-ho: si la bateria respon lentament o no respon, el driver d'Indevolt d'Omnibattery torna automàticament a un ritme més tranquil fins que el temps de resposta es recupera."
-        }
-      },
-      "indevolt_mode_notice": {
-        "title": "Bateria {battery_num} — Cal el mode Temps real",
-        "description": "La bateria no està en mode Temps real. La configuració continua i Omnibattery supervisa la bateria, però només la controla quan tries **Temps real** (Realtime) a l'app d'Indevolt. Llavors el control comença automàticament."
-      },
-      "battery_connection_huawei": {
-        "title": "Configure battery {battery_num} — Connection (Huawei)",
-        "description": "Modify the Modbus endpoint and the Huawei Solar battery device used for battery {battery_num}.\n\nA Huawei inverter accepts only ONE Modbus connection at a time. If anything else talks to it besides Omnibattery — the Huawei Solar integration, evcc, another system — you need a Modbus proxy in front that fans the connection out to several clients, for example {proxy_url}. Enter the proxy's address and port instead of the inverter's. The slave id is searched for automatically when the one entered does not answer.",
-        "data": {"name": "Name", "host": "IP Address", "port": "Modbus Port", "slave_id": "Modbus slave id (leave empty to search)", "huawei_battery_device": "Huawei Solar battery device", "huawei_direct_write": "Direct Modbus writes"},
-        "data_description": {"name": "Descriptive name to identify this battery", "host": "Address of the Modbus proxy or inverter Omnibattery reads from", "port": "Modbus TCP port (default 502)", "slave_id": "Unit id of the inverter — not of the energy manager or a charger. Leave it empty and setup goes looking: it tries the usual ids, identifies each inverter by its model register and takes the one with a battery attached. If several answer — Huawei inverters can be cascaded — a selection step follows. The search takes about 15 seconds.", "huawei_battery_device": "Only needed when direct Modbus writes are off, in which case set-points go through the Huawei Solar integration's services. With direct writes, leave it empty.", "huawei_direct_write": "Write set-points as Modbus registers instead of calling the Huawei Solar integration's services. Same register sequence, but without the detour through the service layer or the wait on that integration's communication lock. Off by default — enable it once the proven path is working."}
-      },
-      "battery_connection_huawei_slave": {
-        "title": "Configure battery {battery_num} — Choose inverter",
-        "description": "{count} inverters with a battery answered on this Modbus endpoint. Huawei inverters can be cascaded — pick the one this battery belongs to. For a second battery, add another entry with the other slave id.",
-        "data": {"slave_id": "Inverter"}
-      },
-      "battery_connection_anker": {
-        "title": "Configure battery {battery_num} — Connection (Anker)",
-        "description": "Modify connection details for Anker SOLIX Solarbank Max AC / 4 E5000 Pro battery {battery_num}. Enable Modbus TCP under Third-Party Control in the Anker app first. Only one Modbus client can connect at a time.",
-        "data": {
-          "name": "Name",
-          "host": "IP Address",
-          "port": "Modbus Port",
-          "slave_id": "Modbus Slave ID"
-        },
-        "data_description": {
-          "name": "Descriptive name to identify this battery",
-          "host": "IP address shown in the Anker app under Third-Party Control",
-          "port": "Modbus TCP port (default 502)",
-          "slave_id": "Modbus slave/unit id (default 1)"
-        }
       }
     },
     "error": {
       "invalid_mac": "Això no sembla una adreça MAC. S'esperen sis parelles de dígits hexadecimals, per exemple dc:04:5a:14:6b:33.",
       "cannot_connect": "No es pot connectar a la bateria. Verifica l'adreça IP i que la bateria sigui accessible a la xarxa.",
-      "hoymiles_no_power_ctrl": "Aquest ID de dispositiu MQTT publica telemetria però no control de potència. En un sistema Hoymiles aparellat només es controla el mestre: afegeix una sola vegada l'ID del mestre, no el de l'esclau.",
-      "indevolt_http_digest": "La bateria demana una contrasenya: la seva API local està en HTTP Digest. Tria HTTP a l'app d'Indevolt i torna-ho a provar.",
       "no_battery": "Inverter reached, but it reports no battery. Check that the LUNA2000 is attached and the Modbus slave ID points at the inverter.",
-      "huawei_device_required": "Without direct Modbus writes, Omnibattery controls the battery through the Huawei Solar integration's services, and those address it by device. Either pick the device or enable direct writes.",
-      "huawei_solar_missing": "Without direct Modbus writes, Omnibattery controls the battery through the Huawei Solar integration's services — but that integration is not set up here. Install and configure it via HACS, or enable direct writes.",
-      "huawei_device_mismatch": "The chosen battery device belongs to a different inverter than the Modbus address points at. With cascaded inverters the readings would come from one unit while the commands landed on another. Check the device and the slave id.",
-      "esphome_entities_missing": "Al dispositiu ESPHome seleccionat li falten entitats necessàries: {missing}. Assegura't que executa el firmware marstek-lilygo-rs485 amb els noms d'entitat originals.",
       "sensor_not_found": "El sensor de predicció solar no existeix. Verifica que el sensor estigui disponible.",
       "invalid_unit": "El sensor de predicció solar ha de tenir com a unitat 'kWh' o 'Wh'.",
       "solar_production_sensor_not_found": "El sensor de producció solar no existeix. Verifica que el sensor estigui disponible.",
@@ -1466,23 +1131,6 @@
     }
   },
   "selector": {
-    "indevolt_request_speed": {
-      "options": {
-        "maximum": "Màxima: 1s",
-        "fast": "Ràpida: 2s",
-        "normal": "Normal: 3s",
-        "conservative": "Conservadora: 5s (predeterminada, recomanada per Indevolt)"
-      }
-    },
-    "hoymiles_model": {
-      "options": {
-        "auto": "Detecció automàtica (recomanat)",
-        "ms_a2": "MS-A2",
-        "hibattery_1920_ac": "HiBattery 1920 AC",
-        "hibattery_4020_x": "HiBattery 4020 X",
-        "hibattery_4020_ac": "HiBattery 4020 AC"
-      }
-    },
     "battery_phase": {
       "options": {"unassigned": "Sense assignar", "l1": "L1", "l2": "L2", "l3": "L3"}
     },
@@ -1651,9 +1299,6 @@
       },
       "negative_price_charging": {
         "name": "Càrrega oportunista per preu negatiu"
-      },
-      "lamp_switch": {
-        "name": "LEDs d'estat"
       }
     },
     "time": {
@@ -1816,9 +1461,6 @@
       "battery_soc": {
         "name": "SOC de la Bateria"
       },
-      "battery_soh": {
-        "name": "Estat de salut de la bateria (SoH)"
-      },
       "battery_soc_pack_1": {
         "name": "SOC Bateria Paquet 1"
       },
@@ -1897,18 +1539,6 @@
       "internal_temperature": {
         "name": "Temperatura Interna"
       },
-      "internal_mos1_temperature": {
-        "name": "Temperatura MOS1 Interna"
-      },
-      "internal_mos2_temperature": {
-        "name": "Temperatura MOS2 Interna"
-      },
-      "max_cell_temperature": {
-        "name": "Temperatura Màxima de Cel·la"
-      },
-      "min_cell_temperature": {
-        "name": "Temperatura Mínima de Cel·la"
-      },
       "ac_power": {
         "name": "Potència AC"
       },
@@ -1917,9 +1547,6 @@
       },
       "total_discharging_energy": {
         "name": "Energia Total de Descàrrega"
-      },
-      "pv_total_generation": {
-        "name": "Generació FV Total"
       },
       "total_daily_charging_energy": {
         "name": "Energia de Càrrega Diària"
@@ -1930,12 +1557,6 @@
       "inverter_state": {
         "name": "Estat de l'Inversor"
       },
-      "battery_status": {
-        "name": "Estat de la Bateria"
-      },
-      "operating_mode": {
-        "name": "Mode de Funcionament"
-      },
       "battery_voltage": {
         "name": "Tensió de la Bateria"
       },
@@ -1944,9 +1565,6 @@
       },
       "min_cell_voltage": {
         "name": "Tensió Mínima de Cel·la"
-      },
-      "cell_voltage_delta": {
-        "name": "Delta de Tensió de Cel·la"
       },
       "fault_status": {
         "name": "Estat de Fallada"
@@ -2017,349 +1635,11 @@
       "software_version": {
         "name": "Versió de Programari"
       },
-      "energy_mode": {
-        "name": "Mode de treball"
-      },
-      "control_status": {
-        "name": "Estat del control",
-        "state": {
-          "active": "Actiu",
-          "starting": "Prenent el control",
-          "realtime_mode_required": "En pausa: no és en mode Realtime",
-          "not_configured": "Només supervisió",
-          "telemetry_stale": "En pausa: sense dades recents",
-          "soc_calibration": "En pausa: calibrant el SOC",
-          "handover_failed": "En pausa: no s'ha pogut prendre el control",
-          "unknown_model": "Només supervisió: model desconegut"
-        }
-      },
-      "native_min_soc": {
-        "name": "Reserva de bateria"
-      },
-      "realtime_power": {
-        "name": "Potència de l'ordre en temps real"
-      },
-      "realtime_target_soc": {
-        "name": "SOC objectiu en temps real"
-      },
-      "grid_charging_allowed": {
-        "name": "Càrrega des de la xarxa"
-      },
-      "inverter_battery_temperature": {
-        "name": "Temperatura de la bateria de l'inversor"
-      },
-      "transformer_temperature": {
-        "name": "Temperatura del transformador"
-      },
-      "request_interval": {
-        "name": "Interval de sol·licituds (efectiu)"
-      },
-      "ac_input_power": {
-        "name": "Potència d'entrada CA"
-      },
-      "ac_output_power": {
-        "name": "Potència de sortida CA"
-      },
-      "bypass_power": {
-        "name": "Potència de bypass"
-      },
-      "indevolt_meter_power": {
-        "name": "Potència del comptador Indevolt"
-      },
-      "solar_output_power": {
-        "name": "Potència de sortida solar"
-      },
-      "total_ac_input_energy": {
-        "name": "Energia total d'entrada CA"
-      },
-      "total_ac_output_energy": {
-        "name": "Energia total de sortida CA"
-      },
-      "off_grid_output_energy": {
-        "name": "Energia de sortida fora de xarxa"
-      },
-      "bypass_input_energy": {
-        "name": "Energia d'entrada bypass"
-      },
       "daily_solar_energy": {
         "name": "Energia solar diària"
       },
-      "total_solar_energy": {
-        "name": "Energia solar total"
-      },
-      "feed_in_limit": {
-        "name": "Límit d'injecció"
-      },
-      "grid_voltage": {
-        "name": "Tensió de xarxa"
-      },
-      "grid_frequency": {
-        "name": "Freqüència de xarxa"
-      },
-      "remaining_charging_time": {
-        "name": "Temps de càrrega restant"
-      },
-      "remaining_discharging_time": {
-        "name": "Temps de descàrrega restant"
-      },
-      "realtime_command": {
-        "name": "Ordre en temps real",
-        "state": {
-          "standby": "En espera",
-          "charging": "Carregant",
-          "discharging": "Descarregant"
-        }
-      },
-      "device_mode": {
-        "name": "Mode del dispositiu",
-        "state": {
-          "cluster_main": "Clúster (principal)",
-          "cluster_sub": "Clúster (secundari)",
-          "standalone": "Independent"
-        }
-      },
-      "operating_status": {
-        "name": "Estat de funcionament",
-        "state": {
-          "powered_off": "Apagat",
-          "sleep": "Repòs",
-          "starting": "Engegant",
-          "mppt_operating": "MPPT en funcionament",
-          "current_limiting": "Limitació de corrent",
-          "shutting_down": "Aturant-se",
-          "inverter_fault": "Error de l'inversor",
-          "standby": "En espera",
-          "grid_charging": "Càrrega des de la xarxa",
-          "grid_discharging": "Descàrrega a la xarxa",
-          "off_grid_charging": "Càrrega sense xarxa",
-          "off_grid_discharging": "Descàrrega sense xarxa",
-          "low_battery_charging": "Càrrega per bateria baixa",
-          "deep_sleep": "Repòs profund",
-          "scheduled_full_charge": "Càrrega completa programada",
-          "off_grid_deep_sleep": "Repòs profund sense xarxa"
-        }
-      },
-      "full_charge_interval": {
-        "name": "Interval de càrrega completa forçada"
-      },
-      "full_charge_time": {
-        "name": "Hora de càrrega completa forçada"
-      },
-      "highest_cell_voltage": {
-        "name": "Tensió de cel·la més alta"
-      },
-      "lowest_cell_voltage": {
-        "name": "Tensió de cel·la més baixa"
-      },
-      "pv1_power": {
-        "name": "Potència PV1"
-      },
-      "pv1_current": {
-        "name": "Corrent PV1"
-      },
-      "pv2_power": {
-        "name": "Potència PV2"
-      },
-      "pv2_current": {
-        "name": "Corrent PV2"
-      },
-      "pv3_power": {
-        "name": "Potència PV3"
-      },
-      "pv3_current": {
-        "name": "Corrent PV3"
-      },
-      "pv4_power": {
-        "name": "Potència PV4"
-      },
-      "pv4_current": {
-        "name": "Corrent PV4"
-      },
-      "inverter_battery_soc": {
-        "name": "SOC de la bateria de l'inversor"
-      },
-      "inverter_battery_cycles": {
-        "name": "Cicles de la bateria de l'inversor"
-      },
-      "inverter_battery_mos_temperature": {
-        "name": "Temperatura MOS de la bateria de l'inversor"
-      },
-      "inverter_battery_voltage": {
-        "name": "Tensió de la bateria de l'inversor"
-      },
-      "inverter_battery_current": {
-        "name": "Corrent de la bateria de l'inversor"
-      },
-      "inverter_battery_serial_number": {
-        "name": "Número de sèrie de la bateria de l'inversor"
-      },
-      "expansion_battery_1_soc": {
-        "name": "SOC de la bateria d'expansió 1"
-      },
-      "expansion_battery_1_cycles": {
-        "name": "Cicles de la bateria d'expansió 1"
-      },
-      "expansion_battery_1_mos_temperature": {
-        "name": "Temperatura MOS de la bateria d'expansió 1"
-      },
-      "expansion_battery_1_voltage": {
-        "name": "Tensió de la bateria d'expansió 1"
-      },
-      "expansion_battery_1_current": {
-        "name": "Corrent de la bateria d'expansió 1"
-      },
-      "expansion_battery_1_serial_number": {
-        "name": "Número de sèrie de la bateria d'expansió 1"
-      },
-      "expansion_battery_2_soc": {
-        "name": "SOC de la bateria d'expansió 2"
-      },
-      "expansion_battery_2_cycles": {
-        "name": "Cicles de la bateria d'expansió 2"
-      },
-      "expansion_battery_2_mos_temperature": {
-        "name": "Temperatura MOS de la bateria d'expansió 2"
-      },
-      "expansion_battery_2_voltage": {
-        "name": "Tensió de la bateria d'expansió 2"
-      },
-      "expansion_battery_2_current": {
-        "name": "Corrent de la bateria d'expansió 2"
-      },
-      "expansion_battery_2_serial_number": {
-        "name": "Número de sèrie de la bateria d'expansió 2"
-      },
-      "expansion_battery_3_soc": {
-        "name": "SOC de la bateria d'expansió 3"
-      },
-      "expansion_battery_3_cycles": {
-        "name": "Cicles de la bateria d'expansió 3"
-      },
-      "expansion_battery_3_mos_temperature": {
-        "name": "Temperatura MOS de la bateria d'expansió 3"
-      },
-      "expansion_battery_3_voltage": {
-        "name": "Tensió de la bateria d'expansió 3"
-      },
-      "expansion_battery_3_current": {
-        "name": "Corrent de la bateria d'expansió 3"
-      },
-      "expansion_battery_3_serial_number": {
-        "name": "Número de sèrie de la bateria d'expansió 3"
-      },
-      "expansion_battery_4_soc": {
-        "name": "SOC de la bateria d'expansió 4"
-      },
-      "expansion_battery_4_cycles": {
-        "name": "Cicles de la bateria d'expansió 4"
-      },
-      "expansion_battery_4_mos_temperature": {
-        "name": "Temperatura MOS de la bateria d'expansió 4"
-      },
-      "expansion_battery_4_voltage": {
-        "name": "Tensió de la bateria d'expansió 4"
-      },
-      "expansion_battery_4_current": {
-        "name": "Corrent de la bateria d'expansió 4"
-      },
-      "expansion_battery_4_serial_number": {
-        "name": "Número de sèrie de la bateria d'expansió 4"
-      },
-      "expansion_battery_5_soc": {
-        "name": "SOC de la bateria d'expansió 5"
-      },
-      "expansion_battery_5_cycles": {
-        "name": "Cicles de la bateria d'expansió 5"
-      },
-      "expansion_battery_5_mos_temperature": {
-        "name": "Temperatura MOS de la bateria d'expansió 5"
-      },
-      "expansion_battery_5_voltage": {
-        "name": "Tensió de la bateria d'expansió 5"
-      },
-      "expansion_battery_5_current": {
-        "name": "Corrent de la bateria d'expansió 5"
-      },
-      "expansion_battery_5_serial_number": {
-        "name": "Número de sèrie de la bateria d'expansió 5"
-      },
-      "request_speed": {
-        "name": "Velocitat de sol·licituds",
-        "state": {
-          "maximum": "Màxima (1s)",
-          "fast": "Ràpida (2s)",
-          "normal": "Normal (3s)",
-          "conservative": "Conservadora (5s)"
-        }
-      },
-      "read_latency": {
-        "name": "Latència de lectura (P95)"
-      },
-      "write_latency": {
-        "name": "Latència d'escriptura (P95)"
-      },
-      "request_failures": {
-        "name": "Sol·licituds fallides"
-      },
-      "flash_writes": {
-        "name": "Escriptures a la flash"
-      },
-      "expansion_battery_1_temperature": {
-        "name": "Temperatura de la bateria d'expansió 1"
-      },
-      "expansion_battery_2_temperature": {
-        "name": "Temperatura de la bateria d'expansió 2"
-      },
-      "expansion_battery_3_temperature": {
-        "name": "Temperatura de la bateria d'expansió 3"
-      },
-      "expansion_battery_4_temperature": {
-        "name": "Temperatura de la bateria d'expansió 4"
-      },
-      "expansion_battery_5_temperature": {
-        "name": "Temperatura de la bateria d'expansió 5"
-      },
-      "pv1_voltage": {
-        "name": "Tensió PV1"
-      },
-      "pv2_voltage": {
-        "name": "Tensió PV2"
-      },
-      "pv3_voltage": {
-        "name": "Tensió PV3"
-      },
-      "pv4_voltage": {
-        "name": "Tensió PV4"
-      },
-      "pack1_firmware_version": {
-        "name": "Microprogramari del Paquet de Bateries 1"
-      },
-      "pack2_firmware_version": {
-        "name": "Microprogramari del Paquet de Bateries 2"
-      },
-      "pack3_firmware_version": {
-        "name": "Microprogramari del Paquet de Bateries 3"
-      },
-      "pack1_serial_number": {
-        "name": "Número de Sèrie del Paquet 1"
-      },
-      "pack2_serial_number": {
-        "name": "Número de Sèrie del Paquet 2"
-      },
-      "pack3_serial_number": {
-        "name": "Número de Sèrie del Paquet 3"
-      },
       "backup_function": {
         "name": "Funció de Reserva"
-      },
-      "inverter_software_version": {
-        "name": "Microprogramari de l'Inversor"
-      },
-      "grid_power": {
-        "name": "Potència de Xarxa"
-      },
-      "inverter_ac_power": {
-        "name": "Potència CA de l'Inversor"
       },
       "charging_cutoff_capacity": {
         "name": "Límit de Fi de Càrrega"
@@ -2369,24 +1649,6 @@
       },
       "user_work_mode": {
         "name": "Mode de Funcionament"
-      },
-      "inverter_max_power": {
-        "name": "Potència Màxima de l'Inversor"
-      },
-      "inverter_rated_power": {
-        "name": "Potència Nominal de l'Inversor"
-      },
-      "power_module_serial_number": {
-        "name": "Número de Sèrie del Mòdul de Potència"
-      },
-      "power_module_firmware_version": {
-        "name": "Microprogramari del Mòdul de Potència"
-      },
-      "inverter_serial_number": {
-        "name": "Número de Sèrie de l'Inversor"
-      },
-      "battery_runtime_estimate": {
-        "name": "Estimació d'Autonomia de la Bateria"
       },
       "bms_version": {
         "name": "Versió BMS"
@@ -2403,26 +1665,8 @@
       "mac_address": {
         "name": "Adreça MAC"
       },
-      "esp_ip": {
-        "name": "IP d'ESPHome"
-      },
-      "esp_ssid": {
-        "name": "SSID d'ESPHome"
-      },
-      "esp_version": {
-        "name": "Versió de l'ESP"
-      },
       "wifi_signal_strength": {
         "name": "Intensitat del Senyal WiFi"
-      },
-      "esp_wifi_signal_strength": {
-        "name": "Intensitat del Senyal WiFi de l'ESP"
-      },
-      "bt_status": {
-        "name": "Estat BT"
-      },
-      "power_restriction": {
-        "name": "Restricció de Potència"
       },
       "battery_cycle_count": {
         "name": "Cicles de la Bateria"
@@ -2471,30 +1715,9 @@
           "compensating_export": "Compensant Exportació",
           "compensation_stopped": "Compensació Aturada"
         }
-      },
-      "remain_discharge_time": {
-        "name": "Temps de Descàrrega Restant"
-      },
-      "fault_level": {
-        "name": "Nivell d'Error"
-      },
-      "ac_mode": {
-        "name": "Mode AC"
-      },
-      "pack_count": {
-        "name": "Nombre de Packs de Bateria"
-      },
-      "output_limit": {
-        "name": "Límit de Sortida"
-      },
-      "input_limit": {
-        "name": "Límit d'Entrada"
       }
     },
     "binary_sensor": {
-      "indevolt_meter_connected": {
-        "name": "Comptador Indevolt connectat"
-      },
       "capacity_protection_active": {
         "name": "Reducció de Pics Activa"
       },
@@ -2515,81 +1738,6 @@
       },
       "cloud_status": {
         "name": "Estat Cloud"
-      },
-      "esp_wifi_status": {
-        "name": "Estat WiFi de l'ESP"
-      },
-      "pll_abnormal_restart": {
-        "name": "Reinici anòmal del PLL"
-      },
-      "overtemperature_limit": {
-        "name": "Límit de sobretemperatura"
-      },
-      "low_temperature_limit": {
-        "name": "Límit de baixa temperatura"
-      },
-      "fan_abnormal_warning": {
-        "name": "Advertiment de ventilador anòmal"
-      },
-      "low_battery_soc_warning": {
-        "name": "Advertiment de SOC baix de bateria"
-      },
-      "output_overcurrent_warning": {
-        "name": "Advertiment de sobrecorrent de sortida"
-      },
-      "abnormal_line_sequence_detection": {
-        "name": "Detecció de seqüència de línia anòmala"
-      },
-      "wifi_abnormal": {
-        "name": "WiFi anòmal"
-      },
-      "ble_abnormal": {
-        "name": "BLE anòmal"
-      },
-      "network_abnormal": {
-        "name": "Xarxa anòmala"
-      },
-      "ct_connection_abnormal": {
-        "name": "Connexió CT anòmala"
-      },
-      "grid_overvoltage": {
-        "name": "Sobretensió de xarxa"
-      },
-      "grid_undervoltage": {
-        "name": "Subtensió de xarxa"
-      },
-      "grid_overfrequency": {
-        "name": "Sobrefreqüència de xarxa"
-      },
-      "grid_underfrequency": {
-        "name": "Subfreqüència de xarxa"
-      },
-      "grid_peak_voltage_abnormal": {
-        "name": "Pic de tensió de xarxa anòmal"
-      },
-      "current_dcover": {
-        "name": "Dcover de corrent"
-      },
-      "voltage_dcover": {
-        "name": "Dcover de tensió"
-      },
-      "bat_overvoltage": {
-        "name": "Sobretensió BAT"
-      },
-      "bat_undervoltage": {
-        "name": "Subtensió BAT"
-      },
-      "bat_overcurrent": {
-        "name": "Sobrecorrent BAT"
-      },
-      "bat_low_soc": {
-        "name": "SOC baix BAT"
-      },
-      "bat_communication_failure": {
-        "name": "Fallada de comunicació BAT"
-      },
-      "bms_protect": {
-        "name": "Protecció BMS"
       },
       "balancing_mode": {
         "name": "Mode de Balanç"
@@ -2660,22 +1808,6 @@
           "aggressive": "Agressiu",
           "very_aggressive": "Molt Agressiu",
           "custom": "Personalitzat"
-        }
-      },
-      "grid_reverse": {
-        "name": "Exportació d'energia",
-        "state": {
-          "disabled": "Desactivada",
-          "allowed": "Permesa",
-          "forbidden": "Prohibida"
-        }
-      },
-      "grid_off_mode": {
-        "name": "Mode Off-Grid",
-        "state": {
-          "normal": "Normal",
-          "economy": "Econòmic",
-          "off": "Apagat"
         }
       }
     },
@@ -2815,9 +1947,6 @@
       "predictive_min_soc_floor": {
         "name": "SOC mínim garantit"
       },
-      "battery_capacity": {
-        "name": "Capacitat de la Bateria"
-      },
       "hourly_balance_target_net_wh": {
         "name": "Objectiu de balanç horari"
       },
@@ -2830,14 +1959,8 @@
       "hourly_balance_hysteresis_w": {
         "name": "Histèresi de balanç horari"
       },
-      "soc_set": {
-        "name": "SOC Objectiu"
-      },
       "min_soc": {
         "name": "SOC Mínim"
-      },
-      "inverse_max_power": {
-        "name": "Potència Màx. de l'Inversor"
       },
       "max_price_threshold": {
         "name": "Preu màxim (càrrega)"

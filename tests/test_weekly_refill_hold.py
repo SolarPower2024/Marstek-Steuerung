@@ -52,7 +52,7 @@ class _Battery:
 
 
 MARSTEK = _Battery("Marstek")
-ZENDURE = _Battery("Zendure")
+VENUS_B = _Battery("Venus B")
 
 
 def _manager(
@@ -84,7 +84,7 @@ def _manager(
         _current_price_slot_active=in_slot,
         min_arbitrage_margin=0.05,
         round_trip_efficiency=0.8156,
-        coordinators=[MARSTEK, ZENDURE],
+        coordinators=[MARSTEK, VENUS_B],
         _weekly_charge_mgr=SimpleNamespace(
             is_battery_full=lambda coordinator: coordinator.name in full
         ),
@@ -148,7 +148,7 @@ def test_no_hold_once_the_run_has_nothing_left(kwargs):
 
 def test_inside_a_slot_only_the_full_battery_keeps_still():
     """The run completes only when every battery counts as full at once: a
-    full Marstek covering the house while the Zendure still charges drops out
+    full Marstek covering the house while the Venus B still charges drops out
     of its full state."""
     manager, blocks = _manager(in_slot=True, current=0.47, full={"Marstek"})
 
@@ -156,7 +156,7 @@ def test_inside_a_slot_only_the_full_battery_keeps_still():
 
     assert GAP not in blocks  # the slot owns the batteries
     assert _full_hold("Marstek") in blocks
-    assert _full_hold("Zendure") not in blocks
+    assert _full_hold("Venus B") not in blocks
 
 
 def test_in_the_last_slot_the_full_battery_still_waits_for_the_others():

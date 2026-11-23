@@ -738,7 +738,7 @@ def _mgr_for(ctrl):
 def test_setpoint_blocks_only_battery_above_setpoint():
     # Floor-fill phase, mixed SOC: leader (>= 70) blocked, laggard (< 70) free.
     leader = _ncoord("Marstek", soc=87)
-    laggard = _ncoord("Zendure", soc=69)
+    laggard = _ncoord("Laggard", soc=69)
     ctrl = _setpoint_controller([leader, laggard])
     _mgr_for(ctrl).refresh_setpoint_blocks()
     assert ctrl.blocks.get("charge_delay_setpoint", set()) == {"Marstek"}
@@ -747,7 +747,7 @@ def test_setpoint_blocks_only_battery_above_setpoint():
 def test_setpoint_blocks_cleared_once_floor_reached():
     # _delay_setpoint_reached -> forecast phase governs all; no per-battery floor.
     leader = _ncoord("Marstek", soc=87)
-    laggard = _ncoord("Zendure", soc=72)
+    laggard = _ncoord("Laggard", soc=72)
     ctrl = _setpoint_controller([leader, laggard], _delay_setpoint_reached=True)
     ctrl.blocks["charge_delay_setpoint"] = {"Marstek"}  # stale block from prior cycle
     _mgr_for(ctrl).refresh_setpoint_blocks()
@@ -756,7 +756,7 @@ def test_setpoint_blocks_cleared_once_floor_reached():
 
 def test_setpoint_blocks_cleared_when_day_unlocked():
     leader = _ncoord("Marstek", soc=87)
-    laggard = _ncoord("Zendure", soc=60)
+    laggard = _ncoord("Laggard", soc=60)
     ctrl = _setpoint_controller([leader, laggard], _charge_delay_unlocked=True)
     _mgr_for(ctrl).refresh_setpoint_blocks()
     assert ctrl.blocks.get("charge_delay_setpoint", set()) == set()

@@ -76,14 +76,6 @@ plugins:
             Your battery: Tu batería
             Choose a brand: Elegir marca
             Marstek: Marstek
-            ESPHome / LilyGo: ESPHome / LilyGo
-            Zendure: Zendure
-            Anker SOLIX: Anker SOLIX
-            Sessy: Sessy
-            Indevolt: Indevolt
-            Hoymiles MQTT: Hoymiles MQTT
-            Huawei: Huawei
-            Hoymiles MS-A2 setup: Instalación de Hoymiles MS-A2
             Time slots: Franjas horarias
             Large loads and EV chargers: Cargas grandes y cargadores VE
             Excluded devices: Dispositivos excluidos
@@ -122,7 +114,6 @@ plugins:
             Complete register table: Tabla completa de registros
             Contribute: Contribuir
             Architecture: Arquitectura
-            Battery driver requirements: Requisitos para drivers de batería
 
 extra:
   social:
@@ -170,14 +161,6 @@ nav:
       - Your battery:
           - Choose a brand: configuration/batteries/index.md
           - Marstek: configuration/batteries/marstek.md
-          - ESPHome / LilyGo: configuration/batteries/esphome-lilygo.md
-          - Zendure: configuration/batteries/zendure.md
-          - Anker SOLIX: configuration/batteries/anker.md
-          - Sessy: configuration/batteries/sessy.md
-          - Indevolt: configuration/batteries/indevolt.md
-          - Hoymiles MQTT: configuration/batteries/hoymiles.md
-          - Huawei: configuration/batteries/huawei.md
-          - Hoymiles MS-A2 setup: configuration/hoymiles-ms-a2.md
       - Time slots: configuration/time-slots.md
       - Large loads and EV chargers:
           - Excluded devices: configuration/excluded-devices.md
@@ -216,4 +199,3 @@ nav:
           - Complete register table: reference/registers.md
   - Contribute:
       - Architecture: reference/architecture.md
-      - Battery driver requirements: reference/driver-requirements-template.md

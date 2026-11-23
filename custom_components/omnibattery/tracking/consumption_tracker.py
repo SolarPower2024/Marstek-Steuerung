@@ -912,9 +912,7 @@ class ConsumptionTracker:
 
         Sums the configured external solar_production_sensor (e.g. an APS/ECU
         feed) and only battery PV sources marked independent by capabilities.
-        Venus vA/vD contributes its MPPT inputs; verified Anker E5000 Pro units
-        contribute their official aggregate PV value. AC-derived Anker readings
-        are deliberately excluded. Returns None only when no source has a
+        Venus vA/vD contributes its MPPT inputs. Returns None only when no source has a
         usable reading.
         """
         ctrl = self._controller

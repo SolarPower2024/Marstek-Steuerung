@@ -197,7 +197,7 @@ def _polling_coordinator(read_groups, read_telemetry):
 async def test_partial_read_of_a_shared_group_does_not_trust_stale_bypass(
     monkeypatch,
 ):
-    """ESPHome reads every key in one group and omits unavailable entities.
+    """A driver may read every key in one group and omit unavailable entities.
 
     The group is stamped as soon as one key is stored, so a per-group check
     would pair a fresh port load with the previous poll's Bypass.

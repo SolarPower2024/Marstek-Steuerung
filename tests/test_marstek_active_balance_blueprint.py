@@ -17,7 +17,6 @@ from custom_components.omnibattery.const.registers_v2 import SELECT_DEFINITIONS
 from custom_components.omnibattery.const.registers_v3 import SELECT_DEFINITIONS_V3
 from custom_components.omnibattery.const.registers_va import SELECT_DEFINITIONS_VA
 from custom_components.omnibattery.const.registers_vd import SELECT_DEFINITIONS_VD
-from custom_components.omnibattery.drivers.esphome import SELECT_DEFINITIONS as ESPHOME_SELECT_DEFINITIONS
 
 
 BLUEPRINT = Path(__file__).parents[1] / "blueprints" / "marstek_active_balance_blueprint.yaml"
@@ -80,7 +79,6 @@ def test_all_marstek_force_mode_selects_use_canonical_option_names():
         SELECT_DEFINITIONS_V3,
         SELECT_DEFINITIONS_VA,
         SELECT_DEFINITIONS_VD,
-        ESPHOME_SELECT_DEFINITIONS,
     ):
         assert _force_mode_options(definitions) == expected
 

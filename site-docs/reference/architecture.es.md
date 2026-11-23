@@ -22,12 +22,6 @@ flowchart TD
     DIST --> COORD[MarstekVenusDataUpdateCoordinator per battery]
     COORD --> DRIVER[BatteryDriver semantic contract]
     DRIVER --> M[MarstekModbusDriver]
-    DRIVER --> Z[ZendureLocalDriver]
-    DRIVER --> A[AnkerModbusDriver]
-    DRIVER --> E[EsphomeEntityDriver]
-    DRIVER --> S[SessyLocalDriver]
-    DRIVER --> Y[HoymilesMqttDriver]
-    DRIVER --> H[HuaweiSolarDriver]
 
     DRIVER -->|read_telemetry| COORD
     COORD --> ENT[Home Assistant entities]
@@ -98,16 +92,8 @@ El paquete exporta siete controladores concretos, y `MarstekVenusDataUpdateCoord
 | Archivo | Clase | Hardware y transporte |
 |---|---|---|
 | `drivers/marstek.py` | `MarstekModbusDriver` | Familias Marstek Venus mediante Modbus TCP o Modbus RTU. |
-| `drivers/zendure.py` | `ZendureLocalDriver` | Familias Zendure SolarFlow mediante la API HTTP local. |
-| `drivers/anker.py` | `AnkerModbusDriver` | Familias Anker SOLIX Solarbank mediante Modbus TCP. |
-| `drivers/esphome.py` | `EsphomeEntityDriver` | Hardware Marstek tras una pasarela LilyGo RS-485, mediante entidades ESPHome en Home Assistant. |
-| `drivers/sessy.py` | `SessyLocalDriver` | Sessy mediante su API HTTP local autenticada. |
-| `drivers/hoymiles.py` | `HoymilesMqttDriver` | Hoymiles MS-A2 mediante entidades MQTT de Home Assistant. |
-| `drivers/huawei.py` | `HuaweiSolarDriver` | Huawei SUN2000 con LUNA2000: telemetría Modbus nativa y escrituras de consigna mediante servicio o directas. |
 
 Cada controlador también posee sus listas de definiciones de plataforma: `sensor_definitions`, `number_definitions`, `select_definitions`, `switch_definitions`, `binary_sensor_definitions`, `button_definitions` y `all_definitions`. El coordinador expone estas listas a `sensor.py`, `number.py`, `select.py`, `switch.py`, `binary_sensor.py` y `button.py`. Así se evita que entidades no admitidas entren en el registro y se conservan los metadatos de hardware junto a su decodificador.
-
-Consulta [Añadir un controlador de batería](driver-requirements-template.md) para la lista de implementación y revisión.
 
 ## Flujo de coordinador y telemetría
 

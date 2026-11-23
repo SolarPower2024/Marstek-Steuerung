@@ -497,8 +497,8 @@ class MarstekVenusAggregateSensor(RestoreEntity, SensorEntity):
         card's Charge/Discharge blocks link to a value that matches what they show:
         ``-ac_power - ac_offgrid_power + DC PV`` (offgrid only in Backup Mode).
         DC PV is the sum of MPPT channels when available. An aggregate
-        ``solar_power`` value (Anker Solarbank 4) is never added: Anker's
-        ac_power is the negated pack power, which already includes PV (#738).
+        ``solar_power`` value is never added: where ac_power is the negated
+        pack power it already includes PV (#738).
         ac_power is preferred over the
         unreliable battery_power register; drivers without ac_power (no MPPT, so this
         sensor isn't created for them) fall back to their signed battery_power.
@@ -530,9 +530,9 @@ class MarstekVenusAggregateSensor(RestoreEntity, SensorEntity):
                     else []
                 )
                 # Only per-MPPT channels are added. An aggregate ``solar_power``
-                # (Anker Solarbank 4) is not: there ac_power is the negated
-                # pack power (register 10008), which already includes the PV
-                # charging the cells, so adding it double-counts PV (#738).
+                # is not: where ac_power is the negated pack power it already
+                # includes the PV charging the cells, so adding it
+                # double-counts PV (#738).
                 mppt = sum(mppt_values) if mppt_values else 0.0
                 # Off-grid/backup output only draws from the cells in Backup Mode
                 # (inverter_state == 4, grid down). With the grid present it's fed
@@ -578,7 +578,7 @@ class MarstekVenusAggregateSensor(RestoreEntity, SensorEntity):
                     total_stored += (soc / 100.0) * capacity
 
         if total_capacity <= 0:
-            # Drivers without a hardware capacity (Zendure, Sessy) leave
+            # Drivers without a hardware capacity leave
             # battery_total_energy absent until the user configures it, which
             # used to make the whole system SOC unknown. Plain mean instead.
             if not socs:
@@ -827,7 +827,7 @@ class MarstekVenusAggregateSensor(RestoreEntity, SensorEntity):
             # dropped mid-discharge would keep adding a phantom contribution while
             # the grid meter already shows its load — double-counting it here.
             if coordinator.is_available and coordinator.data:
-                # Registerless drivers (e.g. Zendure) expose no ac_power; fall
+                # Registerless drivers expose no ac_power; fall
                 # back to −battery_power so their discharge is not dropped from
                 # the home total (mirrors the charge/discharge aggregates).
                 ac = self._ac_convention_power(coordinator.data)

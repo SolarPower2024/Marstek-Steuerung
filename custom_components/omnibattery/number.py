@@ -104,10 +104,8 @@ async def async_setup_entry(
         # already enforces these in software; previously they were only changeable
         # through the options flow.
         #
-        # A driver may still back one of the two with a device setting (Indevolt:
-        # its reserve is the min SOC, there is no max-SOC setting). Its register
-        # number then owns that limit, with the same unique ID, so the software
-        # twin is skipped.
+        # A register number that already owns a limit (same unique ID) takes
+        # precedence, so the software twin is skipped.
         if not coordinator.capabilities.hardware_soc_cutoff:
             register_keys = {d["key"] for d in coordinator.number_definitions}
             if "charging_cutoff_capacity" not in register_keys:
@@ -118,21 +116,6 @@ async def async_setup_entry(
         if coordinator.enable_charge_hysteresis:
             entities.append(MarstekChargeHysteresisNumber(coordinator))
 
-        # Drivers without force_mode/set_*_power registers (Zendure) get
-        # software manual-power setpoints; the controller applies them via
-        # apply_setpoint while global manual mode or individual battery manual
-        # ownership is active.
-        if coordinator.needs_software_manual_control:
-            entities.append(MarstekManualSetPowerNumber(coordinator, "charge"))
-            entities.append(MarstekManualSetPowerNumber(coordinator, "discharge"))
-
-        # Drivers whose max_charge_power is not a writable register (Zendure
-        # chargeMaxLimit telemetry, Anker 10036 read-only sensor) get a software
-        # charge-power ceiling under the device/hardware cap.
-        if coordinator.needs_software_max_charge:
-            entities.append(MarstekSoftMaxChargeNumber(coordinator))
-        if coordinator.needs_software_max_discharge:
-            entities.append(MarstekSoftMaxDischargeNumber(coordinator))
 
     # Add config numbers (system-level, PD parameters). Conditional entities are
     # gated on their feature key being present (enabled OR disabled) — the panel
@@ -368,10 +351,7 @@ class MarstekVenusNumber(CoordinatorEntity, NumberEntity):
             _LOGGER.info("%s: Updated max_charge_power %dW → %dW (immediate sync)",
                          self.coordinator.name, old_value, int(value))
 
-        # Zendure exposes the user-facing discharge ceiling as
-        # ``inverse_max_power``; keep it on the same coordinator path as the
-        # canonical ``max_discharge_power`` key used by the control loop.
-        elif self.definition['key'] in ('max_discharge_power', 'inverse_max_power'):
+        elif self.definition['key'] == 'max_discharge_power':
             old_value = getattr(
                 self.coordinator,
                 "effective_max_discharge_power",
@@ -1097,228 +1077,6 @@ class MarstekBackupThresholdNumber(CoordinatorEntity, NumberEntity):
             "%s: backup_offgrid_threshold updated to %dW",
             self.coordinator.name, int(value),
         )
-        self.async_write_ha_state()
-
-    @property
-    def device_info(self):
-        """Return device information."""
-        return self.coordinator.battery_device_info
-
-
-class MarstekManualSetPowerNumber(CoordinatorEntity, NumberEntity):
-    """Manual charge/discharge power setpoint for drivers without force_mode /
-    set_*_power registers (Zendure).
-
-    Mirrors the UX of the Marstek set_charge_power/set_discharge_power register
-    entities, but writes only to coordinator state. While the global Manual Mode
-    switch or the individual battery manual switch is on, the controller asserts
-    this value via the driver's apply_setpoint each cycle (see
-    _apply_software_manual_setpoints).
-    """
-
-    def __init__(self, coordinator: MarstekVenusDataUpdateCoordinator, kind: str) -> None:
-        """Initialize. kind must be 'charge' or 'discharge'."""
-        super().__init__(coordinator)
-        self._kind = kind
-        self._attr_has_entity_name = True
-        self._attr_native_unit_of_measurement = "W"
-        self._attr_native_min_value = 0
-        self._attr_native_step = 10
-        self._attr_should_poll = False
-        if kind == "charge":
-            self._attr_translation_key = "set_charge_power"
-            self._attr_unique_id = f"{coordinator.device_key}_set_charge_power"
-            self._attr_icon = "mdi:battery-arrow-up-outline"
-            self._hardware_max = coordinator.capabilities.max_charge_power_w
-            self._attr_native_max_value = self._hardware_max
-        else:
-            self._attr_translation_key = "set_discharge_power"
-            self._attr_unique_id = f"{coordinator.device_key}_set_discharge_power"
-            self._attr_icon = "mdi:battery-arrow-down-outline"
-            self._hardware_max = coordinator.capabilities.max_discharge_power_w
-            self._attr_native_max_value = self._hardware_max
-        self.entity_id = english_entity_id("number", coordinator.name, self._attr_translation_key)
-
-    @property
-    def native_max_value(self):
-        """Keep software manual controls below the live configured ceiling."""
-        hardware_max = getattr(
-            self,
-            "_hardware_max",
-            self.coordinator.capabilities.max_charge_power_w
-            if self._kind == "charge"
-            else self.coordinator.capabilities.max_discharge_power_w,
-        )
-        return _effective_setpoint_max(self.coordinator, self._kind, hardware_max)
-
-    @property
-    def native_value(self) -> float:
-        """Return the live commanded power (mirrors the active setpoint, like the
-        Marstek register entity)."""
-        if self._kind == "charge":
-            value = self.coordinator.commanded_charge_power
-        else:
-            value = self.coordinator.commanded_discharge_power
-        return min(float(value), float(self.native_max_value))
-
-    async def async_set_native_value(self, value: float) -> None:
-        """Store the manual target (used in manual mode) and reflect it now.
-
-        The optimistic commanded update avoids the slider snapping back to the
-        old value before the next control cycle re-asserts it.
-        """
-        new_value = max(0, min(int(value), int(self.native_max_value)))
-        if self._kind == "charge":
-            self.coordinator.manual_set_charge_power = new_value
-            self.coordinator.persist_battery_config("manual_set_charge_power", new_value)
-            if new_value > 0:
-                self.coordinator.commanded_charge_power = new_value
-                self.coordinator.commanded_discharge_power = 0
-                self.coordinator.manual_set_discharge_power = 0
-                self.coordinator.manual_force_mode = "Charge"
-                self.coordinator.persist_battery_config("manual_set_discharge_power", 0)
-                self.coordinator.persist_battery_config("manual_force_mode", "Charge")
-        else:
-            self.coordinator.manual_set_discharge_power = new_value
-            self.coordinator.persist_battery_config("manual_set_discharge_power", new_value)
-            if new_value > 0:
-                self.coordinator.commanded_discharge_power = new_value
-                self.coordinator.commanded_charge_power = 0
-                self.coordinator.manual_set_charge_power = 0
-                self.coordinator.manual_force_mode = "Discharge"
-                self.coordinator.persist_battery_config("manual_set_charge_power", 0)
-                self.coordinator.persist_battery_config("manual_force_mode", "Discharge")
-        _LOGGER.info("%s: manual_set_%s_power → %dW", self.coordinator.name, self._kind, new_value)
-        self.async_write_ha_state()
-
-    @property
-    def device_info(self):
-        """Return device information."""
-        return self.coordinator.battery_device_info
-
-
-class MarstekSoftMaxChargeNumber(CoordinatorEntity, NumberEntity):
-    """Software charge-power ceiling when max_charge_power is not writable
-    (Zendure chargeMaxLimit telemetry, Anker input 10036 sensor).
-
-    Stores a user limit on the coordinator; the poll loop applies
-    min(device_cap, user limit) to coordinator.max_charge_power, which the PD
-    allocator honours. Uses the same translation_key as the Marstek writable
-    register entity so the dashboard renders it as "Máx. carga".
-    """
-
-    def __init__(self, coordinator: MarstekVenusDataUpdateCoordinator) -> None:
-        """Initialize the soft max-charge entity."""
-        super().__init__(coordinator)
-        self._attr_has_entity_name = True
-        self._attr_translation_key = "max_charge_power"
-        self._attr_unique_id = f"{coordinator.device_key}_max_charge_power"
-        self.entity_id = english_entity_id("number", coordinator.name, "max_charge_power")
-        self._attr_icon = "mdi:battery-arrow-up-outline"
-        self._attr_native_unit_of_measurement = "W"
-        self._attr_native_min_value = 0
-        self._attr_native_step = 10
-        self._attr_should_poll = False
-
-    @property
-    def native_max_value(self) -> float:
-        """Follow the ceiling the device currently reports.
-
-        A property, not a frozen attribute: the device cap moves when the user
-        raises the limit in the vendor app, and the poll adopts it
-        (``_sync_device_reported_limits``). Freezing it in __init__ meant the
-        slider only caught up on a reload (issue #449).
-        """
-        return float(getattr(
-            self.coordinator,
-            "device_max_charge_power",
-            self.coordinator.capabilities.max_charge_power_w,
-        ))
-
-    @property
-    def native_value(self) -> float:
-        """Return the user-set charge ceiling."""
-        return float(self.coordinator.user_max_charge_power)
-
-    async def async_set_native_value(self, value: float) -> None:
-        """Store the ceiling, persist it, and apply it against the device cap now."""
-        new_value = int(value)
-        self.coordinator.user_max_charge_power = new_value
-        self.coordinator.persist_battery_config("user_max_charge_power", new_value)
-        # Reflect immediately without waiting for the next poll.
-        device_cap = None
-        if self.coordinator.data is not None:
-            device_cap = self.coordinator.data.get("max_charge_power")
-        if device_cap is not None and hasattr(self.coordinator, "device_max_charge_power"):
-            self.coordinator.device_max_charge_power = int(device_cap)
-        effective = getattr(self.coordinator, "effective_max_charge_power", None)
-        if effective is None:
-            effective = min(int(device_cap), new_value) if device_cap is not None else new_value
-        if not hasattr(self.coordinator, "_configured_max_charge_power"):
-            self.coordinator.max_charge_power = int(effective)
-        _LOGGER.info("%s: user_max_charge_power → %dW", self.coordinator.name, new_value)
-        self.async_write_ha_state()
-
-    @property
-    def device_info(self):
-        """Return device information."""
-        return self.coordinator.battery_device_info
-
-
-class MarstekSoftMaxDischargeNumber(CoordinatorEntity, NumberEntity):
-    """Software discharge-power ceiling when max_discharge_power has no writable
-    register (Anker input 10038 sensor, or other telemetry-only drivers).
-    """
-
-    def __init__(self, coordinator: MarstekVenusDataUpdateCoordinator) -> None:
-        """Initialize the soft max-discharge entity."""
-        super().__init__(coordinator)
-        self._attr_has_entity_name = True
-        self._attr_translation_key = "max_discharge_power"
-        self._attr_unique_id = f"{coordinator.device_key}_max_discharge_power"
-        self.entity_id = english_entity_id("number", coordinator.name, "max_discharge_power")
-        self._attr_icon = "mdi:battery-arrow-down-outline"
-        self._attr_native_unit_of_measurement = "W"
-        self._attr_native_min_value = 0
-        self._attr_native_step = 10
-        self._attr_should_poll = False
-
-    @property
-    def native_max_value(self) -> float:
-        """Follow the ceiling the device currently reports.
-
-        A property, not a frozen attribute: the device cap moves when the user
-        raises the limit in the vendor app, and the poll adopts it
-        (``_sync_device_reported_limits``). Freezing it in __init__ meant the
-        slider only caught up on a reload (issue #449).
-        """
-        return float(getattr(
-            self.coordinator,
-            "device_max_discharge_power",
-            self.coordinator.capabilities.max_discharge_power_w,
-        ))
-
-    @property
-    def native_value(self) -> float:
-        """Return the user-set discharge ceiling."""
-        return float(self.coordinator.user_max_discharge_power)
-
-    async def async_set_native_value(self, value: float) -> None:
-        """Store the ceiling, persist it, and apply it against the device cap now."""
-        new_value = int(value)
-        self.coordinator.user_max_discharge_power = new_value
-        self.coordinator.persist_battery_config("user_max_discharge_power", new_value)
-        device_cap = None
-        if self.coordinator.data is not None:
-            device_cap = self.coordinator.data.get("max_discharge_power")
-        if device_cap is not None and hasattr(self.coordinator, "device_max_discharge_power"):
-            self.coordinator.device_max_discharge_power = int(device_cap)
-        effective = getattr(self.coordinator, "effective_max_discharge_power", None)
-        if effective is None:
-            effective = min(int(device_cap), new_value) if device_cap is not None else new_value
-        if not hasattr(self.coordinator, "_configured_max_discharge_power"):
-            self.coordinator.max_discharge_power = int(effective)
-        _LOGGER.info("%s: user_max_discharge_power → %dW", self.coordinator.name, new_value)
         self.async_write_ha_state()
 
     @property

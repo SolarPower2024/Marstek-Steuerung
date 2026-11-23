@@ -86,7 +86,7 @@ def test_single_battery_matches_legacy_range():
 
 
 def test_bounds_are_asymmetric():
-    """Brands with unequal ceilings (Sessy 2200/1700) bound each direction on its own."""
+    """Batteries with unequal ceilings (2200/1700) bound each direction on its own."""
     assert _bounds({"batteries": [_bat(2200, 1700)] * 2}) == (-3400, 4400)
 
 

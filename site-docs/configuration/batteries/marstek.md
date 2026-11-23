@@ -1,6 +1,6 @@
 # Marstek Venus
 
-Use this connection for a Marstek Venus battery reached directly over Ethernet, through a Modbus gateway, or through a USB-to-RS-485 adapter. A LilyGo bridge uses its own option in the wizard.
+Use this connection for a Marstek Venus battery reached directly over Ethernet, through a Modbus gateway, or through a USB-to-RS-485 adapter.
 
 ## Do I need it?
 
@@ -11,7 +11,7 @@ Use this connection for a Marstek Venus battery reached directly over Ethernet, 
 | Venus A | **A** | 1,500 W |
 | Venus D | **D** | 2,200 W before EMS firmware 149, or when firmware is unknown; 2,500 W from firmware 149 |
 
-**Use this page if** one of these wizard choices matches your battery and you can reach it through Modbus TCP or Modbus RTU. **Use the [ESPHome / LilyGo route](esphome-lilygo.md) instead** when a supported ESPHome bridge already exposes the battery in Home Assistant.
+**Use this page if** one of these wizard choices matches your battery and you can reach it through Modbus TCP or Modbus RTU.
 
 ## Before you start
 
@@ -46,7 +46,6 @@ Venus E v2 can use hardware SOC cutoffs. Omnibattery enforces the configured SOC
 | Values are implausible or unavailable | The selected Venus version uses a different register map | Reconfigure the battery with the exact model version |
 | Venus E discharge never exceeds about 800 W although **Max Discharge Power** is higher | On versions older than v1.3.0, a value between 800 and 2,500 W was written straight into the 800/2,500 W selector (see the note below). On v1.3.0 or newer, a possible cause is the Marstek app's maximum output power set to `800 W` (often the default where plug-in batteries are limited to 800 W): it has been reported to take precedence over the register Omnibattery writes | Update Omnibattery first. If it persists, check the output power selector in the Marstek app, again after a battery reset. If 800 W is your legal limit, keep it and set **Max Discharge Power** to `800 W` so the controller and the forecasts plan with the real limit |
 | Venus D is limited to 2,200 W | EMS firmware is older than 149 or its version could not be read | Check the EMS firmware before expecting the higher limit |
-| A LilyGo-connected battery is missing | The direct Marstek route was selected | Return to the brand step and select **Marstek via LilyGo RS485 (ESPHome)** |
 | Charging slows near full | The optional full-charge taper is active | Check **100% Charge Voltage Taper** and the cell-voltage sensors |
 
 ??? "Advanced details"

@@ -99,7 +99,7 @@ def _reference():
     """The reference installation mid-afternoon: hybrid full, AC battery half."""
     return [
         _battery("Marstek", capacity=15.36, soc=52, limit_w=2500),
-        _battery("Huawei", capacity=13.8, soc=100, limit_w=7000, dc_coupled=True),
+        _battery("Hybrid", capacity=13.8, soc=100, limit_w=7000, dc_coupled=True),
     ]
 
 
@@ -119,7 +119,7 @@ def test_hours_to_full_is_energy_over_power_not_state_of_charge():
     """The 7 kW inverter at 40 % is quicker than the 2.5 kW battery at 60 %."""
     controller = _controller([])
     slow = _battery("Marstek", capacity=15.36, soc=60, limit_w=2500)
-    fast = _battery("Huawei", capacity=13.8, soc=40, limit_w=7000, dc_coupled=True)
+    fast = _battery("Hybrid", capacity=13.8, soc=40, limit_w=7000, dc_coupled=True)
     assert time_to_full_h(controller, slow) == pytest.approx(2.458, abs=0.01)
     assert time_to_full_h(controller, fast) == pytest.approx(1.183, abs=0.01)
     # Lower state of charge, yet done sooner -- which is the whole point.
@@ -138,10 +138,10 @@ def test_with_sun_to_spare_the_slow_battery_goes_first(monkeypatch):
     _at(monkeypatch, 8)
     batteries = [
         _battery("Marstek", capacity=15.36, soc=20, limit_w=2500),
-        _battery("Huawei", capacity=13.8, soc=20, limit_w=7000, dc_coupled=True),
+        _battery("Hybrid", capacity=13.8, soc=20, limit_w=7000, dc_coupled=True),
     ]
     controller = _controller(batteries, forecast=60.0, hours_ahead=24.0)
-    assert [c.name for c in charge_order(controller, batteries)] == ["Marstek", "Huawei"]
+    assert [c.name for c in charge_order(controller, batteries)] == ["Marstek", "Hybrid"]
 
 
 def test_on_a_thin_day_the_efficient_battery_goes_first(monkeypatch):
@@ -149,10 +149,10 @@ def test_on_a_thin_day_the_efficient_battery_goes_first(monkeypatch):
     _at(monkeypatch, 8)
     batteries = [
         _battery("Marstek", capacity=15.36, soc=20, limit_w=2500),
-        _battery("Huawei", capacity=13.8, soc=20, limit_w=7000, dc_coupled=True),
+        _battery("Hybrid", capacity=13.8, soc=20, limit_w=7000, dc_coupled=True),
     ]
     controller = _controller(batteries, forecast=5.0, hours_ahead=0.0)
-    assert [c.name for c in charge_order(controller, batteries)] == ["Huawei", "Marstek"]
+    assert [c.name for c in charge_order(controller, batteries)] == ["Hybrid", "Marstek"]
 
 
 def test_a_nominated_battery_overrides_both_rules(monkeypatch):
@@ -167,7 +167,7 @@ def test_a_wandering_forecast_does_not_reshuffle_the_order(monkeypatch):
     _at(monkeypatch, 8)
     batteries = [
         _battery("Marstek", capacity=10.0, soc=0, limit_w=2500),
-        _battery("Huawei", capacity=10.0, soc=0, limit_w=7000, dc_coupled=True),
+        _battery("Hybrid", capacity=10.0, soc=0, limit_w=7000, dc_coupled=True),
     ]
     controller = _controller(batteries, forecast=31.0, hours_ahead=24.0)
 
@@ -207,7 +207,7 @@ def test_a_day_is_scarce_only_while_the_surplus_fits_the_dc_battery(monkeypatch)
     _at(monkeypatch, 8)
     batteries = [
         _battery("Marstek", capacity=15.36, soc=12, limit_w=2500),
-        _battery("Huawei", capacity=13.8, soc=89, limit_w=7000, dc_coupled=True),
+        _battery("Hybrid", capacity=13.8, soc=89, limit_w=7000, dc_coupled=True),
     ]
     controller = _controller(batteries, forecast=10.0, avg_consumption=12.0,
                              hours_ahead=0.0)
@@ -216,7 +216,7 @@ def test_a_day_is_scarce_only_while_the_surplus_fits_the_dc_battery(monkeypatch)
 
 
 def test_the_reference_installation_stops_calling_every_day_scarce(monkeypatch):
-    """Huawei at 89 %, Marstek at 12 %, 10 kWh of sun still ahead.
+    """Hybrid at 89 %, Marstek at 12 %, 10 kWh of sun still ahead.
 
     The live case: measured against the fleet's 15 kWh of room this came out
     scarce, the hybrid went first and the Marstek took 0.02 kWh in a day.
@@ -225,7 +225,7 @@ def test_the_reference_installation_stops_calling_every_day_scarce(monkeypatch):
     _at(monkeypatch, 8)
     batteries = [
         _battery("Marstek", capacity=15.36, soc=12, limit_w=2500),
-        _battery("Huawei", capacity=13.8, soc=89, limit_w=7000, dc_coupled=True),
+        _battery("Hybrid", capacity=13.8, soc=89, limit_w=7000, dc_coupled=True),
     ]
     controller = _controller(batteries, forecast=10.0, avg_consumption=12.0,
                              hours_ahead=0.0)
@@ -240,13 +240,13 @@ def test_a_genuinely_thin_day_still_fills_the_hybrid_first(monkeypatch):
     _at(monkeypatch, 8)
     batteries = [
         _battery("Marstek", capacity=15.36, soc=12, limit_w=2500),
-        _battery("Huawei", capacity=13.8, soc=30, limit_w=7000, dc_coupled=True),
+        _battery("Hybrid", capacity=13.8, soc=30, limit_w=7000, dc_coupled=True),
     ]
     # 4 kWh ahead against 9.7 kWh of room in the hybrid.
     controller = _controller(batteries, forecast=4.0, avg_consumption=12.0,
                              hours_ahead=0.0)
     assert scarce_solar_day(controller) is True
-    assert charge_order(controller, batteries)[0].name == "Huawei"
+    assert charge_order(controller, batteries)[0].name == "Hybrid"
 
 
 def test_an_empty_ac_battery_cannot_make_the_day_scarce_by_itself(monkeypatch):
@@ -254,7 +254,7 @@ def test_an_empty_ac_battery_cannot_make_the_day_scarce_by_itself(monkeypatch):
     most of what made the day look scarce, so the emptier it got the more
     certain it was to be skipped again."""
     _at(monkeypatch, 8)
-    full_hybrid = _battery("Huawei", capacity=13.8, soc=98, limit_w=7000,
+    full_hybrid = _battery("Hybrid", capacity=13.8, soc=98, limit_w=7000,
                            dc_coupled=True)
     for soc in (50, 20, 5):
         batteries = [_battery("Marstek", capacity=15.36, soc=soc, limit_w=2500),
@@ -271,14 +271,14 @@ def test_the_hybrid_hands_over_as_it_fills(monkeypatch):
     for soc in (10, 50, 95):
         batteries = [
             _battery("Marstek", capacity=15.36, soc=12, limit_w=2500),
-            _battery("Huawei", capacity=13.8, soc=soc, limit_w=7000, dc_coupled=True),
+            _battery("Hybrid", capacity=13.8, soc=soc, limit_w=7000, dc_coupled=True),
         ]
         # 4 kWh still to come: it fits the hybrid's room at 10 % and at 50 %,
         # but not the 0.7 kWh it has left at 95 %.
         controller = _controller(batteries, forecast=4.0, avg_consumption=12.0,
                                  hours_ahead=0.0)
         seen.append(charge_order(controller, batteries)[0].name)
-    assert seen == ["Huawei", "Huawei", "Marstek"]
+    assert seen == ["Hybrid", "Hybrid", "Marstek"]
 
 
 def test_without_a_dc_battery_the_day_is_never_scarce(monkeypatch):
@@ -310,7 +310,7 @@ def _outlook(monkeypatch, hour=8, **kwargs):
     _at(monkeypatch, hour)
     batteries = [
         _battery("Marstek", capacity=10.0, soc=0, limit_w=2500),
-        _battery("Huawei", capacity=10.0, soc=0, limit_w=7000, dc_coupled=True),
+        _battery("Hybrid", capacity=10.0, soc=0, limit_w=7000, dc_coupled=True),
     ]
     return charge_outlook_kwh(_controller(batteries, **kwargs))
 
@@ -378,7 +378,7 @@ def test_an_unreadable_forecast_yields_no_opinion(monkeypatch):
 def test_a_remaining_forecast_sensor_is_taken_as_it_stands(monkeypatch):
     """It already answers the question, so it passes through untouched."""
     _at(monkeypatch, 14)
-    batteries = [_battery("Huawei", capacity=10.0, soc=0, limit_w=7000, dc_coupled=True)]
+    batteries = [_battery("Hybrid", capacity=10.0, soc=0, limit_w=7000, dc_coupled=True)]
     controller = _controller(batteries, forecast=8.0, avg_consumption=12.0,
                              hours_ahead=0.0)
     controller.solar_forecast_remaining_sensor = "sensor.remaining"
@@ -391,7 +391,7 @@ def test_a_remaining_forecast_sensor_is_taken_as_it_stands(monkeypatch):
 
 def test_a_remaining_sensor_in_watt_hours_is_converted_too(monkeypatch):
     _at(monkeypatch, 14)
-    batteries = [_battery("Huawei", capacity=10.0, soc=0, limit_w=7000, dc_coupled=True)]
+    batteries = [_battery("Hybrid", capacity=10.0, soc=0, limit_w=7000, dc_coupled=True)]
     controller = _controller(batteries, forecast=8.0, avg_consumption=12.0,
                              hours_ahead=0.0)
     controller.solar_forecast_remaining_sensor = "sensor.remaining"
@@ -405,7 +405,7 @@ def test_a_legacy_whole_day_forecast_is_converted_to_what_is_left(monkeypatch):
     """The legacy path, which is what most installations still have. Half way
     through an 08:00-20:00 window, half the day's figure counts as produced."""
     _at(monkeypatch, 14)
-    batteries = [_battery("Huawei", capacity=10.0, soc=0, limit_w=7000, dc_coupled=True)]
+    batteries = [_battery("Hybrid", capacity=10.0, soc=0, limit_w=7000, dc_coupled=True)]
     controller = _controller(batteries, forecast=23.0, avg_consumption=12.0,
                              hours_ahead=0.0)
     assert charge_outlook_kwh(controller)[0] == pytest.approx(11.5, abs=0.05)
@@ -415,7 +415,7 @@ def test_one_clock_drives_both_halves(monkeypatch):
     """The reader keeps its own ``now``; passed one explicitly, pinning the clock
     moves the solar side and the consumption side together."""
     _at(monkeypatch, 8)
-    batteries = [_battery("Huawei", capacity=10.0, soc=0, limit_w=7000, dc_coupled=True)]
+    batteries = [_battery("Hybrid", capacity=10.0, soc=0, limit_w=7000, dc_coupled=True)]
     controller = _controller(batteries, forecast=24.0, avg_consumption=24.0,
                              t_end=20.0, window_per_day=24.0)
     # 08:00: the whole 24 kWh of sun ahead, 12 of the 24 hours of consumption.
@@ -455,11 +455,11 @@ def test_the_split_follows_the_room_left_not_the_power_rating():
     """
     batteries = [
         _battery("Marstek", capacity=15.36, soc=20, limit_w=2500),
-        _battery("Huawei", capacity=13.8, soc=90, limit_w=7000, dc_coupled=True),
+        _battery("Hybrid", capacity=13.8, soc=90, limit_w=7000, dc_coupled=True),
     ]
     split = _split(batteries, 4000)
     assert split["Marstek"] == 2500
-    assert split["Huawei"] == 1500
+    assert split["Hybrid"] == 1500
 
 
 def test_two_alike_batteries_still_share_evenly():
@@ -474,25 +474,25 @@ def test_batteries_are_aimed_at_finishing_together():
     """Shares proportional to the room left means one finish time, not two."""
     batteries = [
         _battery("Marstek", capacity=15.36, soc=67.4, limit_w=2500),   # 5.0 kWh left
-        _battery("Huawei", capacity=13.8, soc=0, limit_w=7000, dc_coupled=True),
+        _battery("Hybrid", capacity=13.8, soc=0, limit_w=7000, dc_coupled=True),
     ]
     split = _split(batteries, 4000)
     hours = {
         "Marstek": 5.0 / (split["Marstek"] / 1000),
-        "Huawei": 13.8 / (split["Huawei"] / 1000),
+        "Hybrid": 13.8 / (split["Hybrid"] / 1000),
     }
-    assert hours["Marstek"] == pytest.approx(hours["Huawei"], rel=0.02)
+    assert hours["Marstek"] == pytest.approx(hours["Hybrid"], rel=0.02)
 
 
 def test_a_full_battery_is_passed_over():
-    assert _split(_reference(), 2000) == {"Marstek": 2000, "Huawei": 0}
+    assert _split(_reference(), 2000) == {"Marstek": 2000, "Hybrid": 0}
 
 
 def test_nothing_is_left_on_the_table():
     """Surplus stops flowing only once every battery is at its limit."""
     batteries = [
         _battery("Marstek", capacity=15.36, soc=0, limit_w=2500),
-        _battery("Huawei", capacity=13.8, soc=0, limit_w=7000, dc_coupled=True),
+        _battery("Hybrid", capacity=13.8, soc=0, limit_w=7000, dc_coupled=True),
     ]
     assert sum(_split(batteries, 6000).values()) == 6000
 
@@ -520,12 +520,12 @@ def test_discharge_still_shares_by_power():
     """Only charging changed; discharge is a question of who can deliver now."""
     batteries = [
         _battery("Marstek", capacity=15.36, soc=50, limit_w=2500),
-        _battery("Huawei", capacity=13.8, soc=50, limit_w=7000, dc_coupled=True),
+        _battery("Hybrid", capacity=13.8, soc=50, limit_w=7000, dc_coupled=True),
     ]
     allocation = _distributor(batteries)._distribute_power_by_limits(
         4750, batteries, is_charging=False
     )
-    assert {c.name: allocation[c] for c in batteries} == {"Marstek": 1250, "Huawei": 3500}
+    assert {c.name: allocation[c] for c in batteries} == {"Marstek": 1250, "Hybrid": 3500}
 
 
 def test_the_head_battery_reaches_its_own_rating():
@@ -535,7 +535,7 @@ def test_the_head_battery_reaches_its_own_rating():
     2418 -- its share of its own rating -- while 6.8 kW of surplus went past."""
     batteries = [
         _battery("Marstek", capacity=15.36, soc=21, limit_w=2500),
-        _battery("Huawei", capacity=13.8, soc=97, limit_w=7000, dc_coupled=True),
+        _battery("Hybrid", capacity=13.8, soc=97, limit_w=7000, dc_coupled=True),
     ]
     assert _split(batteries, 2500)["Marstek"] == 2420    # the old, capped figure
     assert _split(batteries, 6828)["Marstek"] == 2500    # the whole surplus
@@ -565,24 +565,24 @@ def test_the_selector_brings_batteries_in_by_hours_not_by_state_of_charge(monkey
     _at(monkeypatch, 8)
     batteries = [
         _battery("Marstek", capacity=15.36, soc=30, limit_w=2500),   # 4.3 h
-        _battery("Huawei", capacity=13.8, soc=10, limit_w=7000, dc_coupled=True),  # 1.8 h
+        _battery("Hybrid", capacity=13.8, soc=10, limit_w=7000, dc_coupled=True),  # 1.8 h
     ]
     assert _ladder(batteries, is_charging=True, forecast=60.0, hours_ahead=0.0) == [
-        "Marstek", "Huawei",
+        "Marstek", "Hybrid",
     ]
 
 
 def test_discharge_normally_starts_with_the_fullest():
     batteries = [
-        _battery("Huawei", capacity=13.8, soc=40, limit_w=7000, dc_coupled=True),
+        _battery("Hybrid", capacity=13.8, soc=40, limit_w=7000, dc_coupled=True),
         _battery("Marstek", capacity=15.36, soc=55, limit_w=2500),
     ]
-    assert _ladder(batteries) == ["Marstek", "Huawei"]
+    assert _ladder(batteries) == ["Marstek", "Hybrid"]
 
 
 def test_a_nominated_primary_goes_first_even_when_emptier():
     batteries = [
-        _battery("Huawei", capacity=13.8, soc=90, limit_w=7000, dc_coupled=True),
+        _battery("Hybrid", capacity=13.8, soc=90, limit_w=7000, dc_coupled=True),
         _battery("Marstek", capacity=15.36, soc=20, limit_w=2500),
     ]
-    assert _ladder(batteries, primary="Marstek") == ["Marstek", "Huawei"]
+    assert _ladder(batteries, primary="Marstek") == ["Marstek", "Hybrid"]

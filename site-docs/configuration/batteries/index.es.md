@@ -2,29 +2,18 @@
 
 Elige la vía que coincida con tu batería y con cómo está conectada a Home Assistant. Omnibattery puede coordinar hasta diez baterías compatibles, incluidas instalaciones con varias marcas.
 
-## Elige una marca de batería
+## Baterías compatibles
 
 | Lo que tienes | Lo que necesitas | Selecciona en el asistente | Guía de configuración |
 |---|---|---|---|
 | Marstek Venus conectada directamente o mediante una pasarela Modbus | Una conexión Ethernet, RS-485 o USB accesible | **Marstek Venus** | [Marstek](marstek.md) |
-| Marstek Venus conectada mediante un puente LilyGo | El firmware ESPHome compatible y su dispositivo en Home Assistant | **Marstek via LilyGo RS485 (ESPHome)** | [ESPHome / LilyGo](esphome-lilygo.md) |
-| Zendure SolarFlow 800, 800 Plus, 800 Pro, 1600 AC+, 2400 AC Pro/+, 3000 Mix AC+, 4000 Mix AC+ o 4000 Mix Pro | La dirección IP local del dispositivo y HEMS desactivado | **Zendure SolarFlow** | [Zendure](zendure.md) |
-| Anker SOLIX Solarbank Max AC, 4 E5000 Pro o XE AC | Modbus TCP y Third-Party Control activados | **Anker SOLIX Solarbank Max AC / 4 E5000 Pro** (también detecta XE AC) | [Anker SOLIX](anker.md) |
-| Sessy Home Battery | Un dongle Sessy accesible y sus credenciales | **Sessy** | [Sessy](sessy.md) |
-| Indevolt SolidFlex o PowerFlex | La API local activada y el modo Tiempo real elegido en la app de Indevolt | **Indevolt SolidFlex / PowerFlex** | [Indevolt](indevolt.md) |
-| Hoymiles MS-A2 o HiBattery compatible | MQTT configurado en Home Assistant y el ID completo del dispositivo | **Hoymiles MQTT** | [Hoymiles MQTT](hoymiles.md) |
-| Huawei SUN2000 con LUNA2000 | Un extremo Modbus TCP y Huawei Solar o escrituras Modbus directas | **Huawei SUN2000 + LUNA2000** | [Huawei](huawei.md) |
-
-![Selector de marca de batería](../../assets/screenshots/configuration/battery-brand-form.png){ width="650" style="display: block; margin: 0 auto;" }
-
-La opción LilyGo es una vía de conexión independiente para una batería Marstek. Elígela solo cuando ESPHome ya exponga el puente como dispositivo en Home Assistant.
 
 ## Añade cada batería
 
 1. Abre **Ajustes → Dispositivos y servicios → Añadir integración** y selecciona **Omnibattery**. En una instalación existente, abre Omnibattery y elige **Configurar**.
 2. Elige el número de unidades de batería de la instalación.
-3. Selecciona la marca o vía de conexión de la primera batería.
-4. Sigue su guía de configuración y repite los pasos de marca y conexión para cada unidad restante.
+3. Introduce los datos de conexión de la primera batería.
+4. Sigue la [guía de Marstek](marstek.md) y repite el paso de conexión para cada unidad restante.
 5. Completa los límites comunes de potencia y estado de carga.
 
 ![Deslizador de número de baterías](../../assets/screenshots/configuration/battery-slider.png){ width="650" style="display: block; margin: 0 auto;" }
@@ -40,7 +29,6 @@ La opción LilyGo es una vía de conexión independiente para una batería Marst
 | **Max SOC** / **Min SOC** | Establece el límite superior de carga y el límite inferior de descarga. SOC significa estado de carga. |
 | **Charge hysteresis** | Evita ciclos rápidos tras llegar la batería a su límite superior. El mínimo es del 2%; consulta la [histéresis de carga](#histeresis-de-carga). |
 | **Backup Offgrid Threshold** | Mantiene una batería fuera del control automático mientras su salida de respaldo alimenta una carga por encima de este valor. |
-| **Nominal capacity** | Activa los cálculos de energía almacenada y eficiencia cuando la batería no comunica su capacidad. |
 
 La integración crea controles en tiempo de ejecución para los límites de estado de carga y potencia, así que puedes ajustarlos sin volver a ejecutar el asistente de configuración. **Battery Manual Control** reserva una batería para tus propias órdenes de carga, descarga o reposo; consulta el [control manual en una instalación con varias baterías](../../features/multi-battery.md#control-manual-por-bateria).
 
@@ -51,7 +39,6 @@ Cuando una batería llega a su límite superior, Omnibattery anota el SOC de ese
 El mínimo del 2% es deliberado y no se puede reducir. Cerca del tope, el SOC que comunica la batería oscila y suele cambiar a saltos de un punto entero. Con un margen menor, ese ruido bastaría para reanudar la carga una y otra vez en el límite superior. Cada reanudación activa y desactiva el relé de la batería; evitar esos ciclos continuos reduce su desgaste y preserva la vida útil de la batería.
 
 !!! note "Autoconsumo en el tope"
-    Algunas baterías, como algunos modelos de Anker, consumen un poco de su propia energía en reposo. Una vez llenas, su SOC puede bajar poco a poco del 90% al 88% sin descargar hacia la vivienda. Es lo esperado: la batería sigue dentro de la banda de histéresis y Omnibattery no la recarga. Si quieres que termine el día más alta, sube el **SOC máximo** en lugar de intentar quitar la histéresis.
 
 ## Si la vía de batería no está clara
 

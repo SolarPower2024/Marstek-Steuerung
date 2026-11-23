@@ -65,10 +65,9 @@ def _defaults(form) -> dict:
 
 
 async def _walk_to_limits_form(flow):
-    """Submit battery_count, battery_brand and battery_connection as they open."""
+    """Submit battery_count and battery_connection as they open."""
     form = await flow.async_step_battery_count()
     form = await flow.async_step_battery_count(_defaults(form))
-    form = await flow.async_step_battery_brand(_defaults(form))
     return await flow.async_step_battery_connection(_defaults(form))
 
 

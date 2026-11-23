@@ -74,7 +74,7 @@ def test_health_snapshot_serialises_ladder_fields():
 
 def test_health_snapshot_not_suspended_when_no_reset_time():
     fake = SimpleNamespace(
-        name="B", brand="zendure", battery_version="v2",
+        name="B", brand="marstek", battery_version="v2",
         _is_connected=False, is_available=False, _is_shutting_down=False,
         _consecutive_failures=0, _max_failures_before_reconnect=3,
         _max_failures_before_suspend=5, _suspension_reset_time=None,
@@ -109,7 +109,7 @@ async def test_diagnostics_dump_structure_and_redaction():
         version=9,
         data={
             "host": "192.168.1.50",
-            "username": "SESSY1234",
+            "username": "USER1234",
             "password": "secret",
             "consumption_sensor": "sensor.grid",
             "solar_forecast_sensor": "sensor.solcast",
@@ -117,7 +117,7 @@ async def test_diagnostics_dump_structure_and_redaction():
             "phase_1_current_sensor": "sensor.phase_1",
             "phase_2_current_sensor": "sensor.phase_2",
             "phase_3_current_sensor": "sensor.phase_3",
-            "brand": "sessy",
+            "brand": "marstek",
         },
         options={},
     )
@@ -136,7 +136,7 @@ async def test_diagnostics_dump_structure_and_redaction():
     assert result["entry"]["data"]["phase_1_current_sensor"] == "sensor.phase_1"
     assert result["entry"]["data"]["phase_2_current_sensor"] == "sensor.phase_2"
     assert result["entry"]["data"]["phase_3_current_sensor"] == "sensor.phase_3"
-    assert result["entry"]["data"]["brand"] == "sessy"  # non-sensitive kept
+    assert result["entry"]["data"]["brand"] == "marstek"  # non-sensitive kept
 
     battery = result["batteries"][0]
     assert battery["health"]["name"] == "Battery 1"

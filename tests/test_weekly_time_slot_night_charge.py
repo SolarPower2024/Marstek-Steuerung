@@ -1,6 +1,6 @@
 """Weekly full charge in Time Slot mode stopped at ~80% overnight (2026-11-09).
 
-Field case: Venus 5.12 kWh at 13% + Zendure 5.28 kWh at 6%, window 00:00-08:00,
+Field case: Venus 5.12 kWh at 13% + Venus B 5.28 kWh at 6%, window 00:00-08:00,
 solar 7.8 kWh vs 12.9 kWh consumption (no daily surplus). Both batteries stopped
 at 80% at 02:32/03:17 and the window idled until 08:00. Two independent faults:
 

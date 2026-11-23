@@ -1037,7 +1037,7 @@ async def test_config_flow_persists_unused_venus_mppt_inputs():
         "dc_pv_connected": False,
     })
 
-    assert result["step_id"] == "battery_brand"
+    assert result["step_id"] == "battery_connection"
     assert flow.battery_configs[0]["dc_pv_connected"] is False
 
 
@@ -1106,7 +1106,7 @@ async def test_options_flow_preserves_unused_venus_mppt_inputs():
     }
     result = await flow.async_step_battery_limits(user_input)
 
-    assert result["step_id"] == "battery_brand"
+    assert result["step_id"] == "battery_connection"
     assert flow.battery_configs[0]["dc_pv_connected"] is False
 
 

@@ -21,7 +21,7 @@ def _controller(**overrides):
         last_checked_weekday=0,
         _force_full_charge=False,
         _weekly_charge_needs_restore=False,
-        _weekly_charge_saved_max_soc={"Zendure": 95},
+        _weekly_charge_saved_max_soc={"Venus B": 95},
         _weekly_charge_status={"state": "Charging to 100%"},
         _charge_delay_unlocked=False,
         _solar_t_start=None,
@@ -66,7 +66,7 @@ async def test_save_state_persists_original_soc_and_restore_pending():
     await manager.save_state()
 
     payload = store.async_save.await_args.args[0]
-    assert payload["saved_max_soc"] == {"Zendure": 95}
+    assert payload["saved_max_soc"] == {"Venus B": 95}
     assert payload["restore_pending"] is True
 
 
@@ -81,7 +81,7 @@ async def test_load_state_restores_saved_soc_and_pending_restore():
                 "registers_written": True,
                 "state": "Charging to 100%",
                 "restore_pending": True,
-                "saved_max_soc": {"Zendure": 95},
+                "saved_max_soc": {"Venus B": 95},
                 "delay_unlocked": False,
                 "solar_t_start": None,
             }
@@ -92,7 +92,7 @@ async def test_load_state_restores_saved_soc_and_pending_restore():
 
     await manager.load_state()
 
-    assert controller._weekly_charge_saved_max_soc == {"Zendure": 95}
+    assert controller._weekly_charge_saved_max_soc == {"Venus B": 95}
     assert controller._weekly_charge_needs_restore is True
     assert controller.weekly_full_charge_registers_written is True
 
@@ -106,7 +106,7 @@ async def test_load_state_queues_restore_for_unfinished_previous_day():
                 "date": (date.today() - timedelta(days=1)).isoformat(),
                 "complete": False,
                 "registers_written": True,
-                "saved_max_soc": {"Zendure": 95},
+                "saved_max_soc": {"Venus B": 95},
             }
         )
     )
@@ -115,7 +115,7 @@ async def test_load_state_queues_restore_for_unfinished_previous_day():
 
     await manager.load_state()
 
-    assert controller._weekly_charge_saved_max_soc == {"Zendure": 95}
+    assert controller._weekly_charge_saved_max_soc == {"Venus B": 95}
     assert controller._weekly_charge_needs_restore is True
     assert controller.weekly_full_charge_registers_written is False
 
@@ -123,7 +123,7 @@ async def test_load_state_queues_restore_for_unfinished_previous_day():
 @pytest.mark.asyncio
 async def test_failed_cutoff_restore_is_reported_for_retry():
     coordinator = SimpleNamespace(
-        name="Zendure",
+        name="Venus B",
         max_soc=100,
         battery_manual_mode_enabled=False,
         capabilities=SimpleNamespace(hardware_soc_cutoff=True),
@@ -143,10 +143,10 @@ async def test_failed_cutoff_restore_is_reported_for_retry():
 @pytest.mark.asyncio
 async def test_restore_uses_persisted_config_when_saved_soc_is_missing():
     coordinator = SimpleNamespace(
-        name="Zendure",
+        name="Venus B",
         max_soc=100,
         _config_entry=SimpleNamespace(
-            data={"batteries": [{"name": "Zendure", "max_soc": 95}]}
+            data={"batteries": [{"name": "Venus B", "max_soc": 95}]}
         ),
         battery_manual_mode_enabled=False,
         capabilities=SimpleNamespace(hardware_soc_cutoff=True),
@@ -166,7 +166,7 @@ async def test_restore_uses_persisted_config_when_saved_soc_is_missing():
 @pytest.mark.asyncio
 async def test_pending_restore_runs_before_weekly_state_is_evaluated():
     coordinator = SimpleNamespace(
-        name="Zendure",
+        name="Venus B",
         max_soc=100,
         battery_manual_mode_enabled=False,
         capabilities=SimpleNamespace(hardware_soc_cutoff=True),
@@ -289,7 +289,7 @@ async def test_a_restart_in_the_night_keeps_the_run(monkeypatch):
                 "date": yesterday.isoformat(),
                 "complete": False,
                 "registers_written": True,
-                "saved_max_soc": {"Zendure": 95},
+                "saved_max_soc": {"Venus B": 95},
             }
         )
     )

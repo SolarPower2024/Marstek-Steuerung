@@ -64,7 +64,7 @@ La batería puede estar en reposo intencionadamente cuando la red ya está cerca
 |---|---|---|
 | El host, puerto, ID esclavo o modelo de batería es incorrecto | Entrada de integración y configuración específica de batería | Corrige la conexión en la [guía de batería](configuration/batteries/index.md) pertinente |
 | El control RS-485 de Marstek está desactivado | **RS485 Control Mode** | Actívalo antes de enviar órdenes de control |
-| La pasarela o puente está desconectado | Estado del dispositivo de pasarela, ESPHome, MQTT o API | Restaura la conexión local y recarga la integración si es necesario |
+| La pasarela o puente está desconectado | Estado del dispositivo de pasarela o puente | Restaura la conexión local y recarga la integración si es necesario |
 | El controlador rechazó lecturas o escrituras repetidas | **Repairs** de Home Assistant, registros y **Non-Responsive Batteries** | Sigue las instrucciones de Repair; adjunta diagnósticos si se repite |
 | Una entidad antigua pertenece a un controlador previo | Dispositivo e integración del registro de entidades | Elimina la entidad obsoleta no disponible si el controlador actual ha creado su sustituta |
 
