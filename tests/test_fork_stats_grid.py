@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from custom_components.omnibattery import ChargeDischargeController as C
 from custom_components.omnibattery.control.grid_view import GridView
@@ -34,20 +34,6 @@ def _ctrl(states, *, physical=PHYS, inverted=False):
         _apply_meter_transform=lambda s: None if s is None else float(s.state) * 2,
     )
     return ctrl
-
-
-def test_statistics_uses_physical_without_consuming_new_sample():
-    ctrl = _ctrl({PHYS: _state(300), MAIN: _state(100)}, inverted=True)
-    ctrl._grid_view.read_physical(ctrl.hass.states, datetime.now(timezone.utc))
-    assert C.read_statistics_grid_w(ctrl) == -300
-    assert ctrl._grid_view.physical_is_new() is True  # untouched by the statistics read
-
-
-def test_statistics_falls_back_to_regulation_meter():
-    ctrl = _ctrl({PHYS: _state("unavailable"), MAIN: _state(100)})
-    assert C.read_statistics_grid_w(ctrl) == 200.0  # transformed main meter
-    ctrl = _ctrl({MAIN: _state(100)}, physical=None)
-    assert C.read_statistics_grid_w(ctrl) == 200.0
 
 
 def test_repair_issue_created_after_5_min_and_cleared_on_recovery():

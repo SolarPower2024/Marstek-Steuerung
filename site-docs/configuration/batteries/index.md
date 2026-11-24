@@ -50,7 +50,7 @@ The minimum of 2% is deliberate and cannot be lowered. Near the top, the SOC a b
 | A limit is lower than expected | The detected device envelope is lower than the configured software limit | Check the model table and the limit reported by the battery |
 
 ??? "Advanced details"
-    Omnibattery asks for each battery separately, so supported brands can be mixed in one installation. Individual battery limits always apply even when system-level charge or discharge caps are configured. Setting either system cap to `0 W` disables that cap.
+    Omnibattery asks for each battery separately. Individual battery limits always apply even when system-level charge or discharge caps are configured. Setting either system cap to `0 W` disables that cap.
 
     Runtime power and state-of-charge limits are persisted and restored after a Home Assistant restart. **Battery Manual Control** first verifies an idle target, removes the battery from the automatic pool, and also restores that ownership after restart.
 

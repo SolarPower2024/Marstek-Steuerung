@@ -931,9 +931,6 @@
       "full_charge_voltage_taper": {
         "name": "Réduction Charge 100% par Tension"
       },
-      "automation_charging_active": {
-        "name": "Charge par Prix Externe"
-      },
       "excluded_device_enabled": {
         "name": "{device} – Actif"
       },
@@ -951,11 +948,6 @@
       },
       "weekly_full_charge_enabled": {
         "name": "Charge complète hebdomadaire"
-      }
-    },
-    "time": {
-      "automation_charging_end_time": {
-        "name": "Fin de Charge Externe"
       }
     },
     "sensor": {

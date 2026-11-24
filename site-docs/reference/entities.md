@@ -68,7 +68,6 @@ These entities belong to **Omnibattery System** rather than one battery.
     - Always available controller choices: `manual_mode`, `no_pd_mode`, `three_phase_protection`, `weekly_full_charge_enabled`
     - Conditional features: `offgrid_mode`, `primary_feedforward`, `system_power_limits`, `temp_charge_limit`, `temp_charge_limit_discharge`, `capacity_protection`, `capacity_protection_excluded_devices`
     - Generated controls: `time_slot` for each configured time slot; `excluded_device_enabled`, `excluded_device_solar_surplus`, `excluded_device_dynamic_power_control`, and `excluded_device_cover_home` for each applicable excluded device
-    - External automation compatibility: `automation_charging_active`
 
 ??? "System selects and buttons"
 
@@ -160,6 +159,3 @@ Battery entities depend on the driver. A missing entity usually means that the d
 Raw **Force Mode**, **Set Charge Power**, and **Set Discharge Power** require global **Manual Mode** or per-battery **Manual Battery Control**. Automatic control rejects competing writes. Battery configuration controls remain writable when the driver supports them.
 
 Use [multiple batteries](../features/multi-battery.md) for ownership and participation behavior, and [troubleshooting](../troubleshooting.md) when a status or blocker does not explain the result.
-
-!!! note "No time entity is currently created"
-    `automation_charging_end_time` remains in translation resources, but the integration has no `time` platform and does not create that entity.

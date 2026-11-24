@@ -360,45 +360,6 @@ class ExternalLoads:
             return 1.0
         return max(0.0, min(100.0, pct)) / 100.0
 
-    def consumption_delta_kw(self) -> float:
-        """Net kW correction to apply to the home sensor for excluded-device accounting.
-
-        Returns a value to ADD to the raw home sensor reading so the accumulator
-        reflects only the load the battery is expected to cover:
-          - included_in_consumption=True  → device IS in home sensor but battery skips it → subtract
-          - included_in_consumption=False → device NOT in home sensor but battery covers it → add
-        ev_charger_no_telemetry devices are skipped (no numeric power sensor).
-        Unavailable sensors are silently ignored.
-        """
-        excluded_devices = self._config_entry.data.get("excluded_devices", [])
-        if not excluded_devices:
-            return 0.0
-
-        delta = 0.0
-        for device in excluded_devices:
-            if not device.get("enabled", True):
-                continue
-            if device.get("ev_charger_no_telemetry", False):
-                continue
-            power_sensor = device.get("power_sensor")
-            if not power_sensor:
-                continue
-            state = self._hass.states.get(power_sensor)
-            if state is None or state.state in ("unknown", "unavailable"):
-                continue
-            try:
-                power_w = float(state.state)
-            except (ValueError, TypeError):
-                continue
-            unit = state.attributes.get("unit_of_measurement", "W")
-            device_kw = power_w / 1000.0 if unit == "W" else power_w
-            if device.get("included_in_consumption", True):
-                delta -= device_kw * self._exclusion_factor(device)
-            else:
-                delta += device_kw
-
-        return delta
-
     def calculate_adjustment(self) -> float:
         """Calculate power adjustment for excluded devices.
 

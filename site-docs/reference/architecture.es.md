@@ -4,7 +4,7 @@ Esta página presenta el código actual de Omnibattery para colaboradores. Muest
 
 ## Mapa del sistema
 
-Omnibattery crea un `MarstekVenusDataUpdateCoordinator` por cada batería configurada. La clase conserva su nombre histórico, pero coordina todas las marcas admitidas. Cada coordinador posee un `BatteryDriver` concreto, su bloqueo de conexión, caché de telemetría, calendario de sondeo, estado de salud y límites efectivos.
+Omnibattery crea un `MarstekVenusDataUpdateCoordinator` por cada batería configurada. La clase conserva su nombre histórico, pero coordina baterías Marstek Venus. Cada coordinador posee un `BatteryDriver` concreto, su bloqueo de conexión, caché de telemetría, calendario de sondeo, estado de salud y límites efectivos.
 
 Una entrada de configuración también crea un `ChargeDischargeController` para la flota. El controlador lee el sensor de red de Home Assistant, combina bloqueadores y anulaciones de funciones, calcula la orden de flota, pide a `PowerDistribution` que seleccione baterías y distribuya potencia, y después escribe mediante cada coordinador y controlador.
 
@@ -87,7 +87,7 @@ Los valores predeterminados de `DriverCapabilities` conservan el comportamiento 
 
 ## Controladores admitidos
 
-El paquete exporta siete controladores concretos, y `MarstekVenusDataUpdateCoordinator.__init__()` construye los siete según la marca configurada.
+El paquete exporta un controlador concreto, y `MarstekVenusDataUpdateCoordinator.__init__()` lo construye para cada batería configurada.
 
 | Archivo | Clase | Hardware y transporte |
 |---|---|---|

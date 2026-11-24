@@ -6,7 +6,6 @@ import contextlib
 import logging
 import math
 import time
-from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
@@ -33,7 +32,6 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.util import dt as dt_util
 
-from pymodbus.exceptions import ConnectionException
 
 from .const import (
     DOMAIN,
@@ -540,7 +538,6 @@ class ChargeDischargeController:
         self._configure_relay_guard()
         # FORK: grid view (docs/fork/02-architektur.md)
         self._grid_view = GridView()
-        self._last_physical_grid_w = None
         self._peak_physical_prev = False  # FORK: review 1/2 - last cycle shaved on real meter
         self._peak_exit_since = None  # FORK: review 2/7 - peak exit hold timer (monotonic)
         self._physical_trigger_pending = False  # FORK: review 6 - cycle requested by real meter
@@ -857,7 +854,6 @@ class ChargeDischargeController:
         self._weekly_charge_needs_restore = False  # True when day changed mid-charge and hardware restore is pending
         self._weekly_charge_saved_max_soc: dict[str, int] = {}  # coordinator.name → original max_soc before writing 100%
 
-        self._force_full_charge = False         # Manual trigger via button, resets on day change
         self._balance_monitor = None  # Set from async_setup_entry after monitor is created
 
         # Minimal status dict for WeeklyFullChargeSensor (charge state only, not delay)
@@ -1447,24 +1443,6 @@ class ChargeDischargeController:
             bool(getattr(self, "_capacity_protection_active", False))
             and status.get("action") in ("shaving", "shaving_excluded")
         ) or (getattr(self, "_icp_excluded_protection_w", 0.0) or 0.0) > 0
-
-    def read_statistics_grid_w(self) -> float | None:
-        """Grid power (+import / -export) for statistics and display.
-
-        FORK: grid view (docs/fork/02-architektur.md), B5. The real meter when
-        configured and usable, otherwise the regulation meter. Uses
-        ``peek_physical`` (no side effects): ``read_physical`` would consume the
-        control loop's new-sample detection, and ``_last_physical_grid_w`` has no
-        timestamp, so timer-driven callers could see a stale value.
-        """
-        view = getattr(self, "_grid_view", None)
-        if view is not None and view.has_physical and not (
-            self.offgrid_mode_enabled and self.offgrid_power_sensor
-        ):
-            value = view.peek_physical(self.hass.states, dt_util.utcnow())
-            if value is not None:
-                return value
-        return self._apply_meter_transform(self.hass.states.get(self.consumption_sensor))
 
     def _check_physical_grid_sensor(self) -> None:
         """Repair issue while the configured real grid sensor is unusable > 5 min.
@@ -2057,7 +2035,6 @@ class ChargeDischargeController:
           - Otherwise: allowed only if the current time matches a slot whose
             `allow_<direction>=True`, scope applies, and day matches.
         """
-        from datetime import datetime
 
         all_slots = self.config_entry.data.get("no_discharge_time_slots", [])
         slots = [s for s in all_slots if s.get("enabled", True)]
@@ -2498,7 +2475,6 @@ class ChargeDischargeController:
             direction: "charge", "discharge", or "any". When "charge"/"discharge",
                 only slots with `allow_<direction>=True` are considered.
         """
-        from datetime import datetime
 
         slots = self.config_entry.data.get("no_discharge_time_slots", [])
         if not slots:
@@ -2956,20 +2932,6 @@ class ChargeDischargeController:
             return value
         return sum(self._setpoint_offsets.values())
 
-    def set_setpoint_offset(self, source: str, offset_w: float) -> None:
-        """Register or update an additive offset (summed with others)."""
-        old = self._setpoint_offsets.get(source)
-        self._setpoint_offsets[source] = offset_w
-        if old != offset_w:
-            _LOGGER.debug("Setpoint offset '%s': %s → %.0fW",
-                          source, f"{old:.0f}W" if old is not None else "None", offset_w)
-
-    def remove_setpoint_offset(self, source: str) -> None:
-        """Remove an additive offset. No-op if not present."""
-        removed = self._setpoint_offsets.pop(source, None)
-        if removed is not None:
-            _LOGGER.debug("Setpoint offset '%s' removed (was %.0fW)", source, removed)
-
     def set_setpoint_override(self, source: str, value_w: float, priority: int = 0) -> None:
         """Register an absolute override. Highest priority wins over all offsets."""
         old = self._setpoint_overrides.get(source)
@@ -2984,20 +2946,6 @@ class ChargeDischargeController:
         if removed is not None:
             _LOGGER.debug("Setpoint override '%s' removed (was %.0fW, pri=%d)",
                           source, removed[1], removed[0])
-
-    def get_setpoint_offset(self, source: str) -> float:
-        """Return the current additive offset for *source*, or 0.0 if not set."""
-        return self._setpoint_offsets.get(source, 0.0)
-
-    def clear_all_setpoint_offsets(self) -> None:
-        """Remove all additive offsets and overrides."""
-        if self._setpoint_offsets:
-            _LOGGER.debug("Clearing all setpoint offsets: %s", dict(self._setpoint_offsets))
-            self._setpoint_offsets.clear()
-        if self._setpoint_overrides:
-            _LOGGER.debug("Clearing all setpoint overrides: %s",
-                          {k: v[1] for k, v in self._setpoint_overrides.items()})
-            self._setpoint_overrides.clear()
 
     def _capacity_protection_coordinators(self) -> list:
         """Batteries whose SOC may drive the peak-shaving decision.
@@ -6139,7 +6087,6 @@ class ChargeDischargeController:
         # FORK: grid view (docs/fork/02-architektur.md) - read the real meter exactly
         # once per cycle, before the freshness check (physical_is_new compares reads).
         physical = ChargeDischargeController._read_physical_grid_w(self)
-        self._last_physical_grid_w = physical
         physical_new = physical is not None and self._grid_view.physical_is_new()
         physical_elapsed_s = ChargeDischargeController._track_physical_sample(self, physical)
         peak_review_pending = ChargeDischargeController._peak_review_pending(self, physical)

@@ -68,7 +68,6 @@ Estas entidades pertenecen a **Omnibattery System**, no a una batería.
     - Opciones de controlador siempre disponibles: `manual_mode`, `no_pd_mode`, `three_phase_protection`, `weekly_full_charge_enabled`
     - Funciones condicionales: `offgrid_mode`, `primary_feedforward`, `system_power_limits`, `temp_charge_limit`, `temp_charge_limit_discharge`, `capacity_protection`, `capacity_protection_excluded_devices`
     - Controles generados: `time_slot` para cada franja horaria configurada; `excluded_device_enabled`, `excluded_device_solar_surplus`, `excluded_device_dynamic_power_control` y `excluded_device_cover_home` para cada dispositivo excluido aplicable
-    - Compatibilidad con automatización externa: `automation_charging_active`
 
 ??? "Selectores y botones del sistema"
 
@@ -160,6 +159,3 @@ Las entidades de batería dependen del controlador. Una entidad ausente normalme
 Los controles directos **Force Mode**, **Set Charge Power** y **Set Discharge Power** requieren el **Manual Mode** global o el **Manual Battery Control** por batería. El control automático rechaza escrituras que compiten con él. Los controles de configuración de batería siguen siendo editables cuando el controlador los admite.
 
 Usa [varias baterías](../features/multi-battery.md) para el comportamiento de control y participación, y [solución de problemas](../troubleshooting.md) cuando un estado o bloqueador no explica el resultado.
-
-!!! note "Actualmente no se crea ninguna entidad de hora"
-    `automation_charging_end_time` permanece en los recursos de traducción, pero la integración no tiene plataforma `time` y no crea esa entidad.

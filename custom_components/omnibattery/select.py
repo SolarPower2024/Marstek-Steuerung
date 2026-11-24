@@ -433,8 +433,3 @@ class PdTuningProfileSelect(SelectEntity):
         }
 
 
-# Software force mode: same option strings as the Marstek force_mode register
-# select so the existing translations / dashboard label apply unchanged.
-MANUAL_FORCE_MODE_OPTIONS = ["None", "Charge", "Discharge"]
-
-

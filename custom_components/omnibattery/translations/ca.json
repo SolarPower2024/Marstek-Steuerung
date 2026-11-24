@@ -931,9 +931,6 @@
       "full_charge_voltage_taper": {
         "name": "Reducció Càrrega 100% per Voltatge"
       },
-      "automation_charging_active": {
-        "name": "Càrrega per Preu Extern"
-      },
       "excluded_device_enabled": {
         "name": "{device} – Actiu"
       },
@@ -951,11 +948,6 @@
       },
       "weekly_full_charge_enabled": {
         "name": "Càrrega setmanal completa"
-      }
-    },
-    "time": {
-      "automation_charging_end_time": {
-        "name": "Fi de Càrrega Externa"
       }
     },
     "sensor": {

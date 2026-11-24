@@ -476,9 +476,6 @@ CONF_TEMP_LIMIT_APPLY_DISCHARGE = "temp_limit_apply_discharge"
 DEFAULT_TEMP_LIMIT_APPLY_DISCHARGE = False
 
 
-T_START_FALLBACK_HOUR = 11  # If no solar start detected by 11:00, fall back
-
-
 # Weekday mapping (mon=0, sun=6, matches datetime.weekday())
 WEEKDAY_MAP = {
     "mon": 0, "tue": 1, "wed": 2, "thu": 3,
@@ -620,7 +617,6 @@ DEFAULT_GRID_FILTER_TAU = 2.0
 DEFAULT_NO_PD_MODE_ENABLED = False
 DEFAULT_NO_PD_COMMAND_DELAY = 0.0
 DEFAULT_TARGET_GRID_POWER = 0
-DEFAULT_ENABLE_SYSTEM_POWER_LIMITS = False
 DEFAULT_SYSTEM_MAX_CHARGE_POWER = 0       # 0 = disabled
 DEFAULT_SYSTEM_MAX_DISCHARGE_POWER = 0    # 0 = disabled
 
@@ -730,23 +726,6 @@ def effective_system_power(data) -> tuple[int, int]:
         min(charge_w, charge_cap) if charge_cap else charge_w,
         min(discharge_w, discharge_cap) if discharge_cap else discharge_w,
     )
-
-
-def total_battery_capacity_kwh(data, reported_kwh=None) -> float:
-    """Return the fleet's capacity in kWh: each battery's configured value, or what it reports.
-
-    A battery without a configured capacity -- one whose driver reads it (Marstek
-    over Modbus) or one left at 0 for auto-detection -- counts
-    with ``reported_kwh[name]``, the capacity its coordinator reports, when known.
-    """
-    reported_kwh = reported_kwh or {}
-    total = 0.0
-    for battery in data.get("batteries") or []:
-        configured = float(battery.get("battery_capacity_kwh", 0.0) or 0.0)
-        if configured <= 0:
-            configured = float(reported_kwh.get(battery.get("name")) or 0.0)
-        total += max(0.0, configured)
-    return total
 
 
 # PD Tuning Profiles

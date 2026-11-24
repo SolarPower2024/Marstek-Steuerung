@@ -3,11 +3,11 @@ import asyncio
 import logging
 import time
 from collections import deque
-from datetime import timedelta, datetime
+from datetime import timedelta
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from homeassistant.helpers import device_registry as dr, entity_registry
+from homeassistant.helpers import device_registry as dr
 from homeassistant.util import dt as dt_util
 
 from ..const import (

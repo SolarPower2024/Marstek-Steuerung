@@ -98,26 +98,6 @@ def test_v6_is_new():
     assert gv.physical_is_new() is True
 
 
-def test_peek_physical_has_no_side_effects():
-    gv = _view(inverted=True)
-    st = _States()
-    st.set(PHYS, 100)
-    assert gv.peek_physical(st, NOW) == -100
-    assert gv.status()["physical_w"] is None  # nothing stored
-    assert gv.physical_is_new() is False
-    gv.read_physical(st, NOW)
-    assert gv.physical_is_new() is True
-    st.set(PHYS, 250)
-    assert gv.peek_physical(st, NOW) == -250
-    assert gv.physical_is_new() is True  # peek did not consume/advance the state
-    assert gv.status()["physical_w"] == -100
-    # unusable: peek must not start the unusable timer
-    st.set(PHYS, "unavailable")
-    assert gv.peek_physical(st, NOW) is None
-    assert gv.status()["unusable_since"] is None
-    assert _view(physical=None).peek_physical(st, NOW) is None
-
-
 def test_unusable_since_and_status():
     gv = _view()
     st = _States()
@@ -184,7 +164,6 @@ def test_frozen_latch_only_after_frozen_time():
     assert gv.read_physical(st, t2) is None
     assert gv.status()["physical_source"] == "fallback"
     assert gv.status()["unusable_since"] == t2
-    assert gv.peek_physical(st, t2) is None
     # latch is sticky while the value stays the same, even without new latch call
     assert gv.read_physical(st, t2 + timedelta(seconds=5)) is None
     # a changed value clears it

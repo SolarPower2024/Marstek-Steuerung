@@ -1,6 +1,6 @@
 # Elige la conexión de tu batería
 
-Elige la vía que coincida con tu batería y con cómo está conectada a Home Assistant. Omnibattery puede coordinar hasta diez baterías compatibles, incluidas instalaciones con varias marcas.
+Elige la vía que coincida con tu batería y con cómo está conectada a Home Assistant. Omnibattery puede coordinar hasta diez baterías compatibles.
 
 ## Baterías compatibles
 
@@ -50,7 +50,7 @@ El mínimo del 2% es deliberado y no se puede reducir. Cerca del tope, el SOC qu
 | Un límite es menor de lo previsto | La envolvente detectada del dispositivo es menor que el límite de software configurado | Comprueba la tabla del modelo y el límite comunicado por la batería |
 
 ??? "Detalles avanzados"
-    Omnibattery solicita cada batería por separado, por lo que pueden mezclarse marcas compatibles en una instalación. Los límites individuales de cada batería siempre se aplican incluso cuando están configurados límites de carga o descarga a nivel del sistema. Establecer cualquiera de los límites del sistema en `0 W` desactiva ese límite.
+    Omnibattery solicita cada batería por separado. Los límites individuales de cada batería siempre se aplican incluso cuando están configurados límites de carga o descarga a nivel del sistema. Establecer cualquiera de los límites del sistema en `0 W` desactiva ese límite.
 
     Los límites de potencia y estado de carga en tiempo de ejecución se conservan y restauran después de reiniciar Home Assistant. **Battery Manual Control** primero verifica un objetivo en reposo, saca la batería del grupo automático y también restaura ese control tras el reinicio.
 

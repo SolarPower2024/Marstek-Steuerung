@@ -934,9 +934,6 @@
       "full_charge_voltage_taper": {
         "name": "Reduccion Carga 100% por Voltaje"
       },
-      "automation_charging_active": {
-        "name": "Carga por Precio Externo"
-      },
       "excluded_device_enabled": {
         "name": "{device} – Activo"
       },
@@ -951,11 +948,6 @@
       },
       "time_slot": {
         "name": "Franja Horaria {slot_number}"
-      }
-    },
-    "time": {
-      "automation_charging_end_time": {
-        "name": "Fin de Carga Externa"
       }
     },
     "sensor": {

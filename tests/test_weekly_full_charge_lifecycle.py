@@ -20,7 +20,6 @@ def _controller(**overrides):
         weekly_full_charge_complete=False,
         weekly_full_charge_registers_written=True,
         last_checked_weekday=0,
-        _force_full_charge=False,
         _weekly_charge_needs_restore=False,
         _weekly_charge_saved_max_soc={"Venus B": 95},
         _weekly_charge_status={"state": "Charging to 100%"},
@@ -262,16 +261,18 @@ def test_a_finished_run_is_not_reopened_in_the_night(monkeypatch):
 @pytest.mark.parametrize(
     "moment, expected",
     [
-        (MONDAY + timedelta(hours=15), MONDAY + timedelta(days=1, hours=SUNRISE_H)),
-        (MONDAY + timedelta(days=1, hours=2), MONDAY + timedelta(days=1, hours=SUNRISE_H)),
-        (MONDAY + timedelta(days=1, hours=9), None),
-        (MONDAY + timedelta(days=2, hours=2), None),
+        (MONDAY + timedelta(hours=15), False),
+        (MONDAY + timedelta(days=1, hours=2), True),
+        (MONDAY + timedelta(days=1, hours=SUNRISE_H - 1), True),
+        (MONDAY + timedelta(days=1, hours=SUNRISE_H), False),
+        (MONDAY + timedelta(days=1, hours=9), False),
+        (MONDAY + timedelta(days=2, hours=2), False),
     ],
 )
 def test_the_window_ends_at_the_sunrise_after_the_target_day(monkeypatch, moment, expected):
     _controller_, manager = _night_manager(monkeypatch)
 
-    assert manager.window_end(moment) == expected
+    assert manager.in_overnight_extension(moment) is expected
 
 
 def test_without_a_known_sunrise_the_run_still_ends_at_midnight(monkeypatch):
@@ -289,7 +290,7 @@ def test_a_failing_sun_lookup_falls_back_to_midnight(monkeypatch):
         raise ValueError("no location")
 
     monkeypatch.setattr(weekly_module, "get_astral_event_date", _boom)
-    assert manager.window_end(MONDAY + timedelta(hours=15)) == MONDAY + timedelta(days=1)
+    assert manager.in_overnight_extension(MONDAY + timedelta(days=1, hours=2)) is False
 
 
 @pytest.mark.asyncio

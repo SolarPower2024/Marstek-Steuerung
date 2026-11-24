@@ -919,9 +919,6 @@
       "full_charge_voltage_taper": {
         "name": "100% Charge Voltage Taper"
       },
-      "automation_charging_active": {
-        "name": "External Price Charging"
-      },
       "excluded_device_enabled": {
         "name": "{device} – Enabled"
       },
@@ -939,11 +936,6 @@
       },
       "weekly_full_charge_enabled": {
         "name": "Weekly Full Charge"
-      }
-    },
-    "time": {
-      "automation_charging_end_time": {
-        "name": "External Charging End Time"
       }
     },
     "sensor": {

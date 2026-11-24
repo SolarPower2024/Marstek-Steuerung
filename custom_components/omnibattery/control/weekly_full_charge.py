@@ -319,25 +319,6 @@ class WeeklyFullChargeManager:
             return None
         return dt_util.as_local(moment).replace(tzinfo=None)
 
-    def window_end(self, now: datetime) -> datetime | None:
-        """When the current charge window ends: the sunrise after the target day.
-
-        The remaining gap is bought after the target day's sun has set, so the
-        cheap hours of the night after it belong to the same run. Without a
-        known sunrise the window ends at midnight, as it always did. Returned in
-        ``now``'s timezone (naive for a naive ``now``); None outside the window.
-        """
-        target_weekday = WEEKDAY_MAP[self._controller.weekly_full_charge_day]
-        local = now.replace(tzinfo=None) if now.tzinfo else now
-        if local.weekday() == target_weekday:
-            day_after = local.date() + timedelta(days=1)
-        elif self.in_overnight_extension(local):
-            day_after = local.date()
-        else:
-            return None
-        end = self._sunrise_on(day_after) or datetime.combine(day_after, datetime.min.time())
-        return end.replace(tzinfo=now.tzinfo) if now.tzinfo else end
-
     def in_overnight_extension(self, now: datetime) -> bool:
         """True in the night after the target day, before its sunrise."""
         target_weekday = WEEKDAY_MAP[self._controller.weekly_full_charge_day]
@@ -362,7 +343,7 @@ class WeeklyFullChargeManager:
             return False
 
         # Re-arm the "already completed" edge-trigger log whenever completion clears
-        # (day boundary, feature toggle, force-charge reset — wherever it happens).
+        # (day boundary, feature toggle — wherever it happens).
         if not ctrl.weekly_full_charge_complete:
             self._already_complete_logged = False
 
@@ -393,7 +374,6 @@ class WeeklyFullChargeManager:
                 )
             ctrl.weekly_full_charge_complete = False
             ctrl.weekly_full_charge_registers_written = False
-            ctrl._force_full_charge = False
             ctrl._weekly_charge_status["state"] = "Idle"
             ctrl._weekly_charge_status.pop("completion_reason", None)
             # Save the cleared state asynchronously (don't await to avoid blocking)
@@ -403,12 +383,6 @@ class WeeklyFullChargeManager:
 
         ctrl.last_checked_weekday = current_weekday
         self._last_check_overnight = overnight
-
-        # Force full charge button overrides the day check
-        if ctrl._force_full_charge:
-            if ctrl.weekly_full_charge_complete:
-                return False
-            return True
 
         if not in_window:
             return False
@@ -637,7 +611,7 @@ class WeeklyFullChargeManager:
                 ctrl._weekly_charge_status.pop("completion_reason", None)
             await self.save_state()
 
-        if not ctrl.weekly_full_charge_enabled and not ctrl._force_full_charge:
+        if not ctrl.weekly_full_charge_enabled:
             return
         if not self.is_active():
             return

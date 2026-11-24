@@ -931,9 +931,6 @@
       "full_charge_voltage_taper": {
         "name": "100%-Ladungsreduktion per Spannung"
       },
-      "automation_charging_active": {
-        "name": "Laden nach externem Preis"
-      },
       "excluded_device_enabled": {
         "name": "{device} – Aktiv"
       },
@@ -951,11 +948,6 @@
       },
       "weekly_full_charge_enabled": {
         "name": "Wöchentliche Vollladung"
-      }
-    },
-    "time": {
-      "automation_charging_end_time": {
-        "name": "Ende Externes Laden"
       }
     },
     "sensor": {

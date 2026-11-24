@@ -70,54 +70,6 @@ def _device(**overrides):
 
 
 # ----------------------------------------------------------------------
-# consumption_delta_kw  (returns kW; W->kW converted)
-# ----------------------------------------------------------------------
-
-def test_delta_kw_no_devices_is_zero():
-    assert _controller([]).consumption_delta_kw() == 0.0
-
-
-def test_delta_kw_included_device_is_subtracted():
-    loads = _controller([_device(included_in_consumption=True)],
-                       {"sensor.dev": _state(500)})
-    assert loads.consumption_delta_kw() == pytest.approx(-0.5)
-
-
-def test_delta_kw_not_included_device_is_added():
-    loads = _controller([_device(included_in_consumption=False)],
-                       {"sensor.dev": _state(500)})
-    assert loads.consumption_delta_kw() == pytest.approx(0.5)
-
-
-def test_delta_kw_kilowatt_unit_not_reconverted():
-    loads = _controller([_device(included_in_consumption=True)],
-                       {"sensor.dev": _state(0.5, unit="kW")})
-    assert loads.consumption_delta_kw() == pytest.approx(-0.5)
-
-
-def test_delta_kw_two_devices_net():
-    devices = [
-        _device(power_sensor="sensor.a", included_in_consumption=True),
-        _device(power_sensor="sensor.b", included_in_consumption=False),
-    ]
-    loads = _controller(devices,
-                       {"sensor.a": _state(500), "sensor.b": _state(200)})
-    # -0.5 (subtracted) + 0.2 (added)
-    assert loads.consumption_delta_kw() == pytest.approx(-0.3)
-
-
-@pytest.mark.parametrize("device, states", [
-    (_device(enabled=False), {"sensor.dev": _state(500)}),
-    (_device(ev_charger_no_telemetry=True), {"sensor.dev": _state(500)}),
-    (_device(power_sensor=None), {}),
-    (_device(), {"sensor.dev": _state("unavailable")}),
-    (_device(), {}),  # sensor missing entirely
-])
-def test_delta_kw_skips_unusable_devices(device, states):
-    assert _controller([device], states).consumption_delta_kw() == 0.0
-
-
-# ----------------------------------------------------------------------
 # calculate_adjustment  (returns W; kW unit handled)
 # Positive = reduce battery discharge, negative = increase it.
 # ----------------------------------------------------------------------
@@ -340,14 +292,6 @@ def test_exclusion_pct_partial_scales_adjustment():
     )
     assert loads.calculate_adjustment() == pytest.approx(300.0)
     assert loads._controller._excluded_included_adjustment == pytest.approx(300.0)
-
-
-def test_exclusion_pct_partial_scales_delta_kw():
-    loads = _controller(
-        [_device(included_in_consumption=True, exclusion_pct=60)],
-        {"sensor.dev": _state(500)},
-    )
-    assert loads.consumption_delta_kw() == pytest.approx(-0.3)
 
 
 def test_exclusion_pct_zero_means_no_exclusion():

@@ -931,9 +931,6 @@
       "full_charge_voltage_taper": {
         "name": "100%-Laadbegrenzing op Spanning"
       },
-      "automation_charging_active": {
-        "name": "Laden op Externe Prijs"
-      },
       "excluded_device_enabled": {
         "name": "{device} – Actief"
       },
@@ -951,11 +948,6 @@
       },
       "weekly_full_charge_enabled": {
         "name": "Wekelijkse volledige lading"
-      }
-    },
-    "time": {
-      "automation_charging_end_time": {
-        "name": "Einde Extern Laden"
       }
     },
     "sensor": {

@@ -66,7 +66,7 @@ const I18N = {
     noBatteriesTitle: "No batteries",
     noBatteriesMsg: "No battery devices were detected in this integration.",
     healthCells: "Health & cells",
-    mTemp: "Temperature", mVoltage: "Voltage", mSoh: "State of health (SoH)", mCellMax: "Cell max", mCellMin: "Cell min",
+    mTemp: "Temperature", mVoltage: "Voltage", mCellMax: "Cell max", mCellMin: "Cell min",
     mCellDelta: "Δ cell @100%", mCycles: "Cycles", mEfficiency: "Efficiency", mHysteresis: "Hysteresis",
     solarMppt: "Solar (MPPT)", controls: "Controls", deviceInfo: "Device information",
     acOutput: "AC output", acInput: "AC input", toHomeGrid: "To home / grid", fromAcBus: "From AC bus",
@@ -139,7 +139,7 @@ const I18N = {
     noBatteriesTitle: "Sin baterías",
     noBatteriesMsg: "No se detectaron dispositivos de batería en esta integración.",
     healthCells: "Salud y celdas",
-    mTemp: "Temperatura", mVoltage: "Voltaje", mSoh: "Estado de salud (SoH)", mCellMax: "Celda máx", mCellMin: "Celda mín",
+    mTemp: "Temperatura", mVoltage: "Voltaje", mCellMax: "Celda máx", mCellMin: "Celda mín",
     mCellDelta: "Δ celda @100%", mCycles: "Ciclos", mEfficiency: "Eficiencia", mHysteresis: "Histéresis",
     solarMppt: "Solar (MPPT)", controls: "Controles", deviceInfo: "Información del dispositivo",
     acOutput: "Salida AC", acInput: "Entrada AC", toHomeGrid: "A casa / red", fromAcBus: "Desde bus AC",
@@ -213,7 +213,7 @@ const I18N = {
     noBatteriesTitle: "Sense bateries",
     noBatteriesMsg: "No s'han detectat dispositius de bateria en aquesta integració.",
     healthCells: "Salut i cel·les",
-    mTemp: "Temperatura", mVoltage: "Voltatge", mSoh: "Estat de salut (SoH)", mCellMax: "Cel·la màx", mCellMin: "Cel·la mín",
+    mTemp: "Temperatura", mVoltage: "Voltatge", mCellMax: "Cel·la màx", mCellMin: "Cel·la mín",
     mCellDelta: "Δ cel·la @100%", mCycles: "Cicles", mEfficiency: "Eficiència", mHysteresis: "Histèresi",
     solarMppt: "Solar (MPPT)", controls: "Controls", deviceInfo: "Informació del dispositiu",
     acOutput: "Sortida CA", acInput: "Entrada CA", toHomeGrid: "A casa / xarxa", fromAcBus: "Des del bus CA",
@@ -282,7 +282,7 @@ const I18N = {
     noBatteriesTitle: "Keine Batterien",
     noBatteriesMsg: "In dieser Integration wurden keine Batteriegeräte erkannt.",
     healthCells: "Zustand & Zellen",
-    mTemp: "Temperatur", mVoltage: "Spannung", mSoh: "Gesundheitszustand (SoH)", mCellMax: "Zelle max", mCellMin: "Zelle min",
+    mTemp: "Temperatur", mVoltage: "Spannung", mCellMax: "Zelle max", mCellMin: "Zelle min",
     mCellDelta: "Δ Zelle @100%", mCycles: "Zyklen", mEfficiency: "Effizienz", mHysteresis: "Hysterese",
     solarMppt: "Solar (MPPT)", controls: "Steuerung", deviceInfo: "Geräteinformationen",
     acOutput: "AC-Ausgang", acInput: "AC-Eingang", toHomeGrid: "Zu Haus / Netz", fromAcBus: "Vom AC-Bus",
@@ -351,7 +351,7 @@ const I18N = {
     noBatteriesTitle: "Aucune batterie",
     noBatteriesMsg: "Aucun appareil de batterie n'a été détecté dans cette intégration.",
     healthCells: "Santé et cellules",
-    mTemp: "Température", mVoltage: "Tension", mSoh: "État de santé (SoH)", mCellMax: "Cellule max", mCellMin: "Cellule min",
+    mTemp: "Température", mVoltage: "Tension", mCellMax: "Cellule max", mCellMin: "Cellule min",
     mCellDelta: "Δ cellule @100%", mCycles: "Cycles", mEfficiency: "Efficacité", mHysteresis: "Hystérésis",
     solarMppt: "Solaire (MPPT)", controls: "Contrôles", deviceInfo: "Informations sur l'appareil",
     acOutput: "Sortie CA", acInput: "Entrée CA", toHomeGrid: "Vers maison / réseau", fromAcBus: "Depuis bus CA",
@@ -420,7 +420,7 @@ const I18N = {
     noBatteriesTitle: "Geen batterijen",
     noBatteriesMsg: "Er zijn geen batterijapparaten gedetecteerd in deze integratie.",
     healthCells: "Gezondheid & cellen",
-    mTemp: "Temperatuur", mVoltage: "Spanning", mSoh: "Gezondheidsstatus (SoH)", mCellMax: "Cel max", mCellMin: "Cel min",
+    mTemp: "Temperatuur", mVoltage: "Spanning", mCellMax: "Cel max", mCellMin: "Cel min",
     mCellDelta: "Δ cel @100%", mCycles: "Cycli", mEfficiency: "Efficiëntie", mHysteresis: "Hysterese",
     solarMppt: "Solar (MPPT)", controls: "Bediening", deviceInfo: "Apparaatinformatie",
     acOutput: "AC-uitgang", acInput: "AC-ingang", toHomeGrid: "Naar huis / net", fromAcBus: "Vanaf AC-bus",
@@ -466,7 +466,6 @@ const I18N = {
 const K = {
   // per battery
   batterySoc: "battery_soc",
-  batterySoh: "battery_soh",
   acPower: "ac_power", // AC-side power. HA sign: - charge / + discharge (W)
   batteryPower: "battery_power", // cell power. + charge / - discharge (W)
   batteryCellPower: "battery_cell_power", // Venus A/D net cell power. + charge / - discharge (W)
@@ -488,12 +487,6 @@ const K = {
   cyclesCalc: "battery_cycle_count_calc",
   rte: "round_trip_efficiency_total",
   softwareVersion: "software_version",
-  pack1Firmware: "pack1_firmware_version",
-  pack2Firmware: "pack2_firmware_version",
-  pack3Firmware: "pack3_firmware_version",
-  pack1Serial: "pack1_serial_number",
-  pack2Serial: "pack2_serial_number",
-  pack3Serial: "pack3_serial_number",
   bmsVersion: "bms_version",
   vmsVersion: "vms_version",
   emsVersion: "ems_version",
@@ -535,7 +528,7 @@ const MPPT_KEYS = ["mppt1_power", "mppt2_power", "mppt3_power", "mppt4_power"];
 
 // translation_keys that change which health-metric rows a battery card renders.
 const BAT_CARD_LAYOUT_KEYS = [
-  K.batterySoh, K.batteryVoltage, K.cellMax, K.cellMin, K.cellDelta,
+  K.batteryVoltage, K.cellMax, K.cellMin, K.cellDelta,
   K.cycles, K.cyclesCalc, K.rte, K.chargeHysteresisActive,
 ];
 
@@ -3480,7 +3473,6 @@ class MarstekVenusPanel extends HTMLElement {
         capacity: this._num(byTk[K.batteryTotalEnergy]),
         inverter,
         temp: this._num(byTk[K.internalTemp]),
-        soh: this._num(byTk[K.batterySoh]),
         voltage: this._num(byTk[K.batteryVoltage]),
         cellMax: cmax,
         cellMin: cmin,
@@ -3642,7 +3634,6 @@ class MarstekVenusPanel extends HTMLElement {
       hgrid.appendChild(c);
       M[id] = c.querySelector(".m-v");
     };
-    if (b.entIds[K.batterySoh]) addMetric("soh", this._t("mSoh"), K.batterySoh);
     addMetric("temp", this._t("mTemp"), K.internalTemp);
     if (b.entIds[K.batteryVoltage]) addMetric("volt", this._t("mVoltage"), K.batteryVoltage);
     if (b.entIds[K.cellMax]) addMetric("cmax", this._t("mCellMax"), K.cellMax);
@@ -3865,7 +3856,6 @@ class MarstekVenusPanel extends HTMLElement {
 
     // health / cells
     const M = r.M;
-    if (M.soh) M.soh.textContent = b.soh != null ? `${this._nf(b.soh, 0)} %` : "—";
     M.temp.textContent = b.temp != null ? `${this._nf(b.temp, 1)} °C` : "—";
     if (M.volt) M.volt.textContent = b.voltage != null ? `${this._nf(b.voltage, 2)} V` : "—";
     if (M.cmax) M.cmax.textContent = b.cellMax != null ? `${this._nf(b.cellMax, 3)} V` : "—";

@@ -334,7 +334,7 @@ class DischargeWindowSensor(SensorEntity):
     @property
     def native_value(self) -> str:
         """Return the current discharge window status."""
-        from datetime import datetime, time as dt_time
+        from datetime import time as dt_time
 
         all_slots = self.entry.data.get("no_discharge_time_slots", [])
         # Only slots that govern discharge define a discharge window. Charge-only
@@ -377,7 +377,7 @@ class DischargeWindowSensor(SensorEntity):
         }
 
         # Find active slot number
-        from datetime import datetime, time as dt_time
+        from datetime import time as dt_time
         now = local_now()
         current_time = now.time()
         current_day = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"][now.weekday()]
@@ -700,7 +700,6 @@ class IntegrationStatusSensor(SensorEntity):
 
     def _backup_cooldown_batteries(self) -> list[str]:
         """Return batteries temporarily excluded because backup/offgrid load was active."""
-        from homeassistant.util import dt as dt_util
 
         now = dt_util.utcnow()
         return [
@@ -877,7 +876,6 @@ class NonResponsiveBatteriesSensor(SensorEntity):
     @property
     def extra_state_attributes(self) -> dict:
         """Return per-battery non-responsive state details."""
-        from homeassistant.util import dt as dt_util
         now = dt_util.utcnow()
         attrs = {}
         for coordinator in self._coordinators:

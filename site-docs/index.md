@@ -12,12 +12,7 @@ Omnibattery connects compatible home batteries to Home Assistant so they can fol
 
 Check [whether your exact battery is compatible](compatibility.md) before installing.
 
-## Supported brands at a glance
-
-| Brand | How Omnibattery connects | Start here |
-|---|---|---|
-
-Omnibattery can coordinate supported brands in the same installation. Check the [installation requirements](installation.md#before-you-start) before changing any manufacturer settings.
+Check the [installation requirements](installation.md#before-you-start) before changing any manufacturer settings.
 
 ## What it can do for you
 

@@ -25,7 +25,6 @@ from homeassistant.helpers.selector import (
     NumberSelectorConfig,
     NumberSelectorMode,
     DeviceSelector,
-    DeviceSelectorConfig,
     EntitySelector,
     EntitySelectorConfig,
     TimeSelector,
@@ -33,9 +32,6 @@ from homeassistant.helpers.selector import (
     SelectSelectorConfig,
     SelectSelectorMode,
     BooleanSelector,
-    TextSelector,
-    TextSelectorConfig,
-    TextSelectorType,
     Selector,
 )
 
@@ -63,7 +59,6 @@ from .infra.device_lookup import get_entry_device
 from .const import (
     DOMAIN,
     CONF_SOLAR_PRODUCTION_SENSOR,
-    CONF_MAX_CONTRACTED_POWER,
     CONF_OFFGRID_POWER_SENSOR,
     CONF_OFFGRID_METER_INVERTED,
     CONF_PHYSICAL_GRID_SENSOR,

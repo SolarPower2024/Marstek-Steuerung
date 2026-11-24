@@ -12,12 +12,7 @@ Omnibattery conecta baterías domésticas compatibles a Home Assistant para que 
 
 Comprueba [si tu batería exacta es compatible](compatibility.md) antes de instalar.
 
-## Marcas compatibles de un vistazo
-
-| Marca | Cómo se conecta Omnibattery | Empieza aquí |
-|---|---|---|
-
-Omnibattery puede coordinar marcas compatibles en la misma instalación. Consulta los [requisitos de instalación](installation.md#before-you-start) antes de cambiar ajustes del fabricante.
+Consulta los [requisitos de instalación](installation.md#before-you-start) antes de cambiar ajustes del fabricante.
 
 ## Qué puede hacer por ti
 

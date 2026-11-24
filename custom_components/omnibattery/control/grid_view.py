@@ -110,20 +110,6 @@ class GridView:
             value = -value
         return value
 
-    def peek_physical(self, states, now) -> float | None:
-        """Like ``read_physical`` but without side effects.
-
-        For statistics/display: leaves the new-sample detection
-        (``physical_is_new``), the source and ``unusable_since`` untouched.
-        A latched frozen value stays unusable here as well.
-        """
-        if not self._physical_entity:
-            return None
-        value = self._sample(states, now)
-        if value is not None and self._frozen and value == self._last_w:
-            return None
-        return value
-
     def latch_frozen(self, now) -> bool:
         """Mark the value unusable if unchanged for > PHYSICAL_FROZEN_S.
 

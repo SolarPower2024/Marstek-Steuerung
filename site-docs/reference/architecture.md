@@ -4,7 +4,7 @@ This page maps the current Omnibattery codebase for contributors. It shows where
 
 ## System map
 
-Omnibattery creates one `MarstekVenusDataUpdateCoordinator` for each configured battery. The class keeps its historical name, but it coordinates every supported brand. Each coordinator owns one concrete `BatteryDriver`, its connection lock, telemetry cache, polling schedule, health state, and effective limits.
+Omnibattery creates one `MarstekVenusDataUpdateCoordinator` for each configured battery. The class keeps its historical name, but it coordinates Marstek Venus batteries. Each coordinator owns one concrete `BatteryDriver`, its connection lock, telemetry cache, polling schedule, health state, and effective limits.
 
 A config entry also creates one `ChargeDischargeController` for the fleet. The controller reads the Home Assistant grid sensor, combines feature blockers and overrides, calculates the fleet command, asks `PowerDistribution` to select batteries and allocate power, then writes through each coordinator and driver.
 
@@ -87,7 +87,7 @@ The default values in `DriverCapabilities` preserve the older register-backed be
 
 ## Supported drivers
 
-The package exports seven concrete drivers, and `MarstekVenusDataUpdateCoordinator.__init__()` constructs all seven from the configured brand.
+The package exports one concrete driver, and `MarstekVenusDataUpdateCoordinator.__init__()` constructs it for each configured battery.
 
 | File | Class | Hardware and transport |
 |---|---|---|
